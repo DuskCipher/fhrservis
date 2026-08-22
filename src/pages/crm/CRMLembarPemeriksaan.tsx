@@ -99,7 +99,6 @@ const emptyFormState: LPAData = {
 };
 
 export function CRMLembarPemeriksaan() {
-  const printRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'form' | 'history'>('form');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -240,17 +239,21 @@ export function CRMLembarPemeriksaan() {
     );
   });
 
+  // Group items for 2-column print layout
+  const col1Items = CHECKLIST_ITEMS.filter(i => i.category === 'INTERIOR' || i.category === 'EKSTERIOR');
+  const col2Items = CHECKLIST_ITEMS.filter(i => i.category === 'ENGINE' || i.category === 'UNDERSTEL');
+
   return (
-    <div className="min-h-screen bg-slate-50 pb-12 font-sans">
+    <div className="min-h-full font-sans bg-[#f4f6fb] print:bg-white print:p-0">
       
       {/* ── Top Action Header (hidden on print) ── */}
-      <div className="print:hidden sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-200 px-3 sm:px-6 py-2.5 sm:py-3.5 shadow-sm">
+      <div className="print:hidden sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-200 px-3 sm:px-6 py-2.5 sm:py-3 shadow-xs">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4">
           
           {/* Title & Tabs */}
           <div className="flex items-center justify-between sm:justify-start gap-2.5 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-red-600 flex items-center justify-center text-white flex-shrink-0 shadow-sm">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-red-600 flex items-center justify-center text-white flex-shrink-0 shadow-xs">
                 <FileText size={18} />
               </div>
               <div>
@@ -266,7 +269,7 @@ export function CRMLembarPemeriksaan() {
               <button
                 onClick={() => setActiveTab('form')}
                 className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md font-bold transition-all text-[11px] sm:text-xs
-                  ${activeTab === 'form' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  ${activeTab === 'form' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 <Edit3 size={12} />
                 <span className="hidden sm:inline">{currentDocId ? 'Edit Form' : 'Form Baru'}</span>
@@ -275,7 +278,7 @@ export function CRMLembarPemeriksaan() {
               <button
                 onClick={() => setActiveTab('history')}
                 className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md font-bold transition-all text-[11px] sm:text-xs
-                  ${activeTab === 'history' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  ${activeTab === 'history' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 <History size={12} />
                 <span>Riwayat ({historyList.length})</span>
@@ -299,7 +302,7 @@ export function CRMLembarPemeriksaan() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold rounded-lg transition-all text-white shadow-sm
+                className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-bold rounded-lg transition-all text-white shadow-xs
                   ${saved ? 'bg-emerald-600' : 'bg-slate-900 hover:bg-slate-800 active:scale-95'}`}
               >
                 {saved ? <CheckCircle size={13} /> : <Save size={13} />}
@@ -309,42 +312,42 @@ export function CRMLembarPemeriksaan() {
               </button>
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
               >
                 <Printer size={13} />
-                <span>Cetak / PDF</span>
+                <span>Cetak 1 Lembar (PDF)</span>
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── TAB 1: RIWAYAT / HISTORY LPA ── */}
+      {/* ── TAB 1: RIWAYAT / HISTORY LPA (Hidden on Print) ── */}
       {activeTab === 'history' && (
-        <div className="max-w-6xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6">
+        <div className="print:hidden max-w-6xl mx-auto p-3 sm:p-6 space-y-4 sm:space-y-6 pb-12">
           
           {/* Top Info Banner */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
-            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-sm">
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-2xs">
               <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total LPA Tersimpan</p>
               <p className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5 sm:mt-1">{historyList.length} Lembar</p>
               <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">Realtime Cloud Database</p>
             </div>
-            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-sm">
+            <div className="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-2xs">
               <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">LPA Bulan Ini</p>
               <p className="text-xl sm:text-2xl font-black text-emerald-600 mt-0.5 sm:mt-1">
                 {historyList.filter(h => (h.tanggal || '').startsWith(new Date().toISOString().slice(0, 7))).length} Dokumen
               </p>
               <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">Inspeksi berhasil</p>
             </div>
-            <div className="col-span-2 sm:col-span-1 bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-sm flex items-center justify-between">
+            <div className="col-span-2 sm:col-span-1 bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-2xs flex items-center justify-between">
               <div>
                 <p className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider">Input Pemeriksaan</p>
                 <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5">46 checklist mobil</p>
               </div>
               <button
                 onClick={handleNewForm}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors shadow-2xs"
               >
                 <Plus size={13} /> Buat LPA
               </button>
@@ -352,7 +355,7 @@ export function CRMLembarPemeriksaan() {
           </div>
 
           {/* Search Bar */}
-          <div className="bg-white rounded-xl border border-slate-200 p-2.5 sm:p-3.5 flex items-center gap-2 shadow-sm">
+          <div className="bg-white rounded-xl border border-slate-200 p-2.5 sm:p-3.5 flex items-center gap-2 shadow-2xs">
             <div className="relative flex-1">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -391,7 +394,7 @@ export function CRMLembarPemeriksaan() {
                 const rusakCount = countStatus('R', item.items);
 
                 return (
-                  <div key={item.id} className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-sm space-y-2.5">
+                  <div key={item.id} className="bg-white rounded-xl border border-slate-200 p-3.5 shadow-2xs space-y-2.5">
                     <div className="flex items-start justify-between">
                       <div>
                         <span className="font-mono font-black text-xs text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
@@ -450,7 +453,7 @@ export function CRMLembarPemeriksaan() {
           </div>
 
           {/* Desktop Table View (hidden on small screens) */}
-          <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="hidden sm:block bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -581,13 +584,13 @@ export function CRMLembarPemeriksaan() {
         </div>
       )}
 
-      {/* ── TAB 2: FORM / PRINTABLE SHEET ── */}
+      {/* ── TAB 2: INTERACTIVE FORM (Screen View Only - Hidden on Print) ── */}
       {activeTab === 'form' && (
-        <div ref={printRef} className="max-w-4xl mx-auto p-2.5 sm:p-6 print:p-0 print:max-w-none">
+        <div className="print:hidden max-w-4xl mx-auto p-2.5 sm:p-6 space-y-4 pb-16">
 
           {/* Edit Alert Bar */}
           {currentDocId && (
-            <div className="print:hidden mb-3 sm:mb-4 bg-amber-50 border border-amber-200 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2 shadow-sm">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 sm:p-3.5 flex items-center justify-between gap-2 shadow-2xs">
               <div className="flex items-center gap-2">
                 <AlertCircle size={17} className="text-amber-600 flex-shrink-0" />
                 <div>
@@ -608,8 +611,8 @@ export function CRMLembarPemeriksaan() {
             </div>
           )}
 
-          {/* ── Document Container ── */}
-          <div className="bg-white border border-slate-200 print:border-0 rounded-2xl print:rounded-none overflow-hidden shadow-sm">
+          {/* Document Screen Card */}
+          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xs">
             
             {/* Header: Logo, Workshop Info & Document Title */}
             <div className="p-4 sm:p-6 border-b border-slate-200 bg-white">
@@ -677,7 +680,7 @@ export function CRMLembarPemeriksaan() {
               </div>
             </div>
 
-            {/* ── Checklist 46 Item ── */}
+            {/* ── Checklist 46 Item Interactive Table ── */}
             <div className="overflow-x-auto">
               <table className="w-full text-xs sm:text-sm border-collapse min-w-[500px]">
                 <thead>
@@ -704,7 +707,6 @@ export function CRMLembarPemeriksaan() {
                     const catItems = CHECKLIST_ITEMS.filter(i => i.category === cat);
                     return (
                       <React.Fragment key={cat}>
-                        {/* Category Heading Header */}
                         <tr className="select-none">
                           <td colSpan={5} className={`py-1.5 px-3 text-[11px] font-black tracking-wider uppercase ${CAT_COLORS[cat]}`}>
                             {cat} ({catItems.length} Item)
@@ -716,45 +718,36 @@ export function CRMLembarPemeriksaan() {
 
                           return (
                             <tr key={item.no} className={`${rowBg} border-b border-slate-100 hover:bg-blue-50/30 transition-colors`}>
-                              {/* Number */}
                               <td className="text-center py-2 px-1 text-xs font-mono font-bold text-slate-400 border-r border-slate-100">
                                 {item.no}
                               </td>
-
-                              {/* Label */}
                               <td className="py-2 px-3 text-xs font-medium text-slate-800 border-r border-slate-100">
                                 {item.label}
                               </td>
-
-                              {/* B Button */}
                               <td className="text-center py-1.5 px-1 border-r border-slate-100">
                                 <button
                                   type="button"
                                   onClick={() => setItem(item.no, 'status', val.status === 'B' ? '' : 'B')}
                                   className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center mx-auto transition-all border font-black text-xs
                                     ${val.status === 'B'
-                                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs scale-105'
+                                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-2xs scale-105'
                                       : 'border-slate-300 text-slate-300 hover:border-emerald-400 hover:text-emerald-500 bg-white'}`}
                                 >
                                   {val.status === 'B' ? <Check size={14} strokeWidth={3} /> : 'B'}
                                 </button>
                               </td>
-
-                              {/* R Button */}
                               <td className="text-center py-1.5 px-1 border-r border-slate-100">
                                 <button
                                   type="button"
                                   onClick={() => setItem(item.no, 'status', val.status === 'R' ? '' : 'R')}
                                   className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center mx-auto transition-all border font-black text-xs
                                     ${val.status === 'R'
-                                      ? 'bg-red-600 border-red-600 text-white shadow-xs scale-105'
+                                      ? 'bg-red-600 border-red-600 text-white shadow-2xs scale-105'
                                       : 'border-slate-300 text-slate-300 hover:border-red-400 hover:text-red-500 bg-white'}`}
                                 >
                                   {val.status === 'R' ? <XIcon size={14} strokeWidth={3} /> : 'R'}
                                 </button>
                               </td>
-
-                              {/* Catatan / Nilai Ukur Input */}
                               <td className="py-1 px-2.5">
                                 <input
                                   type="text"
@@ -793,9 +786,6 @@ export function CRMLembarPemeriksaan() {
                       className="w-full text-xs text-slate-800 border border-slate-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 resize-none placeholder-slate-400"
                     />
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-2">
-                    * Catatan ini akan dicetak pada lembar serah terima ke konsumen.
-                  </p>
                 </div>
 
                 {/* Ringkasan & Tanda Tangan */}
@@ -867,25 +857,252 @@ export function CRMLembarPemeriksaan() {
               </div>
             </div>
 
-            {/* Print Footer */}
-            <div className="text-center py-4 border-t border-slate-200 text-[10px] text-slate-400 print:block hidden">
-              <p className="font-bold text-slate-600">FHRCAR Auto Services — Bengkel Mobil Panggilan 24 Jam</p>
-              <p>Dokumen resmi ini dicetak pada {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-            </div>
-
           </div>
 
         </div>
       )}
 
-      {/* Print CSS Rules */}
+      {/* ── 📄 DEDICATED PRINT / PDF 1-PAGE A4 LAYOUT (ONLY ACTIVE ON PRINT) ── */}
+      <div className="hidden print:block print-page text-slate-900 bg-white leading-tight">
+        
+        {/* Print Header: Logo + Title + Doc No */}
+        <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1.5 mb-1.5">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="FHRCAR" className="h-9 w-auto object-contain" />
+            <div>
+              <h1 className="text-sm font-black tracking-tight text-slate-900 uppercase leading-none">
+                FHRCAR AUTO SERVICES
+              </h1>
+              <p className="text-[9px] font-bold text-red-600 italic leading-none mt-0.5">
+                "Bengkel Mobil Home Service & Panggilan 24 Jam"
+              </p>
+              <p className="text-[7.5px] text-slate-500 leading-none mt-0.5">
+                Area Purwokerto, Banyumas, & Sekitarnya · Siaga 24 Jam
+              </p>
+            </div>
+          </div>
+          <div className="text-right border-l-2 border-slate-900 pl-3">
+            <p className="text-[7.5px] font-bold text-slate-500 uppercase tracking-widest leading-none">DOKUMEN RESMI</p>
+            <p className="text-xs font-black text-slate-900 leading-tight">LEMBAR PEMERIKSAAN AKHIR</p>
+            <p className="text-[8.5px] font-mono font-bold text-red-600 leading-none">
+              {currentDocId ? `#LPA-${currentDocId.slice(0, 6).toUpperCase()}` : `#LPA-${new Date().getFullYear()}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Compact Vehicle Info Grid (1 neat bar) */}
+        <div className="bg-slate-100 border border-slate-300 rounded px-2 py-1 mb-1.5 text-[8.5px] grid grid-cols-6 gap-1 font-semibold">
+          <div>
+            <span className="text-[7.5px] text-slate-500 uppercase block font-bold">Pelanggan</span>
+            <span className="truncate block font-bold text-slate-900">{form.pelanggan || '-'}</span>
+          </div>
+          <div>
+            <span className="text-[7.5px] text-slate-500 uppercase block font-bold">No. Polisi</span>
+            <span className="truncate block font-black text-slate-900 font-mono">{form.nopol || '-'}</span>
+          </div>
+          <div>
+            <span className="text-[7.5px] text-slate-500 uppercase block font-bold">Tipe Mobil</span>
+            <span className="truncate block text-slate-900">{form.tipeMobil || '-'}</span>
+          </div>
+          <div>
+            <span className="text-[7.5px] text-slate-500 uppercase block font-bold">KM Kendaraan</span>
+            <span className="truncate block text-slate-900">{form.km || '-'}</span>
+          </div>
+          <div>
+            <span className="text-[7.5px] text-slate-500 uppercase block font-bold">Tanggal</span>
+            <span className="truncate block text-slate-900">{form.tanggal || '-'}</span>
+          </div>
+          <div>
+            <span className="text-[7.5px] text-slate-500 uppercase block font-bold">Mekanik</span>
+            <span className="truncate block text-slate-900">{form.mekanik || '-'}</span>
+          </div>
+        </div>
+
+        {/* ── 2-Column Side-by-Side Table for 46 Items (Fits 1 page perfectly) ── */}
+        <div className="grid grid-cols-2 gap-1.5 mb-1.5">
+          
+          {/* Column 1: Interior (1-10) & Eksterior (11-22) */}
+          <div className="border border-slate-400 rounded overflow-hidden">
+            <table className="w-full text-[8px] border-collapse">
+              <thead>
+                <tr className="bg-slate-900 text-white font-bold text-[7.5px]">
+                  <th className="py-0.5 px-1 text-center w-5 border-r border-slate-700">No</th>
+                  <th className="py-0.5 px-1.5 text-left border-r border-slate-700">Komponen</th>
+                  <th className="py-0.5 px-1 text-center w-5 border-r border-slate-700 bg-emerald-900 text-emerald-200">B</th>
+                  <th className="py-0.5 px-1 text-center w-5 border-r border-slate-700 bg-red-900 text-red-200">R</th>
+                  <th className="py-0.5 px-1 text-left w-20">Catatan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {['INTERIOR', 'EKSTERIOR'].map(cat => {
+                  const catItems = CHECKLIST_ITEMS.filter(i => i.category === cat);
+                  return (
+                    <React.Fragment key={cat}>
+                      <tr className="bg-slate-800 text-white font-black text-[7.5px]">
+                        <td colSpan={5} className="py-0.5 px-1 tracking-wider uppercase">
+                          {cat}
+                        </td>
+                      </tr>
+                      {catItems.map((item, idx) => {
+                        const val = form.items[item.no] || { status: '', catatan: '' };
+                        const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                        return (
+                          <tr key={item.no} className={`${rowBg} border-b border-slate-200`}>
+                            <td className="text-center py-0.5 px-0.5 font-mono font-bold text-slate-500 border-r border-slate-200">
+                              {item.no}
+                            </td>
+                            <td className="py-0.5 px-1 font-medium text-slate-900 border-r border-slate-200 truncate max-w-[120px]">
+                              {item.label}
+                            </td>
+                            <td className="text-center py-0.5 px-0.5 border-r border-slate-200 font-bold text-[8.5px]">
+                              {val.status === 'B' ? <span className="text-emerald-700 font-black">✓</span> : ''}
+                            </td>
+                            <td className="text-center py-0.5 px-0.5 border-r border-slate-200 font-bold text-[8.5px]">
+                              {val.status === 'R' ? <span className="text-red-700 font-black">✕</span> : ''}
+                            </td>
+                            <td className="py-0.5 px-1 text-slate-600 truncate max-w-[80px]">
+                              {val.catatan || '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Column 2: Engine (23-43) & Understel (44-46) */}
+          <div className="border border-slate-400 rounded overflow-hidden">
+            <table className="w-full text-[8px] border-collapse">
+              <thead>
+                <tr className="bg-slate-900 text-white font-bold text-[7.5px]">
+                  <th className="py-0.5 px-1 text-center w-5 border-r border-slate-700">No</th>
+                  <th className="py-0.5 px-1.5 text-left border-r border-slate-700">Komponen</th>
+                  <th className="py-0.5 px-1 text-center w-5 border-r border-slate-700 bg-emerald-900 text-emerald-200">B</th>
+                  <th className="py-0.5 px-1 text-center w-5 border-r border-slate-700 bg-red-900 text-red-200">R</th>
+                  <th className="py-0.5 px-1 text-left w-20">Catatan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {['ENGINE', 'UNDERSTEL'].map(cat => {
+                  const catItems = CHECKLIST_ITEMS.filter(i => i.category === cat);
+                  return (
+                    <React.Fragment key={cat}>
+                      <tr className="bg-slate-800 text-white font-black text-[7.5px]">
+                        <td colSpan={5} className="py-0.5 px-1 tracking-wider uppercase">
+                          {cat}
+                        </td>
+                      </tr>
+                      {catItems.map((item, idx) => {
+                        const val = form.items[item.no] || { status: '', catatan: '' };
+                        const rowBg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                        return (
+                          <tr key={item.no} className={`${rowBg} border-b border-slate-200`}>
+                            <td className="text-center py-0.5 px-0.5 font-mono font-bold text-slate-500 border-r border-slate-200">
+                              {item.no}
+                            </td>
+                            <td className="py-0.5 px-1 font-medium text-slate-900 border-r border-slate-200 truncate max-w-[120px]">
+                              {item.label}
+                            </td>
+                            <td className="text-center py-0.5 px-0.5 border-r border-slate-200 font-bold text-[8.5px]">
+                              {val.status === 'B' ? <span className="text-emerald-700 font-black">✓</span> : ''}
+                            </td>
+                            <td className="text-center py-0.5 px-0.5 border-r border-slate-200 font-bold text-[8.5px]">
+                              {val.status === 'R' ? <span className="text-red-700 font-black">✕</span> : ''}
+                            </td>
+                            <td className="py-0.5 px-1 text-slate-600 truncate max-w-[80px]">
+                              {val.catatan || '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        {/* ── Compact Saran & Signatures (Bottom Row) ── */}
+        <div className="grid grid-cols-3 gap-1.5 border border-slate-400 rounded p-1.5 text-[8.5px]">
+          
+          {/* Saran */}
+          <div className="col-span-2 border-r border-slate-300 pr-2 flex flex-col justify-between">
+            <div>
+              <p className="font-bold uppercase text-[7.5px] text-slate-600 mb-0.5">Saran & Rekomendasi Mekanik:</p>
+              <p className="text-slate-800 italic leading-snug min-h-[32px]">
+                {form.saran || 'Seluruh komponen dalam batas normal atau telah disesuaikan sesuai rekomendasi.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 pt-1 border-t border-slate-200 text-[8px] font-bold">
+              <span>Hasil:</span>
+              <span className="text-emerald-700">{countStatus('B')} Item Baik (✓)</span>
+              <span>·</span>
+              <span className="text-red-700">{countStatus('R')} Item Rusak/Perlu Servis (✕)</span>
+            </div>
+          </div>
+
+          {/* Tanda Tangan */}
+          <div className="grid grid-cols-2 gap-1 text-center">
+            <div>
+              <p className="text-[7.5px] font-bold text-slate-500 uppercase">Mekanik</p>
+              <div className="h-9 border-b border-dashed border-slate-400 flex items-end justify-center pb-0.5">
+                <span className="text-[7.5px] font-semibold text-slate-700 truncate">( {form.mekanik || 'Mekanik'} )</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-[7.5px] font-bold text-slate-500 uppercase">Pelanggan</p>
+              <div className="h-9 border-b border-dashed border-slate-400 flex items-end justify-center pb-0.5">
+                <span className="text-[7.5px] font-semibold text-slate-700 truncate">( {form.pelanggan || 'Pelanggan'} )</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Print Note */}
+        <div className="text-center text-[7px] text-slate-400 mt-1">
+          FHRCAR Auto Services — Bengkel Mobil Panggilan 24 Jam · Dicetak pada: {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </div>
+
+      </div>
+
+      {/* ── Strict 1-Page A4 Print CSS Rules ── */}
       <style>{`
         @media print {
-          body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .print\\:hidden { display: none !important; }
-          @page { margin: 8mm; size: A4 portrait; }
-          button { cursor: default; }
-          input, textarea { border: none !important; }
+          @page {
+            size: A4 portrait;
+            margin: 4mm 6mm !important;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            background: #fff !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+          .print-page {
+            display: block !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            height: 100% !important;
+            max-height: 285mm !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+          }
+          button, input, textarea {
+            border: none !important;
+          }
         }
       `}</style>
     </div>

@@ -117,19 +117,20 @@ export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLay
   const sidebarW = collapsed ? 'w-16' : 'w-60';
 
   return (
-    <div className="min-h-screen bg-[#f4f6fb] flex font-sans">
+    <div className="h-screen overflow-hidden bg-[#f4f6fb] flex font-sans print:h-auto print:overflow-visible print:bg-white">
 
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-slate-900/60 z-40 lg:hidden print:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Pinned Fixed Height */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 ${sidebarW} bg-[#1a2035] flex flex-col
+        fixed inset-y-0 left-0 z-50 ${sidebarW} bg-[#1a2035] flex flex-col h-full
         transition-all duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:flex flex-shrink-0
+        print:hidden
       `}>
 
         {/* Logo area */}
@@ -295,11 +296,11 @@ export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLay
         </div>
       </aside>
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* Main Container */}
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden print:h-auto print:overflow-visible">
 
         {/* Topbar */}
-        <header className="bg-white border-b border-slate-200/80 h-14 flex items-center px-4 sm:px-6 gap-4 flex-shrink-0 sticky top-0 z-30">
+        <header className="bg-white border-b border-slate-200/80 h-14 flex items-center px-4 sm:px-6 gap-4 flex-shrink-0 sticky top-0 z-30 print:hidden">
           <button className="lg:hidden text-slate-500 hover:text-slate-900" onClick={() => setSidebarOpen(true)}>
             <Menu size={20} />
           </button>
@@ -398,8 +399,8 @@ export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLay
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Content Area - Independent Scroll Container */}
+        <main className="flex-1 overflow-y-auto print:overflow-visible print:h-auto print:p-0">
           {children}
         </main>
       </div>
