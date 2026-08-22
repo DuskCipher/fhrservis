@@ -1,4 +1,6 @@
-export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking';
+export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-lpa';
+
+export type OrderStatus = 'pending' | 'process' | 'completed' | 'cancelled';
 
 export interface ServiceItem {
   id: string;
@@ -26,6 +28,13 @@ export interface BookingData {
   notes: string;
   serviceDate: string;
   serviceTime: string;
+}
+
+export interface CRMOrder extends BookingData {
+  id: string;
+  createdAt: string;
+  status: OrderStatus;
+  totalPrice?: number;
 }
 
 export interface ArticleItem {
