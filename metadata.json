@@ -1,0 +1,6 @@
+{
+  "name": "FHRCAR Auto Services",
+  "description": "Website resmi bengkel mobil panggilan 24 jam & emergency roadside service terpercaya untuk perawatan dan perbaikan mobil langsung di lokasi Anda.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
