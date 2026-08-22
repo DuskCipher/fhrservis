@@ -147,29 +147,29 @@ export default function App() {
   };
 
   // CRM Rendering Logic
-  // null = Firebase Auth still loading
-  if (isAuthenticated === null) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <img src="/logo-putih.png" alt="FHRCAR" className="h-12 w-auto object-contain opacity-80" />
-          <div className="flex items-center gap-2 text-slate-400 text-sm">
-            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-            </svg>
-            Memuat sistem...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   if (activePage === 'crm-login') {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }
 
   if (activePage.startsWith('crm-')) {
+    // Show loading spinner if Firebase Auth is still resolving
+    if (isAuthenticated === null) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center font-sans">
+          <div className="flex flex-col items-center gap-4">
+            <img src="/logo-putih.png" alt="FHRCAR" className="h-12 w-auto object-contain opacity-80" />
+            <div className="flex items-center gap-2 text-slate-400 text-sm">
+              <svg className="animate-spin h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+              </svg>
+              Memuat sistem CRM...
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (!isAuthenticated) {
       return <LoginPage onLoginSuccess={handleLoginSuccess} />;
     }
