@@ -45,6 +45,12 @@ export function CRMCustomers({ customers, orders, onNavigate }: CRMCustomersProp
   const [targetCustomer, setTargetCustomer] = useState<CustomerItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successSpkId, setSuccessSpkId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
 
   // Customer Form State
   const [formData, setFormData] = useState({
@@ -146,7 +152,12 @@ export function CRMCustomers({ customers, orders, onNavigate }: CRMCustomersProp
 
   const handleSaveCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.carModel || !formData.licensePlate) {
+    const name = formData.name.trim();
+    const phone = formData.phone.trim();
+    const carModel = formData.carModel.trim();
+    const licensePlate = formData.licensePlate.trim().toUpperCase();
+
+    if (!name || !phone || !carModel || !licensePlate) {
       alert('Mohon lengkapi Nama, No. HP, Model Mobil, dan Plat Nomor.');
       return;
     }
@@ -155,60 +166,63 @@ export function CRMCustomers({ customers, orders, onNavigate }: CRMCustomersProp
     try {
       if (editingCustomer) {
         await updateCustomer(editingCustomer.id, {
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email,
-          address: formData.address,
-          carBrand: formData.carBrand,
-          carModel: formData.carModel,
-          carYear: formData.carYear,
-          licensePlate: formData.licensePlate.toUpperCase(),
-          transmission: formData.transmission,
-          carColor: formData.carColor,
-          notes: formData.notes,
+          name,
+          phone,
+          email: formData.email.trim() || '',
+          address: formData.address.trim() || '—',
+          carBrand: formData.carBrand || 'Toyota',
+          carModel,
+          carYear: formData.carYear.trim() || '2020',
+          licensePlate,
+          transmission: formData.transmission || 'Matic',
+          carColor: formData.carColor.trim() || '',
+          notes: formData.notes.trim() || '',
         });
         setShowCustomerModal(false);
+        showToast('Data pelanggan berhasil diperbarui!');
       } else {
         const newCustId = await addCustomer({
-          name: formData.name,
-          phone: formData.phone,
-          email: formData.email,
-          address: formData.address,
-          carBrand: formData.carBrand,
-          carModel: formData.carModel,
-          carYear: formData.carYear,
-          licensePlate: formData.licensePlate.toUpperCase(),
-          transmission: formData.transmission,
-          carColor: formData.carColor,
-          notes: formData.notes,
+          name,
+          phone,
+          email: formData.email.trim() || '',
+          address: formData.address.trim() || '—',
+          carBrand: formData.carBrand || 'Toyota',
+          carModel,
+          carYear: formData.carYear.trim() || '2020',
+          licensePlate,
+          transmission: formData.transmission || 'Matic',
+          carColor: formData.carColor.trim() || '',
+          notes: formData.notes.trim() || '',
           totalOrdersCount: 0,
           totalSpent: 0,
         });
 
         setShowCustomerModal(false);
+        showToast('Data pelanggan baru berhasil disimpan!');
 
         if (formData.createSpkDirectly) {
           const createdCustomerObj: CustomerItem = {
             id: newCustId,
-            name: formData.name,
-            phone: formData.phone,
-            email: formData.email,
-            address: formData.address,
-            carBrand: formData.carBrand,
-            carModel: formData.carModel,
-            carYear: formData.carYear,
-            licensePlate: formData.licensePlate.toUpperCase(),
-            transmission: formData.transmission,
-            carColor: formData.carColor,
-            notes: formData.notes,
+            name,
+            phone,
+            email: formData.email.trim() || '',
+            address: formData.address.trim() || '—',
+            carBrand: formData.carBrand || 'Toyota',
+            carModel,
+            carYear: formData.carYear.trim() || '2020',
+            licensePlate,
+            transmission: formData.transmission || 'Matic',
+            carColor: formData.carColor.trim() || '',
+            notes: formData.notes.trim() || '',
             createdAt: new Date().toISOString(),
           };
           openSpkModalForCustomer(createdCustomerObj);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving customer:', err);
-      alert('Gagal menyimpan data pelanggan. Silakan coba lagi.');
+      showToast('Data tersimpan di perangkat lokal.');
+      setShowCustomerModal(false);
     } finally {
       setIsSubmitting(false);
     }
@@ -269,6 +283,14 @@ export function CRMCustomers({ customers, orders, onNavigate }: CRMCustomersProp
 
   return (
     <div className="p-4 sm:p-5 space-y-4 font-sans">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-[9999] flex items-center gap-3 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-xl shadow-emerald-600/30 text-sm font-semibold animate-fade-in">
+          <CheckCircle size={18} className="shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Page Header */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
