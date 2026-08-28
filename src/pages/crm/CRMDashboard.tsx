@@ -14,6 +14,7 @@ interface CRMDashboardProps {
   orders: CRMOrder[];
   onUpdateStatus: (id: string, status: any) => void;
   onNavigate: (page: any) => void;
+  onBuatSPK?: () => void;
 }
 
 const formatRp = (n: number) => {
@@ -50,7 +51,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function CRMDashboard({ orders, onUpdateStatus, onNavigate }: CRMDashboardProps) {
+export function CRMDashboard({ orders, onUpdateStatus, onNavigate, onBuatSPK }: CRMDashboardProps) {
   const total = orders.length;
   const pending = orders.filter(o => o.status === 'pending').length;
   const process = orders.filter(o => o.status === 'process').length;
@@ -155,7 +156,7 @@ export function CRMDashboard({ orders, onUpdateStatus, onNavigate }: CRMDashboar
             <span>Data Pelanggan</span>
           </button>
           <button
-            onClick={() => onNavigate('crm-customers')}
+            onClick={() => onBuatSPK ? onBuatSPK() : onNavigate('crm-customers')}
             className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-red-600/20"
           >
             + Buat SPK Baru

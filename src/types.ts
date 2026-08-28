@@ -2,6 +2,77 @@ export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-d
 
 export type OrderStatus = 'pending' | 'process' | 'completed' | 'cancelled';
 
+export type SACheckResult = 'ok' | 'perhatian' | 'segera' | '';
+
+export interface SACheckItem {
+  id: string;
+  label: string;
+  result: SACheckResult;
+  catatan: string;
+}
+
+export interface SPKSparepart {
+  id: string;
+  nama: string;
+  qty: number;
+  satuan: string;
+  hargaSatuan: number;
+}
+
+export interface SPKJasa {
+  id: string;
+  nama: string;
+  harga: number;
+}
+
+export interface SPKDocument {
+  id: string;
+  spkNumber: string;
+  createdAt: string;
+  updatedAt?: string;
+  status: 'draft' | 'sa-check' | 'nota' | 'lpa' | 'selesai';
+
+  // Pelanggan & kendaraan
+  customerId: string;
+  customerName: string;
+  phone: string;
+  address: string;
+  carBrand: string;
+  carModel: string;
+  carYear: string;
+  licensePlate: string;
+  transmission: string;
+  carColor: string;
+  kilometer?: string;
+
+  // Step 2 — SA Check
+  saCheckEksterior: SACheckItem[];
+  saCheckInterior: SACheckItem[];
+  saCheckMesin: SACheckItem[];
+  saCheckKakiKaki: SACheckItem[];
+  saAdvisorName: string;
+  saCatatanUmum: string;
+
+  // Step 3 — Nota Sparepart & Jasa
+  spareparts: SPKSparepart[];
+  jasaList: SPKJasa[];
+  diskon: number;
+  pajakPersen: number;
+
+  // Step 4 — LPA
+  lpaChecklist: SACheckItem[];
+  lpaTeknisi: string;
+  lpaTestDriveOk: boolean;
+  lpaCatatan: string;
+
+  // Step 5 — Nota Akhir
+  metodePembayaran: 'cash' | 'transfer' | 'kredit';
+  grandTotal: number;
+  dibayar?: number;
+  kembalian?: number;
+}
+
+
 export interface CustomerItem {
   id: string;
   name: string;

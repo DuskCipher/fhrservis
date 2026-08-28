@@ -11,6 +11,7 @@ interface CRMCustomersProps {
   customers: CustomerItem[];
   orders: CRMOrder[];
   onNavigate: (page: any) => void;
+  onBuatSPK?: () => void;
 }
 
 const CAR_BRANDS = [
@@ -32,7 +33,7 @@ const SERVICE_TYPES = [
   'Lainnya (Custom Servis)',
 ];
 
-export function CRMCustomers({ customers, orders, onNavigate }: CRMCustomersProps) {
+export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCustomersProps) {
   const [search, setSearch] = useState('');
   const [filterBrand, setFilterBrand] = useState('all');
   
@@ -309,12 +310,21 @@ export function CRMCustomers({ customers, orders, onNavigate }: CRMCustomersProp
           </div>
           
           <div className="flex items-center gap-2.5">
+            {onBuatSPK && (
+              <button
+                onClick={onBuatSPK}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 active:scale-95 text-white font-bold text-xs transition-all"
+              >
+                <FileText size={14} />
+                <span>Buat SPK</span>
+              </button>
+            )}
             <button
               onClick={openAddModal}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-red-600/20 transition-all"
             >
               <Plus size={16} />
-              <span>+ Tambah Pelanggan Baru</span>
+              <span>+ Tambah Pelanggan</span>
             </button>
           </div>
         </div>

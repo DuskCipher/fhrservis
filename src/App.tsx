@@ -30,6 +30,7 @@ import { CRMDashboard } from './pages/crm/CRMDashboard';
 import { CRMOrders } from './pages/crm/CRMOrders';
 import { CRMCustomers } from './pages/crm/CRMCustomers';
 import { CRMLembarPemeriksaan } from './pages/crm/CRMLembarPemeriksaan';
+import { SPKWizard } from './pages/crm/SPKWizard';
 
 export default function App() {
   const [activePage, setActivePage] = useState<PageType>('beranda');
@@ -44,6 +45,7 @@ export default function App() {
   const [crmOrders, setCrmOrders] = useState<CRMOrder[]>([]);
   const [crmCustomers, setCrmCustomers] = useState<CustomerItem[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
+  const [showSPKWizard, setShowSPKWizard] = useState(false);
 
   // Listen to Firebase Auth state
   useEffect(() => {
@@ -218,6 +220,7 @@ export default function App() {
             orders={crmOrders}
             onUpdateStatus={(id, status) => updateOrderStatus(id, status)}
             onNavigate={handleNavigate}
+            onBuatSPK={() => setShowSPKWizard(true)}
           />
         )}
         {activePage === 'crm-orders' && (
@@ -226,6 +229,7 @@ export default function App() {
             customers={crmCustomers}
             onUpdateStatus={(id, status) => updateOrderStatus(id, status)}
             onNavigate={handleNavigate}
+            onBuatSPK={() => setShowSPKWizard(true)}
           />
         )}
         {activePage === 'crm-customers' && (
@@ -233,10 +237,23 @@ export default function App() {
             customers={crmCustomers}
             orders={crmOrders}
             onNavigate={handleNavigate}
+            onBuatSPK={() => setShowSPKWizard(true)}
           />
         )}
         {activePage === 'crm-lpa' && (
           <CRMLembarPemeriksaan />
+        )}
+
+        {/* SPK Wizard Modal — global overlay within CRM */}
+        {showSPKWizard && (
+          <SPKWizard
+            customers={crmCustomers}
+            onClose={() => setShowSPKWizard(false)}
+            onSaved={(spkId) => {
+              console.log('SPK saved:', spkId);
+              setShowSPKWizard(false);
+            }}
+          />
         )}
       </CRMLayout>
     );
