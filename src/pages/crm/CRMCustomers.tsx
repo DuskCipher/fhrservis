@@ -65,6 +65,9 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
     licensePlate: '',
     transmission: 'Matic' as 'Manual' | 'Matic',
     carColor: '',
+    vinNumber: '',
+    engineNumber: '',
+    fuelType: 'Bensin' as 'Bensin' | 'Diesel' | 'Hybrid' | 'EV',
     notes: '',
     createSpkDirectly: false,
   });
@@ -110,6 +113,9 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
       licensePlate: '',
       transmission: 'Matic',
       carColor: '',
+      vinNumber: '',
+      engineNumber: '',
+      fuelType: 'Bensin',
       notes: '',
       createSpkDirectly: false,
     });
@@ -129,6 +135,9 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
       licensePlate: c.licensePlate,
       transmission: c.transmission || 'Matic',
       carColor: c.carColor || '',
+      vinNumber: c.vinNumber || '',
+      engineNumber: c.engineNumber || '',
+      fuelType: c.fuelType || 'Bensin',
       notes: c.notes || '',
       createSpkDirectly: false,
     });
@@ -177,6 +186,9 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
           licensePlate,
           transmission: formData.transmission || 'Matic',
           carColor: formData.carColor.trim() || '',
+          vinNumber: formData.vinNumber.trim() || '',
+          engineNumber: formData.engineNumber.trim() || '',
+          fuelType: formData.fuelType || 'Bensin',
           notes: formData.notes.trim() || '',
         });
         setShowCustomerModal(false);
@@ -193,6 +205,9 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
           licensePlate,
           transmission: formData.transmission || 'Matic',
           carColor: formData.carColor.trim() || '',
+          vinNumber: formData.vinNumber.trim() || '',
+          engineNumber: formData.engineNumber.trim() || '',
+          fuelType: formData.fuelType || 'Bensin',
           notes: formData.notes.trim() || '',
           totalOrdersCount: 0,
           totalSpent: 0,
@@ -500,7 +515,7 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
                         <div className="flex items-center justify-end gap-1.5">
                           {/* PRIMARY ACTION: BUAT SPK */}
                           <button
-                            onClick={() => openSpkModalForCustomer(c)}
+                            onClick={() => onBuatSPK ? onBuatSPK() : onNavigate('crm-spk-create')}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-red-600/30 transition-all"
                             title="Buat Surat Perintah Kerja dari pelanggan ini"
                           >

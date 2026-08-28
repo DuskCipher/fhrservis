@@ -1,4 +1,4 @@
-export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-lpa' | 'crm-spk-create';
+export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-lpa' | 'crm-spk-create' | 'crm-employees';
 
 export type OrderStatus = 'pending' | 'process' | 'completed' | 'cancelled';
 
@@ -25,6 +25,20 @@ export interface SPKJasa {
   harga: number;
 }
 
+export type EmployeeRole = 'SA' | 'FA' | 'Mekanik' | 'Foreman' | 'Kasir' | 'Manager';
+
+export interface EmployeeItem {
+  id: string;
+  name: string;
+  nik?: string;
+  role: EmployeeRole;
+  phone: string;
+  email?: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface SPKDocument {
   id: string;
   spkNumber: string;
@@ -44,6 +58,20 @@ export interface SPKDocument {
   transmission: string;
   carColor: string;
   kilometer?: string;
+  noRangka?: string;
+  noMesin?: string;
+  fuelType?: string;
+  keluhan?: string;
+
+  // Staf Penanggung Jawab
+  saId?: string;
+  saName: string;
+  faId?: string;
+  faName?: string;
+  mekanikId?: string;
+  mekanikName: string;
+  kasirId?: string;
+  kasirName?: string;
 
   // Step 2 — SA Check
   saCheckEksterior: SACheckItem[];
@@ -65,11 +93,14 @@ export interface SPKDocument {
   lpaTestDriveOk: boolean;
   lpaCatatan: string;
 
-  // Step 5 — Nota Akhir
+  // Step 5 — Nota Akhir & Garansi
   metodePembayaran: 'cash' | 'transfer' | 'kredit';
   grandTotal: number;
   dibayar?: number;
   kembalian?: number;
+  garansiServis?: string;
+  nextServiceKm?: string;
+  nextServiceDate?: string;
 }
 
 
@@ -85,6 +116,9 @@ export interface CustomerItem {
   licensePlate: string;
   transmission?: 'Manual' | 'Matic';
   carColor?: string;
+  vinNumber?: string;
+  engineNumber?: string;
+  fuelType?: 'Bensin' | 'Diesel' | 'Hybrid' | 'EV';
   notes?: string;
   totalOrdersCount?: number;
   totalSpent?: number;

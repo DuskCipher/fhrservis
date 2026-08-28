@@ -5,24 +5,26 @@ import {
   Save, Clock, Wrench, FileText, ClipboardList, Receipt, CreditCard,
   Banknote, Check, ArrowLeft, Calendar, Hash, Gauge, Palette,
   Settings2, AlertCircle, Info, RefreshCw, DollarSign, Percent,
-  ShoppingCart, BarChart3, ChevronDown
+  ShoppingCart, BarChart3, ChevronDown, Fuel, UserCheck, ShieldCheck,
+  Building, CheckSquare, Layers
 } from 'lucide-react';
 import {
   CustomerItem, SACheckItem, SACheckResult,
-  SPKSparepart, SPKJasa
+  SPKSparepart, SPKJasa, EmployeeItem
 } from '../../types';
 import { addSPK } from '../../lib/firestoreService';
 
 /* ─── PROPS ──────────────────────────────────────────────────────────── */
 interface CRMSPKCreateProps {
   customers: CustomerItem[];
+  employees?: EmployeeItem[];
   onNavigate: (page: any) => void;
 }
 
 /* ─── HELPERS ────────────────────────────────────────────────────────── */
 const uid = () => Math.random().toString(36).substring(2, 9);
 const formatRp = (n: number) =>
-  'Rp ' + Math.round(n).toLocaleString('id-ID');
+  'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
 
 function makeCheck(label: string): SACheckItem {
   return { id: uid(), label, result: '', catatan: '' };
@@ -33,7 +35,7 @@ const EKSTERIOR_ITEMS = [
   'Body & Panel Pintu', 'Cat & Poles Bodi', 'Kaca Depan & Belakang',
   'Lampu Depan (Headlamp)', 'Lampu Belakang (Tailamp)',
   'Bumper Depan & Belakang', 'Spion Kiri & Kanan',
-  'Wiper Depan & Belakang', 'Antena & Roof Rail', 'Handle Pintu',
+  'Wiper Depan & Belakang', 'Antena & Roof Rail', 'Handle Pintu & Kunci',
 ].map(makeCheck);
 
 const INTERIOR_ITEMS = [
@@ -44,11 +46,11 @@ const INTERIOR_ITEMS = [
 ].map(makeCheck);
 
 const MESIN_ITEMS = [
-  'Oli Mesin (Level & Kondisi)', 'Filter Oli', 'Filter Udara',
+  'Oli Mesin (Level & Kondisi)', 'Filter Oli Mesin', 'Filter Udara',
   'Air Radiator & Coolant', 'Aki / Baterai (Tegangan)',
   'Alternator & Dinamo Starter', 'V-Belt & Timing Belt',
   'Busi & Kabel Busi', 'Selang & Klem Radiator',
-  'Sistem Bahan Bakar', 'Catalytic Converter & Knalpot', 'Kompresor AC',
+  'Sistem Bahan Bakar & Injektor', 'Catalytic Converter & Knalpot', 'Kompresor & Extra Fan AC',
 ].map(makeCheck);
 
 const KAKI_ITEMS = [
@@ -56,48 +58,28 @@ const KAKI_ITEMS = [
   'Rem Depan (Kampas & Cakram)', 'Rem Belakang (Kampas & Tromol)',
   'Minyak Rem (Level & Kondisi)', 'Shock Absorber Depan',
   'Shock Absorber Belakang', 'Tie Rod & Ball Joint',
-  'Sistem Kemudi (Steering)', 'Kopling / CVT Matic',
+  'Sistem Kemudi (Rack End / EPS)', 'Kopling / Transmisi Matic',
   'CV Joint & As Roda', 'Per / Pegas Suspensi',
 ].map(makeCheck);
 
 const LPA_ITEMS = [
-  'Kunci Kontak & Remote Kendaraan', 'Buku Servis & STNK',
-  'Ban Serep & Toolkit', 'Dongkrak & Kunci Roda',
-  'Kelengkapan Interior (Karpet, Plafon)', 'Kebersihan Eksterior',
-  'Kebersihan Interior & Kabin', 'Semua Lampu Berfungsi Normal',
-  'AC & Blower Berfungsi Normal', 'Audio & Elektronik Normal',
-  'Power Window Semua Berfungsi', 'Rem Parkir Berfungsi',
-  'Tekanan Ban Sesuai Standar', 'Tidak Ada Kebocoran Oli/Air',
+  'Kunci Kontak & Remote Kendaraan', 'Buku Servis & STNK Asli',
+  'Ban Serep & Toolkit Lengkap', 'Dongkrak & Kunci Roda',
+  'Kelengkapan Interior (Karpet, Barang Pelanggan)', 'Kebersihan Eksterior & Body',
+  'Kebersihan Interior & Kabin Wangi', 'Semua Lampu & Indikator Berfungsi Normal',
+  'AC Dingin & Blower Berfungsi Normal', 'Audio & Kelistrikan Normal',
+  'Power Window & Central Lock Berfungsi', 'Rem Utama & Rem Parkir Pakem',
+  'Tekanan Semua Ban Sesuai Standar', 'Tidak Ada Kebocoran Oli / Air / Minyak Rem',
 ].map(makeCheck);
 
 /* ─── STEP CONFIG ────────────────────────────────────────────────────── */
 const STEPS = [
-  { id: 1, label: 'Informasi Kendaraan', short: 'Kendaraan', icon: Car,           desc: 'Pilih pelanggan & data kendaraan' },
-  { id: 2, label: 'Pengecekan SA',       short: 'Pengecekan', icon: ClipboardList, desc: 'Inspeksi 4 kategori komponen' },
-  { id: 3, label: 'Nota & Biaya',        short: 'Nota',       icon: ShoppingCart,  desc: 'Sparepart, jasa & kalkulasi' },
-  { id: 4, label: 'LPA',                 short: 'LPA',        icon: FileText,      desc: 'Lembar pemeriksaan akhir' },
-  { id: 5, label: 'Nota Akhir',          short: 'Selesai',    icon: Receipt,       desc: 'Pembayaran & cetak nota' },
+  { id: 1, label: 'Informasi Kendaraan & Staf', short: 'Kendaraan & Staf', icon: Car,           desc: 'Data mobil, pelanggan & penugasan staf' },
+  { id: 2, label: 'Pengecekan SA (4 Tahap)',   short: 'Inspeksi SA',       icon: ClipboardList, desc: 'Pemeriksaan 44 titik komponen' },
+  { id: 3, label: 'Nota Sparepart & Jasa',      short: 'Sparepart & Jasa',  icon: ShoppingCart,  desc: 'Rincian material, jasa & diskon' },
+  { id: 4, label: 'Lembar LPA Akhir',           short: 'LPA Akhir',         icon: FileText,      desc: 'Quality control & uji jalan' },
+  { id: 5, label: 'Nota Resmi & Pembayaran',    short: 'Nota & Selesai',    icon: Receipt,       desc: 'Pembayaran, simpan & cetak nota' },
 ];
-
-/* ─── STATUS BADGE ───────────────────────────────────────────────────── */
-function StatusBadge({ result }: { result: SACheckResult }) {
-  if (result === 'ok') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700">
-      <CheckCircle size={10} /> OK
-    </span>
-  );
-  if (result === 'perhatian') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700">
-      <AlertTriangle size={10} /> Perhatian
-    </span>
-  );
-  if (result === 'segera') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700">
-      <XCircle size={10} /> Segera Ganti
-    </span>
-  );
-  return <span className="text-[11px] text-slate-300 font-medium">— Belum dicek</span>;
-}
 
 /* ─── RESULT BUTTON GROUP ────────────────────────────────────────────── */
 function ResultBtnGroup({ value, onChange }: { value: SACheckResult; onChange: (v: SACheckResult) => void }) {
@@ -190,81 +172,322 @@ function SACheckTable({ title, icon, items, onChange }: {
   );
 }
 
-/* ─── NOTA PRINT ─────────────────────────────────────────────────────── */
-function NotaPrint({ spkData }: { spkData: any }) {
+/* ─── CORPORATE PRINTABLE NOTA / INVOICE ───────────────────────────────── */
+function NotaCorporatePrint({ spkData }: { spkData: any }) {
   const subParts = spkData.spareparts.reduce((s: number, p: SPKSparepart) => s + p.qty * p.hargaSatuan, 0);
   const subJasa  = spkData.jasaList.reduce((s: number, j: SPKJasa) => s + j.harga, 0);
-  const sub = subParts + subJasa;
-  const disc = sub * (spkData.diskon / 100);
-  const tax  = (sub - disc) * (spkData.pajak / 100);
-  const grand = Math.round(sub - disc + tax);
+  const subTotal = subParts + subJasa;
+  const discAmt  = subTotal * (spkData.diskon / 100);
+  const dpp      = subTotal - discAmt;
+  const taxAmt   = dpp * (spkData.pajak / 100);
+  const grandTotal = Math.round(dpp + taxAmt);
+  const kembalian = Math.max(0, (spkData.dibayar || 0) - grandTotal);
 
   return (
-    <div id="nota-print-area" className="bg-white text-slate-900 p-6 font-sans text-sm rounded-2xl border-2 border-dashed border-slate-200">
-      <div className="text-center border-b-2 border-slate-800 pb-4 mb-4">
-        <h2 className="text-2xl font-black">FHR CAR SERVICE</h2>
-        <p className="text-xs text-slate-500 mt-1">Bengkel & Home Service Profesional 24 Jam</p>
-        <p className="text-xs text-slate-400">fhrcar.xyz</p>
+    <div id="nota-print-area" className="bg-white text-slate-900 p-8 font-sans text-xs rounded-2xl border border-slate-300 shadow-sm max-w-4xl mx-auto">
+      
+      {/* ── KOP SURAT RESMI ── */}
+      <div className="flex items-start justify-between border-b-2 border-slate-900 pb-5 mb-5">
+        <div className="flex items-center gap-4">
+          <img
+            src="/logo.png"
+            alt="FHR Car Service Logo"
+            className="h-16 w-auto object-contain"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900">FHR CAR SERVICE</h1>
+            <p className="text-xs font-bold text-red-600 uppercase tracking-wider">Bengkel Mobil Resmi & Layanan Emergency 24 Jam</p>
+            <p className="text-[11px] text-slate-600 mt-1">
+              Jl. Raya Sokaraja - Banyumas, Jawa Tengah • Hotline: 0812-3456-7890 • Web: fhrcar.xyz
+            </p>
+            <p className="text-[10px] text-slate-400">
+              Spesialis: Tune Up, Overhaul, Transmisi Matic/Manual, Kaki-kaki, Kelistrikan & AC Mobil
+            </p>
+          </div>
+        </div>
+
+        <div className="text-right flex-shrink-0 bg-slate-50 border border-slate-200 p-3 rounded-xl min-w-[200px]">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FAKTUR / SURAT PERINTAH KERJA</p>
+          <p className="text-base font-black font-mono text-red-600 mt-0.5">{spkData.spkNumber}</p>
+          <div className="mt-2 text-[10px] text-slate-500 space-y-0.5">
+            <p>Tgl: <strong className="text-slate-800">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></p>
+            <p>Waktu: <strong className="text-slate-800">{new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</strong></p>
+          </div>
+        </div>
       </div>
-      <div className="flex justify-between mb-4">
+
+      {/* ── 2 COLUMN: DATA PELANGGAN & DATA KENDARAAN ── */}
+      <div className="grid grid-cols-2 gap-4 mb-5">
+        {/* Box 1: Data Pelanggan */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-1.5">
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-1 flex items-center gap-1.5">
+            <User size={12} className="text-red-600" /> IDENTITAS PELANGGAN
+          </p>
+          <div className="grid grid-cols-3 gap-1 pt-1">
+            <span className="text-slate-400 font-semibold">Nama Pemilik</span>
+            <span className="col-span-2 font-black text-slate-900 text-sm">: {spkData.customerName || '—'}</span>
+            
+            <span className="text-slate-400 font-semibold">No. Telepon / WA</span>
+            <span className="col-span-2 font-bold text-slate-800">: {spkData.phone || '—'}</span>
+            
+            <span className="text-slate-400 font-semibold">Alamat Lengkap</span>
+            <span className="col-span-2 text-slate-700 leading-tight">: {spkData.address || '—'}</span>
+
+            <span className="text-slate-400 font-semibold">Keluhan Awal</span>
+            <span className="col-span-2 text-red-600 font-semibold leading-tight">: {spkData.keluhan || 'General Service & Check-up'}</span>
+          </div>
+        </div>
+
+        {/* Box 2: Data Kendaraan */}
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-1.5">
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-1 flex items-center gap-1.5">
+            <Car size={12} className="text-red-600" /> SPESIFIKASI KENDARAAN
+          </p>
+          <div className="grid grid-cols-3 gap-1 pt-1">
+            <span className="text-slate-400 font-semibold">No. Polisi / Plat</span>
+            <span className="col-span-2 font-black font-mono text-red-600 text-sm">: {spkData.licensePlate || '—'}</span>
+            
+            <span className="text-slate-400 font-semibold">Merk & Model Unit</span>
+            <span className="col-span-2 font-bold text-slate-800">: {spkData.carBrand} {spkData.carModel}</span>
+            
+            <span className="text-slate-400 font-semibold">Tahun / Transmisi</span>
+            <span className="col-span-2 text-slate-700">: {spkData.carYear} • {spkData.transmission}</span>
+
+            <span className="text-slate-400 font-semibold">Warna / Bahan Bakar</span>
+            <span className="col-span-2 text-slate-700">: {spkData.carColor || '—'} • {spkData.fuelType || 'Bensin'}</span>
+
+            <span className="text-slate-400 font-semibold">Kilometer Odometer</span>
+            <span className="col-span-2 font-bold text-slate-800">: {spkData.kilometer || '—'}</span>
+
+            <span className="text-slate-400 font-semibold">No. Rangka / Mesin</span>
+            <span className="col-span-2 font-mono text-[10px] text-slate-600">: {spkData.noRangka || '—'} / {spkData.noMesin || '—'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── STAF PENANGGUNG JAWAB ── */}
+      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3 mb-5 flex items-center justify-between text-[11px]">
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400 font-semibold">Service Advisor (SA):</span>
+          <span className="font-black text-slate-900">{spkData.saName || '—'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400 font-semibold">Front Advisor (FA):</span>
+          <span className="font-bold text-slate-800">{spkData.faName || 'Admin'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400 font-semibold">Mekanik Pelaksana:</span>
+          <span className="font-black text-blue-700">{spkData.mekanikName || '—'}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-slate-400 font-semibold">Kasir / Keuangan:</span>
+          <span className="font-bold text-slate-800">{spkData.kasirName || 'Kasir 1'}</span>
+        </div>
+      </div>
+
+      {/* ── TABEL 1: SUKU CADANG / SPAREPART ── */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between bg-slate-800 text-white px-3 py-1.5 rounded-t-lg">
+          <span className="font-black text-[11px] uppercase tracking-wider">A. SUKU CADANG & MATERIAL (SPAREPARTS)</span>
+          <span className="text-[10px] text-slate-300">{spkData.spareparts.length} Item</span>
+        </div>
+        <table className="w-full border-x border-b border-slate-200 text-xs">
+          <thead>
+            <tr className="bg-slate-100 text-slate-600 border-b border-slate-200 text-[10px] uppercase font-bold">
+              <th className="py-2 px-3 text-center w-10">No.</th>
+              <th className="py-2 px-3 text-left">Nama Part / Kode Barang</th>
+              <th className="py-2 px-3 text-center w-16">Qty</th>
+              <th className="py-2 px-3 text-center w-20">Satuan</th>
+              <th className="py-2 px-3 text-right w-28">Harga Satuan</th>
+              <th className="py-2 px-3 text-right w-28">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {spkData.spareparts.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="text-center py-2.5 text-slate-400 italic">Tidak ada penggunaan suku cadang baru</td>
+              </tr>
+            ) : (
+              spkData.spareparts.map((p: SPKSparepart, idx: number) => (
+                <tr key={p.id}>
+                  <td className="py-2 px-3 text-center text-slate-400 font-mono">{idx + 1}</td>
+                  <td className="py-2 px-3 font-semibold text-slate-800">{p.nama}</td>
+                  <td className="py-2 px-3 text-center font-bold text-slate-700">{p.qty}</td>
+                  <td className="py-2 px-3 text-center text-slate-500">{p.satuan}</td>
+                  <td className="py-2 px-3 text-right font-mono text-slate-700">{formatRp(p.hargaSatuan)}</td>
+                  <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatRp(p.qty * p.hargaSatuan)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          <tfoot>
+            <tr className="bg-slate-50 border-t border-slate-200 font-bold text-xs">
+              <td colSpan={5} className="py-2 px-3 text-right text-slate-600">Subtotal Suku Cadang:</td>
+              <td className="py-2 px-3 text-right font-mono text-slate-900">{formatRp(subParts)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* ── TABEL 2: JASA PEKERJAAN & BIAYA ── */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between bg-slate-800 text-white px-3 py-1.5 rounded-t-lg">
+          <span className="font-black text-[11px] uppercase tracking-wider">B. ONGKOS JASA & PEKERJAAN SERVIS</span>
+          <span className="text-[10px] text-slate-300">{spkData.jasaList.length} Item</span>
+        </div>
+        <table className="w-full border-x border-b border-slate-200 text-xs">
+          <thead>
+            <tr className="bg-slate-100 text-slate-600 border-b border-slate-200 text-[10px] uppercase font-bold">
+              <th className="py-2 px-3 text-center w-10">No.</th>
+              <th className="py-2 px-3 text-left">Deskripsi Pekerjaan Servis</th>
+              <th className="py-2 px-3 text-center w-36">Teknisi Pelaksana</th>
+              <th className="py-2 px-3 text-right w-36">Biaya Jasa</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {spkData.jasaList.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-2.5 text-slate-400 italic">Tidak ada item jasa tambahan</td>
+              </tr>
+            ) : (
+              spkData.jasaList.map((j: SPKJasa, idx: number) => (
+                <tr key={j.id}>
+                  <td className="py-2 px-3 text-center text-slate-400 font-mono">{idx + 1}</td>
+                  <td className="py-2 px-3 font-semibold text-slate-800">{j.nama}</td>
+                  <td className="py-2 px-3 text-center text-slate-600">{spkData.mekanikName || 'Mekanik'}</td>
+                  <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatRp(j.harga)}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          <tfoot>
+            <tr className="bg-slate-50 border-t border-slate-200 font-bold text-xs">
+              <td colSpan={3} className="py-2 px-3 text-right text-slate-600">Subtotal Jasa Servis:</td>
+              <td className="py-2 px-3 text-right font-mono text-slate-900">{formatRp(subJasa)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      {/* ── FINANCIAL SUMMARY & GARANSI / KETENTUAN ── */}
+      <div className="grid grid-cols-12 gap-5 mb-6">
+        {/* Kiri: Ketentuan, Garansi & Servis Berikutnya */}
+        <div className="col-span-7 space-y-3">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-[11px] space-y-2">
+            <p className="font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck size={13} className="text-emerald-600" /> KETENTUAN GARANSI & CATATAN SERVIS
+            </p>
+            <ul className="text-slate-600 space-y-1 list-disc pl-4 leading-relaxed text-[10px]">
+              <li>Garansi pekerjaan servis berlaku selama <strong>7 (tujuh) hari</strong> atau <strong>1.000 KM</strong> (mana tercapai lebih dahulu).</li>
+              <li>Suku cadang asli bergaransi sesuai ketentuan pabrikan resmi.</li>
+              <li>Garansi gugur apabila segel rusak, terjadi modifikasi non-standar, atau kesalahan pemakaian/kelalaian pengguna.</li>
+              <li>Barang bekas/lama yang diganti telah diserahkan kembali kepada pemilik kendaraan.</li>
+            </ul>
+          </div>
+
+          <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 flex items-center justify-between text-xs">
+            <div>
+              <p className="font-black text-amber-900">REKOMENDASI SERVIS BERIKUTNYA:</p>
+              <p className="text-amber-800 text-[11px]">Lakukan servis berkala berikutnya pada:</p>
+            </div>
+            <div className="text-right font-bold text-amber-950">
+              <p>KM: <span className="font-black font-mono text-red-600">{spkData.nextServiceKm || (Number(spkData.kilometer?.replace(/[^0-9]/g, '') || 0) + 5000) + ' KM'}</span></p>
+              <p className="text-[10px] text-slate-500">atau 3 bulan mendatang</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Kanan: Kalkulasi Finansial Total */}
+        <div className="col-span-5 bg-slate-50 border border-slate-300 rounded-xl p-4 space-y-2">
+          <div className="flex justify-between text-slate-600">
+            <span>Total Sparepart:</span>
+            <span className="font-mono font-semibold">{formatRp(subParts)}</span>
+          </div>
+          <div className="flex justify-between text-slate-600">
+            <span>Total Jasa Servis:</span>
+            <span className="font-mono font-semibold">{formatRp(subJasa)}</span>
+          </div>
+          <div className="flex justify-between text-slate-700 font-bold border-t border-slate-200 pt-1.5">
+            <span>Jumlah Total Kotor:</span>
+            <span className="font-mono">{formatRp(subTotal)}</span>
+          </div>
+          {spkData.diskon > 0 && (
+            <div className="flex justify-between text-amber-600 font-semibold">
+              <span>Diskon ({spkData.diskon}%):</span>
+              <span className="font-mono">- {formatRp(discAmt)}</span>
+            </div>
+          )}
+          {spkData.pajak > 0 && (
+            <div className="flex justify-between text-slate-600">
+              <span>PPN ({spkData.pajak}%):</span>
+              <span className="font-mono">+ {formatRp(taxAmt)}</span>
+            </div>
+          )}
+          <div className="border-t-2 border-slate-800 pt-2 flex justify-between items-center text-sm font-black text-slate-900">
+            <span>TOTAL TAGIHAN:</span>
+            <span className="text-base font-mono text-red-600">{formatRp(grandTotal)}</span>
+          </div>
+          
+          <div className="border-t border-slate-200 pt-2 space-y-1 text-[11px]">
+            <div className="flex justify-between text-slate-600">
+              <span>Metode Pembayaran:</span>
+              <span className="font-bold uppercase text-slate-900">{spkData.metodeBayar}</span>
+            </div>
+            {spkData.dibayar > 0 && (
+              <>
+                <div className="flex justify-between text-slate-600">
+                  <span>Nominal Dibayar:</span>
+                  <span className="font-mono font-semibold">{formatRp(spkData.dibayar)}</span>
+                </div>
+                <div className="flex justify-between text-emerald-700 font-bold">
+                  <span>Kembalian:</span>
+                  <span className="font-mono">{formatRp(kembalian)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── 4 KOLOM TANDA TANGAN RESMI ── */}
+      <div className="border-t-2 border-slate-800 pt-4 grid grid-cols-4 gap-4 text-center text-[10px]">
         <div>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Pelanggan</p>
-          <p className="font-black text-base">{spkData.customerName}</p>
-          <p className="text-xs text-slate-500">{spkData.phone}</p>
-          <p className="text-xs text-slate-400">{spkData.address}</p>
+          <p className="text-slate-400 uppercase font-semibold">Pelanggan / Pemilik</p>
+          <div className="h-16 flex items-end justify-center">
+            <span className="border-b border-slate-400 w-32 inline-block"></span>
+          </div>
+          <p className="font-bold text-slate-800 mt-1">{spkData.customerName || '( .............................. )'}</p>
         </div>
-        <div className="text-right">
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Nomor SPK</p>
-          <p className="font-black text-red-600">{spkData.spkNumber}</p>
-          <p className="text-xs text-slate-400">{new Date().toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' })}</p>
-          <p className="text-xs text-slate-500 mt-1">SA: {spkData.saAdvisor || '—'}</p>
+
+        <div>
+          <p className="text-slate-400 uppercase font-semibold">Service Advisor (SA)</p>
+          <div className="h-16 flex items-end justify-center">
+            <span className="border-b border-slate-400 w-32 inline-block"></span>
+          </div>
+          <p className="font-bold text-slate-800 mt-1">{spkData.saName || '( .............................. )'}</p>
+        </div>
+
+        <div>
+          <p className="text-slate-400 uppercase font-semibold">Mekanik Pelaksana</p>
+          <div className="h-16 flex items-end justify-center">
+            <span className="border-b border-slate-400 w-32 inline-block"></span>
+          </div>
+          <p className="font-bold text-slate-800 mt-1">{spkData.mekanikName || '( .............................. )'}</p>
+        </div>
+
+        <div>
+          <p className="text-slate-400 uppercase font-semibold">Kasir / Keuangan</p>
+          <div className="h-16 flex items-end justify-center">
+            <span className="border-b border-slate-400 w-32 inline-block"></span>
+          </div>
+          <p className="font-bold text-slate-800 mt-1">{spkData.kasirName || '( .............................. )'}</p>
         </div>
       </div>
-      <div className="bg-slate-50 rounded-xl p-3 mb-4 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs border border-slate-100">
-        <div><p className="text-slate-400 mb-0.5">Kendaraan</p><p className="font-bold">{spkData.carBrand} {spkData.carModel}</p></div>
-        <div><p className="text-slate-400 mb-0.5">Plat Nomor</p><p className="font-black font-mono text-red-600">{spkData.licensePlate}</p></div>
-        <div><p className="text-slate-400 mb-0.5">Tahun / KM</p><p className="font-bold">{spkData.carYear} / {spkData.kilometer || '—'}</p></div>
-        <div><p className="text-slate-400 mb-0.5">Transmisi</p><p className="font-bold">{spkData.transmission}</p></div>
+
+      <div className="text-center text-[9px] text-slate-400 mt-5 pt-3 border-t border-dashed border-slate-200">
+        Dokumen ini sah dicetak oleh Sistem Manajemen Bengkel FHR Car Service • fhrcar.xyz
       </div>
-      {spkData.spareparts.length > 0 && (
-        <div className="mb-4">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Sparepart</p>
-          <table className="w-full text-xs"><thead><tr className="bg-slate-100 text-slate-500 text-left"><th className="py-1.5 px-3 rounded-l font-bold">Nama Part</th><th className="py-1.5 px-3 text-center font-bold">Qty</th><th className="py-1.5 px-3 text-right font-bold">Harga</th><th className="py-1.5 px-3 text-right rounded-r font-bold">Sub</th></tr></thead>
-          <tbody className="divide-y divide-slate-50">
-            {spkData.spareparts.map((p: SPKSparepart) => (
-              <tr key={p.id}><td className="py-1.5 px-3">{p.nama}</td><td className="py-1.5 px-3 text-center">{p.qty} {p.satuan}</td><td className="py-1.5 px-3 text-right">{formatRp(p.hargaSatuan)}</td><td className="py-1.5 px-3 text-right font-semibold">{formatRp(p.qty * p.hargaSatuan)}</td></tr>
-            ))}
-          </tbody></table>
-        </div>
-      )}
-      {spkData.jasaList.length > 0 && (
-        <div className="mb-4">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-2">Jasa Pekerjaan</p>
-          <table className="w-full text-xs"><thead><tr className="bg-slate-100 text-slate-500 text-left"><th className="py-1.5 px-3 rounded-l font-bold">Pekerjaan</th><th className="py-1.5 px-3 text-right rounded-r font-bold">Biaya</th></tr></thead>
-          <tbody className="divide-y divide-slate-50">
-            {spkData.jasaList.map((j: SPKJasa) => (
-              <tr key={j.id}><td className="py-1.5 px-3">{j.nama}</td><td className="py-1.5 px-3 text-right font-semibold">{formatRp(j.harga)}</td></tr>
-            ))}
-          </tbody></table>
-        </div>
-      )}
-      <div className="border-t-2 border-slate-200 pt-3 space-y-1.5 text-xs">
-        <div className="flex justify-between text-slate-500"><span>Subtotal Part</span><span>{formatRp(subParts)}</span></div>
-        <div className="flex justify-between text-slate-500"><span>Subtotal Jasa</span><span>{formatRp(subJasa)}</span></div>
-        {spkData.diskon > 0 && <div className="flex justify-between text-amber-600 font-semibold"><span>Diskon ({spkData.diskon}%)</span><span>- {formatRp(disc)}</span></div>}
-        {spkData.pajak > 0 && <div className="flex justify-between text-slate-500"><span>PPN ({spkData.pajak}%)</span><span>+ {formatRp(tax)}</span></div>}
-        <div className="flex justify-between font-black text-lg border-t-2 border-slate-300 pt-2 mt-2">
-          <span>GRAND TOTAL</span><span className="text-red-600">{formatRp(grand)}</span>
-        </div>
-        <div className="flex justify-between text-slate-500"><span>Metode Bayar</span><span className="capitalize font-semibold">{spkData.metodeBayar}</span></div>
-        {spkData.dibayar > 0 && <><div className="flex justify-between"><span className="text-slate-500">Dibayar</span><span>{formatRp(spkData.dibayar)}</span></div><div className="flex justify-between text-emerald-600 font-bold"><span>Kembalian</span><span>{formatRp(Math.max(0, spkData.dibayar - grand))}</span></div></>}
-      </div>
-      <div className="mt-6 pt-4 border-t border-dashed border-slate-300 grid grid-cols-3 gap-4 text-center text-[10px] text-slate-400">
-        <div><div className="border-b border-slate-300 mb-6"></div>Teknisi / Mekanik</div>
-        <div><div className="border-b border-slate-300 mb-6"></div>Service Advisor</div>
-        <div><div className="border-b border-slate-300 mb-6"></div>Pelanggan</div>
-      </div>
-      <p className="text-center text-[10px] text-slate-400 mt-4">Terima kasih — Garansi servis 7 hari · fhrcar.xyz</p>
     </div>
   );
 }
@@ -272,41 +495,83 @@ function NotaPrint({ spkData }: { spkData: any }) {
 /* ═══════════════════════════════════════════════════════════════════════ */
 /*  MAIN PAGE COMPONENT                                                    */
 /* ═══════════════════════════════════════════════════════════════════════ */
-export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
+export function CRMSPKCreate({ customers, employees = [], onNavigate }: CRMSPKCreateProps) {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [activeCheckTab, setActiveCheckTab] = useState(0);
 
-  /* ── Step 1 ── */
+  /* ── Step 1: Data Pelanggan & Kendaraan & Staf ── */
   const [platSearch, setPlatSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerItem | null>(null);
   const [kilometer, setKilometer] = useState('');
+  const [noRangka, setNoRangka] = useState('');
+  const [noMesin, setNoMesin] = useState('');
+  const [fuelType, setFuelType] = useState('Bensin');
   const [keluhan, setKeluhan] = useState('');
 
-  /* ── Step 2 ── */
+  // Staff Dropdowns (Dynamic from Employee list)
+  const [selectedSaId, setSelectedSaId] = useState('');
+  const [saCustomName, setSaCustomName] = useState('');
+  const [selectedFaId, setSelectedFaId] = useState('');
+  const [faCustomName, setFaCustomName] = useState('');
+  const [selectedMekanikId, setSelectedMekanikId] = useState('');
+  const [mekanikCustomName, setMekanikCustomName] = useState('');
+  const [selectedKasirId, setSelectedKasirId] = useState('');
+  const [kasirCustomName, setKasirCustomName] = useState('');
+
+  /* ── Step 2: SA Check ── */
   const [eksterior, setEksterior]   = useState<SACheckItem[]>(EKSTERIOR_ITEMS.map(i => ({ ...i, id: uid() })));
   const [interior, setInterior]     = useState<SACheckItem[]>(INTERIOR_ITEMS.map(i => ({ ...i, id: uid() })));
   const [mesin, setMesin]           = useState<SACheckItem[]>(MESIN_ITEMS.map(i => ({ ...i, id: uid() })));
   const [kakiKaki, setKakiKaki]     = useState<SACheckItem[]>(KAKI_ITEMS.map(i => ({ ...i, id: uid() })));
-  const [saAdvisor, setSaAdvisor]   = useState('');
   const [saCatatan, setSaCatatan]   = useState('');
 
-  /* ── Step 3 ── */
+  /* ── Step 3: Sparepart & Jasa ── */
   const [spareparts, setSpareparts] = useState<SPKSparepart[]>([]);
-  const [jasaList, setJasaList]     = useState<SPKJasa[]>([{ id: uid(), nama: 'Biaya Jasa Servis', harga: 50000 }]);
+  const [jasaList, setJasaList]     = useState<SPKJasa[]>([{ id: uid(), nama: 'Biaya Jasa Servis Rutin', harga: 75000 }]);
   const [diskon, setDiskon]         = useState(0);
   const [pajak, setPajak]           = useState(0);
 
-  /* ── Step 4 ── */
+  /* ── Step 4: LPA ── */
   const [lpaChecklist, setLpaChecklist] = useState<SACheckItem[]>(LPA_ITEMS.map(i => ({ ...i, id: uid() })));
-  const [lpaTeknisi, setLpaTeknisi]     = useState('');
   const [lpaTestDrive, setLpaTestDrive] = useState(true);
   const [lpaCatatan, setLpaCatatan]     = useState('');
 
-  /* ── Step 5 ── */
+  /* ── Step 5: Pembayaran & Nota Akhir ── */
   const [metodeBayar, setMetodeBayar] = useState<'cash' | 'transfer' | 'kredit'>('cash');
   const [dibayar, setDibayar]         = useState(0);
+
+  /* ── Filter Staff by Role ── */
+  const saList = useMemo(() => employees.filter(e => e.role === 'SA' && e.status === 'active'), [employees]);
+  const faList = useMemo(() => employees.filter(e => (e.role === 'FA' || e.role === 'Manager') && e.status === 'active'), [employees]);
+  const mekanikList = useMemo(() => employees.filter(e => (e.role === 'Mekanik' || e.role === 'Foreman') && e.status === 'active'), [employees]);
+  const kasirList = useMemo(() => employees.filter(e => (e.role === 'Kasir' || e.role === 'FA') && e.status === 'active'), [employees]);
+
+  // Derive active names
+  const effectiveSaName = useMemo(() => {
+    if (selectedSaId === 'custom') return saCustomName;
+    const found = employees.find(e => e.id === selectedSaId);
+    return found ? found.name : saCustomName || (saList[0]?.name || 'Budi Santoso');
+  }, [selectedSaId, saCustomName, employees, saList]);
+
+  const effectiveFaName = useMemo(() => {
+    if (selectedFaId === 'custom') return faCustomName;
+    const found = employees.find(e => e.id === selectedFaId);
+    return found ? found.name : faCustomName || (faList[0]?.name || 'Rizky Pratama');
+  }, [selectedFaId, faCustomName, employees, faList]);
+
+  const effectiveMekanikName = useMemo(() => {
+    if (selectedMekanikId === 'custom') return mekanikCustomName;
+    const found = employees.find(e => e.id === selectedMekanikId);
+    return found ? found.name : mekanikCustomName || (mekanikList[0]?.name || 'Agus Setiawan');
+  }, [selectedMekanikId, mekanikCustomName, employees, mekanikList]);
+
+  const effectiveKasirName = useMemo(() => {
+    if (selectedKasirId === 'custom') return kasirCustomName;
+    const found = employees.find(e => e.id === selectedKasirId);
+    return found ? found.name : kasirCustomName || (kasirList[0]?.name || 'Siti Rahma');
+  }, [selectedKasirId, kasirCustomName, employees, kasirList]);
 
   /* ── SPK Number ── */
   const spkNumber = useMemo(() => {
@@ -335,6 +600,15 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
     ).slice(0, 10);
   }, [platSearch, customers]);
 
+  /* ── Select Customer Callback ── */
+  const handleSelectCustomer = (c: CustomerItem) => {
+    setSelectedCustomer(c);
+    setPlatSearch(c.licensePlate);
+    if (c.vinNumber) setNoRangka(c.vinNumber);
+    if (c.engineNumber) setNoMesin(c.engineNumber);
+    if (c.fuelType) setFuelType(c.fuelType);
+  };
+
   /* ── Sparepart CRUD ── */
   const addPart   = () => setSpareparts(p => [...p, { id: uid(), nama: '', qty: 1, satuan: 'pcs', hargaSatuan: 0 }]);
   const updPart   = (id: string, patch: Partial<SPKSparepart>) => setSpareparts(p => p.map(x => x.id === id ? { ...x, ...patch } : x));
@@ -350,14 +624,14 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
     return true;
   };
 
-  /* ── SA summary counts across all tabs ── */
+  /* ── SA summary counts ── */
   const allChecks = [...eksterior, ...interior, ...mesin, ...kakiKaki];
   const allOk     = allChecks.filter(x => x.result === 'ok').length;
   const allWarn   = allChecks.filter(x => x.result === 'perhatian').length;
   const allBad    = allChecks.filter(x => x.result === 'segera').length;
   const allTotal  = allChecks.length;
 
-  /* ── Save ── */
+  /* ── Save SPK ── */
   const handleSave = async () => {
     if (!selectedCustomer) return;
     setSaving(true);
@@ -369,12 +643,17 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
         carBrand: selectedCustomer.carBrand, carModel: selectedCustomer.carModel,
         carYear: selectedCustomer.carYear, licensePlate: selectedCustomer.licensePlate,
         transmission: selectedCustomer.transmission || 'Matic',
-        carColor: selectedCustomer.carColor || '', kilometer, keluhan,
+        carColor: selectedCustomer.carColor || '', kilometer,
+        noRangka, noMesin, fuelType, keluhan,
+        saId: selectedSaId, saName: effectiveSaName,
+        faId: selectedFaId, faName: effectiveFaName,
+        mekanikId: selectedMekanikId, mekanikName: effectiveMekanikName,
+        kasirId: selectedKasirId, kasirName: effectiveKasirName,
         saCheckEksterior: eksterior, saCheckInterior: interior,
         saCheckMesin: mesin, saCheckKakiKaki: kakiKaki,
-        saAdvisorName: saAdvisor, saCatatanUmum: saCatatan,
+        saAdvisorName: effectiveSaName, saCatatanUmum: saCatatan,
         spareparts, jasaList, diskon, pajakPersen: pajak,
-        lpaChecklist, lpaTeknisi, lpaTestDriveOk: lpaTestDrive, lpaCatatan,
+        lpaChecklist, lpaTeknisi: effectiveMekanikName, lpaTestDriveOk: lpaTestDrive, lpaCatatan,
         metodePembayaran: metodeBayar, grandTotal: grand, dibayar, kembalian,
       };
       const id = await addSPK(doc);
@@ -383,24 +662,77 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
     finally { setSaving(false); }
   };
 
-  /* ── Print ── */
+  /* ── Print Handler with A4 Optimization ── */
   const handlePrint = () => {
     const el = document.getElementById('nota-print-area');
     if (!el) return;
     const w = window.open('', '_blank');
     if (!w) return;
-    w.document.write(`<html><head><title>Nota ${spkNumber}</title>
-      <style>body{font-family:system-ui,sans-serif;margin:0;padding:24px;color:#0f172a}table{width:100%;border-collapse:collapse}th,td{padding:6px 12px;font-size:12px}.text-right{text-align:right}.text-center{text-align:center}@media print{.no-print{display:none}}</style>
-    </head><body>${el.innerHTML}</body></html>`);
-    w.document.close(); w.focus(); w.print();
+    w.document.write(`<!DOCTYPE html>
+      <html>
+        <head>
+          <title>Nota SPK - ${spkNumber}</title>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <style>
+            @page { size: A4; margin: 12mm 15mm; }
+            * { box-sizing: border-box; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; color: #0f172a; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 5px 8px; font-size: 11px; }
+            .text-right { text-align: right; }
+            .text-center { text-align: center; }
+            .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+            .font-bold { font-weight: 700; }
+            .font-black { font-weight: 900; }
+            .border-b { border-bottom: 1px solid #e2e8f0; }
+            .bg-slate-50 { background-color: #f8fafc; }
+            .bg-slate-100 { background-color: #f1f5f9; }
+            .bg-slate-800 { background-color: #1e293b; color: #fff; }
+            .bg-slate-900 { background-color: #0f172a; color: #fff; }
+            .text-red-600 { color: #dc2626; }
+            .text-emerald-700 { color: #047857; }
+            .grid { display: grid; }
+            .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+            .gap-4 { gap: 1rem; }
+            .gap-5 { gap: 1.25rem; }
+            .col-span-7 { grid-column: span 7 / span 7; }
+            .col-span-5 { grid-column: span 5 / span 5; }
+            .col-span-2 { grid-column: span 2 / span 2; }
+            .rounded-xl { border-radius: 0.75rem; }
+            .rounded-lg { border-radius: 0.5rem; }
+            .p-3 { padding: 0.75rem; }
+            .p-4 { padding: 1rem; }
+            .mb-5 { margin-bottom: 1.25rem; }
+            .mb-6 { margin-bottom: 1.5rem; }
+            .border { border: 1px solid #e2e8f0; }
+            @media print {
+              .no-print { display: none !important; }
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          ${el.innerHTML}
+        </body>
+      </html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => {
+      w.print();
+    }, 250);
   };
 
   const spkData = {
     spkNumber, customerName: selectedCustomer?.name || '', phone: selectedCustomer?.phone || '',
     address: selectedCustomer?.address || '', carBrand: selectedCustomer?.carBrand || '',
     carModel: selectedCustomer?.carModel || '', carYear: selectedCustomer?.carYear || '',
-    licensePlate: selectedCustomer?.licensePlate || '', transmission: selectedCustomer?.transmission || '',
-    kilometer, keluhan, saAdvisor, spareparts, jasaList, diskon, pajak, metodeBayar, dibayar,
+    licensePlate: selectedCustomer?.licensePlate || '', transmission: selectedCustomer?.transmission || 'Matic',
+    carColor: selectedCustomer?.carColor || '', kilometer, noRangka, noMesin, fuelType, keluhan,
+    saName: effectiveSaName, faName: effectiveFaName, mekanikName: effectiveMekanikName, kasirName: effectiveKasirName,
+    spareparts, jasaList, diskon, pajak, metodeBayar, dibayar,
   };
 
   /* ── CHECK TAB CONFIG ── */
@@ -413,7 +745,7 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
 
   /* ════════════════════════════════════ RENDER ════════════════════════ */
   return (
-    <div className="min-h-screen bg-[#f4f6fb] font-sans">
+    <div className="min-h-screen bg-[#f4f6fb] font-sans pb-12">
 
       {/* ── Top Header ─────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-20 print:hidden">
@@ -423,14 +755,14 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
             <ArrowLeft size={15} /> Dashboard
           </button>
           <span className="text-slate-300">/</span>
-          <span className="text-slate-400 text-xs">Buat SPK Baru</span>
+          <span className="text-slate-400 text-xs">Formulir SPK & Faktur Bengkel</span>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-xs font-mono text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl">{spkNumber}</span>
+            <span className="hidden sm:inline text-xs font-mono text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl font-bold">{spkNumber}</span>
             {savedId ? (
               <button onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all">
-                <Printer size={13} /> Cetak Nota
+                className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all shadow-md">
+                <Printer size={13} /> Cetak Nota Resmi
               </button>
             ) : (
               <button onClick={() => onNavigate('crm-orders')}
@@ -451,14 +783,14 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
                 const active = step === s.id;
                 return (
                   <div key={s.id} className={`flex items-center gap-2 px-4 py-3.5 flex-shrink-0 border-b-2 transition-all cursor-pointer
-                    ${active ? 'border-red-600 text-red-600' : done ? 'border-emerald-400 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    ${active ? 'border-red-600 text-red-600' : done ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     onClick={() => done && setStep(s.id)}>
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0
-                      ${active ? 'bg-red-600 text-white' : done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      ${active ? 'bg-red-600 text-white shadow-sm' : done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
                       {done ? <Check size={12} /> : s.id}
                     </div>
                     <div className="hidden sm:block">
-                      <p className={`text-xs font-bold ${active ? 'text-red-600' : done ? 'text-emerald-600' : 'text-slate-500'}`}>{s.label}</p>
+                      <p className={`text-xs font-bold ${active ? 'text-red-600' : done ? 'text-emerald-600' : 'text-slate-600'}`}>{s.label}</p>
                       <p className="text-[10px] text-slate-400">{s.desc}</p>
                     </div>
                     <span className={`sm:hidden text-xs font-bold ${active ? 'text-red-600' : done ? 'text-emerald-600' : ''}`}>{s.short}</span>
@@ -476,10 +808,11 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
         <div className="flex gap-6">
 
           {/* ── LEFT: Step Sidebar (desktop) ── */}
-          <div className="hidden xl:flex flex-col gap-3 w-56 flex-shrink-0 print:hidden">
+          <div className="hidden xl:flex flex-col gap-3 w-60 flex-shrink-0 print:hidden">
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-              <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
-                <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Progress SPK</p>
+              <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider">Tahapan Pengerjaan</p>
+                <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{step}/5</span>
               </div>
               {STEPS.map(s => {
                 const Icon = s.icon;
@@ -487,59 +820,47 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
                 const active = step === s.id;
                 return (
                   <button key={s.id} onClick={() => done && setStep(s.id)}
-                    className={`w-full flex items-start gap-3 px-4 py-3.5 text-left transition-all border-l-2 ${
-                      active ? 'border-red-500 bg-red-50' : done ? 'border-emerald-400 bg-emerald-50/50 cursor-pointer hover:bg-emerald-50' : 'border-transparent'}`}>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black flex-shrink-0 mt-0.5
+                    className={`w-full flex items-start gap-3 px-4 py-3 text-left transition-all border-l-2 ${
+                      active ? 'border-red-600 bg-red-50/50' : done ? 'border-emerald-500 bg-emerald-50/30 cursor-pointer hover:bg-emerald-50' : 'border-transparent'}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0 mt-0.5
                       ${active ? 'bg-red-600 text-white' : done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                      {done ? <Check size={13} /> : <Icon size={13} />}
+                      {done ? <Check size={12} /> : s.id}
                     </div>
                     <div>
-                      <p className={`text-xs font-bold ${active ? 'text-red-700' : done ? 'text-emerald-700' : 'text-slate-500'}`}>{s.label}</p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{s.desc}</p>
+                      <p className={`text-xs font-bold ${active ? 'text-red-700' : done ? 'text-emerald-700' : 'text-slate-600'}`}>{s.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 leading-tight">{s.desc}</p>
                     </div>
                   </button>
                 );
               })}
             </div>
 
-            {/* Info Card */}
+            {/* Kendaraan Info Card */}
             {selectedCustomer && (
-              <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-4 text-white">
-                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-2">Kendaraan</p>
-                <p className="font-black text-sm">{selectedCustomer.name}</p>
-                <p className="text-xs text-slate-300 mt-0.5">{selectedCustomer.carBrand} {selectedCustomer.carModel}</p>
-                <span className="inline-block mt-2 font-mono font-black text-xs bg-red-600 text-white px-2.5 py-1 rounded-lg">{selectedCustomer.licensePlate}</span>
+              <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-4 text-white shadow-md">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Unit Terpilih</p>
+                  <span className="font-mono font-black text-xs bg-red-600 text-white px-2 py-0.5 rounded-md">{selectedCustomer.licensePlate}</span>
+                </div>
+                <p className="font-black text-sm text-white">{selectedCustomer.name}</p>
+                <p className="text-xs text-slate-300 mt-0.5">{selectedCustomer.carBrand} {selectedCustomer.carModel} • {selectedCustomer.carYear}</p>
+                
+                <div className="mt-3 pt-3 border-t border-white/10 space-y-1 text-xs text-slate-300">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Mekanik:</span>
+                    <span className="font-semibold text-white">{effectiveMekanikName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">SA In Charge:</span>
+                    <span className="font-semibold text-white">{effectiveSaName}</span>
+                  </div>
+                </div>
+
                 {step >= 3 && (
                   <div className="mt-3 pt-3 border-t border-white/10 space-y-1">
-                    <div className="flex justify-between text-xs"><span className="text-slate-400">Subtotal</span><span>{formatRp(subtotal)}</span></div>
-                    <div className="flex justify-between text-sm font-black"><span>Total</span><span className="text-red-400">{formatRp(grand)}</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-slate-400">Total Biaya:</span><span className="text-red-400 font-black">{formatRp(grand)}</span></div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* SA Summary */}
-            {step >= 2 && (
-              <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                <p className="text-[11px] font-black text-slate-500 uppercase tracking-wider mb-3">Hasil Pengecekan SA</p>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-1.5 text-emerald-600 font-semibold"><CheckCircle size={12} /> OK</span>
-                    <span className="font-black text-emerald-600">{allOk}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-1.5 text-amber-500 font-semibold"><AlertTriangle size={12} /> Perhatian</span>
-                    <span className="font-black text-amber-500">{allWarn}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="flex items-center gap-1.5 text-red-500 font-semibold"><XCircle size={12} /> Segera Ganti</span>
-                    <span className="font-black text-red-500">{allBad}</span>
-                  </div>
-                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
-                    <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${Math.round((allOk + allWarn + allBad) / allTotal * 100)}%` }} />
-                  </div>
-                  <p className="text-[10px] text-slate-400">{allTotal - allOk - allWarn - allBad} belum diperiksa</p>
-                </div>
               </div>
             )}
           </div>
@@ -547,29 +868,41 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
           {/* ── RIGHT: Step Content ── */}
           <div className="flex-1 min-w-0 space-y-5">
 
-            {/* ══ STEP 1: Pilih Pelanggan ══════════════════════════════ */}
+            {/* ══ STEP 1: Kendaraan, Pelanggan & Staf In Charge ════════════ */}
             {step === 1 && (
               <>
-                {/* Section header */}
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/20 flex-shrink-0">
-                    <Car size={18} className="text-white" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/20 flex-shrink-0">
+                      <Car size={18} className="text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-black text-slate-900">Informasi Kendaraan & Penugasan Staf</h2>
+                      <p className="text-sm text-slate-400">Pilih kendaraan pelanggan dan atur petugas penanggung jawab (SA, FA, Mekanik, Kasir)</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900">Informasi Kendaraan</h2>
-                    <p className="text-sm text-slate-400">Cari pelanggan berdasarkan plat nomor atau nama</p>
-                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onNavigate('crm-employees')}
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    <Users size={13} className="text-red-600" />
+                    <span>Kelola Data Karyawan</span>
+                  </button>
                 </div>
 
-                {/* Search */}
+                {/* Search Pelanggan */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="p-5 border-b border-slate-100">
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Cari Plat Nomor / Nama Pelanggan</label>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
+                      Cari Plat Nomor / Nama Pelanggan
+                    </label>
                     <div className="relative">
                       <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input type="text" value={platSearch}
                         onChange={e => { setPlatSearch(e.target.value); if (selectedCustomer) setSelectedCustomer(null); }}
-                        placeholder="Ketik plat nomor atau nama pelanggan..."
+                        placeholder="Ketik plat nomor (cth: B 1234 ABC) atau nama pelanggan..."
                         autoFocus
                         className="w-full pl-11 pr-4 py-3.5 rounded-xl border-2 border-slate-200 focus:border-red-400 focus:outline-none text-sm font-medium transition-colors bg-slate-50 focus:bg-white"
                       />
@@ -579,31 +912,31 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
                   {!selectedCustomer && (
                     <div className="p-5">
                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">
-                        {platSearch ? `${platSuggestions.length} hasil ditemukan` : `${customers.length} pelanggan terdaftar`}
+                        {platSearch ? `${platSuggestions.length} hasil ditemukan` : `Pilih dari ${customers.length} data pelanggan terdaftar`}
                       </p>
                       {platSuggestions.length === 0 ? (
-                        <div className="text-center py-12 text-slate-400">
-                          <Car size={40} className="mx-auto mb-3 opacity-20" />
-                          <p className="font-semibold">Pelanggan tidak ditemukan</p>
-                          <p className="text-xs mt-1">Tambahkan pelanggan baru di menu Data Pelanggan</p>
+                        <div className="text-center py-10 text-slate-400">
+                          <Car size={36} className="mx-auto mb-2 opacity-20" />
+                          <p className="font-semibold text-sm">Data kendaraan tidak ditemukan</p>
+                          <p className="text-xs mt-1">Daftarkan pelanggan baru terlebih dahulu di Database Pelanggan</p>
                           <button onClick={() => onNavigate('crm-customers')}
-                            className="mt-4 px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-all">
-                            Tambah Pelanggan Baru
+                            className="mt-3 px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-all">
+                            + Tambah Pelanggan Baru
                           </button>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                           {platSuggestions.map(c => (
-                            <button key={c.id} onClick={() => { setSelectedCustomer(c); setPlatSearch(c.licensePlate); }}
-                              className="text-left p-4 rounded-xl border-2 border-slate-200 hover:border-red-400 hover:bg-red-50/30 transition-all group">
+                            <button key={c.id} onClick={() => handleSelectCustomer(c)}
+                              className="text-left p-3.5 rounded-xl border-2 border-slate-200 hover:border-red-400 hover:bg-red-50/30 transition-all group">
                               <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-red-100 flex items-center justify-center flex-shrink-0 transition-colors">
+                                <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-red-100 flex items-center justify-center flex-shrink-0 transition-colors">
                                   <Car size={16} className="text-slate-400 group-hover:text-red-600 transition-colors" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-black text-slate-900 text-sm truncate">{c.name}</p>
-                                  <p className="text-xs text-slate-500 truncate">{c.carBrand} {c.carModel} · {c.carYear}</p>
-                                  <span className="inline-block mt-1.5 font-mono text-xs font-black text-red-600 bg-red-50 border border-red-100 px-2.5 py-0.5 rounded-lg">{c.licensePlate}</span>
+                                  <p className="font-black text-slate-900 text-xs truncate">{c.name}</p>
+                                  <p className="text-[11px] text-slate-500 truncate">{c.carBrand} {c.carModel} • {c.carYear}</p>
+                                  <span className="inline-block mt-1 font-mono text-xs font-black text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md">{c.licensePlate}</span>
                                 </div>
                               </div>
                             </button>
@@ -614,102 +947,238 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
                   )}
                 </div>
 
-                {/* Selected customer detail */}
+                {/* Selected customer detail & Additional Vehicle Form */}
                 {selectedCustomer && (
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="px-6 py-4 bg-gradient-to-r from-slate-900 to-slate-800 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center flex-shrink-0">
                           <User size={18} className="text-white" />
                         </div>
                         <div>
-                          <p className="font-black text-white text-base">{selectedCustomer.name}</p>
-                          <p className="text-slate-300 text-sm">{selectedCustomer.phone}</p>
+                          <p className="font-black text-white text-sm">{selectedCustomer.name}</p>
+                          <p className="text-slate-300 text-xs">{selectedCustomer.phone} • {selectedCustomer.address || 'Alamat tidak terdata'}</p>
                         </div>
                       </div>
                       <button onClick={() => { setSelectedCustomer(null); setPlatSearch(''); }} className="text-slate-400 hover:text-white transition-colors text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg">
-                        Ganti Pelanggan
+                        Ganti Kendaraan
                       </button>
                     </div>
-                    <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      {[
-                        { icon: Car,      label: 'Kendaraan',  value: `${selectedCustomer.carBrand} ${selectedCustomer.carModel}` },
-                        { icon: Hash,     label: 'Plat Nomor', value: selectedCustomer.licensePlate, mono: true, red: true },
-                        { icon: Calendar, label: 'Tahun / Transmisi', value: `${selectedCustomer.carYear} / ${selectedCustomer.transmission || 'Matic'}` },
-                        { icon: Palette,  label: 'Warna',      value: selectedCustomer.carColor || '—' },
-                      ].map((f, i) => (
-                        <div key={i} className="bg-slate-50 rounded-xl p-3.5">
-                          <div className="flex items-center gap-1.5 mb-1.5">
-                            <f.icon size={12} className="text-slate-400" />
-                            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">{f.label}</p>
+
+                    <div className="p-6 space-y-5">
+                      {/* Vehicle Specs Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { icon: Car,      label: 'Kendaraan',  value: `${selectedCustomer.carBrand} ${selectedCustomer.carModel}` },
+                          { icon: Hash,     label: 'Plat Nomor', value: selectedCustomer.licensePlate, red: true },
+                          { icon: Calendar, label: 'Tahun / Transmisi', value: `${selectedCustomer.carYear} / ${selectedCustomer.transmission || 'Matic'}` },
+                          { icon: Palette,  label: 'Warna Unit', value: selectedCustomer.carColor || '—' },
+                        ].map((f, i) => (
+                          <div key={i} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{f.label}</p>
+                            <p className={`font-black text-xs ${f.red ? 'text-red-600 font-mono' : 'text-slate-900'}`}>{f.value}</p>
                           </div>
-                          <p className={`font-black text-sm ${f.red ? 'text-red-600 font-mono' : 'text-slate-900'}`}>{f.value}</p>
+                        ))}
+                      </div>
+
+                      {/* Extended Vehicle Info Form */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+                        <div>
+                          <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                            Kilometer Masuk (Odo) <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <Gauge size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input type="text" value={kilometer} onChange={e => setKilometer(e.target.value)}
+                              placeholder="cth: 45.200 km"
+                              className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-bold" />
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                    <div className="px-6 pb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                        <div>
+                          <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                            Nomor Rangka (VIN)
+                          </label>
+                          <input type="text" value={noRangka} onChange={e => setNoRangka(e.target.value)}
+                            placeholder="MH1JF31..."
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-mono" />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                            Jenis Bahan Bakar
+                          </label>
+                          <select value={fuelType} onChange={e => setFuelType(e.target.value)}
+                            className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 bg-white font-semibold">
+                            <option value="Bensin">Bensin (Gasoline)</option>
+                            <option value="Diesel">Diesel (Solar/DEX)</option>
+                            <option value="Hybrid">Hybrid (HEV/PHEV)</option>
+                            <option value="EV">Electric (EV / Listrik)</option>
+                          </select>
+                        </div>
+                      </div>
+
                       <div>
-                        <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Kilometer Masuk Bengkel</label>
-                        <div className="relative">
-                          <Gauge size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="text" value={kilometer} onChange={e => setKilometer(e.target.value)}
-                            placeholder="Contoh: 45.230 km"
-                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-red-400 transition-colors" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Keluhan Pelanggan</label>
-                        <input type="text" value={keluhan} onChange={e => setKeluhan(e.target.value)}
-                          placeholder="Contoh: Mesin kasar, AC kurang dingin..."
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-red-400 transition-colors" />
+                        <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1.5">
+                          Keluhan / Permintaan Servis Pelanggan
+                        </label>
+                        <textarea value={keluhan} onChange={e => setKeluhan(e.target.value)} rows={2}
+                          placeholder="Tuliskan keluhan yang dirasakan pelanggan, bunyi aneh, getaran, atau servis berkala..."
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 resize-none font-medium" />
                       </div>
                     </div>
-                    {selectedCustomer.address && (
-                      <div className="px-6 pb-6">
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                          <MapPin size={12} className="text-slate-400" />
-                          <span>{selectedCustomer.address}</span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
+
+                {/* ── PENUGASAN STAF (SA, FA, MEKANIK, KASIR) ── */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                        <Users size={16} />
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-black text-slate-900">Penugasan Staf Operasional (Dropdown Karyawan)</h3>
+                        <p className="text-[11px] text-slate-400">Pilih petugas yang bertanggung jawab pada SPK & Faktur ini</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* 1. Service Advisor */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                        1. Service Advisor (SA) <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedSaId}
+                        onChange={e => setSelectedSaId(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white font-bold text-slate-800"
+                      >
+                        <option value="">-- Pilih SA Bertugas --</option>
+                        {saList.map(sa => (
+                          <option key={sa.id} value={sa.id}>{sa.name} ({sa.nik || 'SA'})</option>
+                        ))}
+                        <option value="custom">+ Input Nama SA Manual</option>
+                      </select>
+                      {selectedSaId === 'custom' && (
+                        <input
+                          type="text"
+                          value={saCustomName}
+                          onChange={e => setSaCustomName(e.target.value)}
+                          placeholder="Ketik nama SA..."
+                          className="w-full mt-1.5 px-3 py-2 rounded-xl border border-blue-300 text-xs focus:outline-none focus:border-blue-500 font-semibold"
+                        />
+                      )}
+                    </div>
+
+                    {/* 2. Front Advisor */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                        2. Front Advisor (FA)
+                      </label>
+                      <select
+                        value={selectedFaId}
+                        onChange={e => setSelectedFaId(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-teal-500 bg-white font-bold text-slate-800"
+                      >
+                        <option value="">-- Pilih Front Advisor --</option>
+                        {faList.map(fa => (
+                          <option key={fa.id} value={fa.id}>{fa.name} ({fa.role})</option>
+                        ))}
+                        <option value="custom">+ Input Nama FA Manual</option>
+                      </select>
+                      {selectedFaId === 'custom' && (
+                        <input
+                          type="text"
+                          value={faCustomName}
+                          onChange={e => setFaCustomName(e.target.value)}
+                          placeholder="Ketik nama FA..."
+                          className="w-full mt-1.5 px-3 py-2 rounded-xl border border-teal-300 text-xs focus:outline-none focus:border-teal-500 font-semibold"
+                        />
+                      )}
+                    </div>
+
+                    {/* 3. Mekanik Pelaksana */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                        3. Mekanik / Teknisi <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={selectedMekanikId}
+                        onChange={e => setSelectedMekanikId(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-amber-500 bg-white font-bold text-slate-800"
+                      >
+                        <option value="">-- Pilih Mekanik Pelaksana --</option>
+                        {mekanikList.map(mk => (
+                          <option key={mk.id} value={mk.id}>{mk.name} ({mk.role})</option>
+                        ))}
+                        <option value="custom">+ Input Nama Mekanik Manual</option>
+                      </select>
+                      {selectedMekanikId === 'custom' && (
+                        <input
+                          type="text"
+                          value={mekanikCustomName}
+                          onChange={e => setMekanikCustomName(e.target.value)}
+                          placeholder="Ketik nama Mekanik..."
+                          className="w-full mt-1.5 px-3 py-2 rounded-xl border border-amber-300 text-xs focus:outline-none focus:border-amber-500 font-semibold"
+                        />
+                      )}
+                    </div>
+
+                    {/* 4. Kasir */}
+                    <div className="space-y-1.5">
+                      <label className="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                        4. Kasir / Keuangan
+                      </label>
+                      <select
+                        value={selectedKasirId}
+                        onChange={e => setSelectedKasirId(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-500 bg-white font-bold text-slate-800"
+                      >
+                        <option value="">-- Pilih Kasir / Finance --</option>
+                        {kasirList.map(ks => (
+                          <option key={ks.id} value={ks.id}>{ks.name} ({ks.role})</option>
+                        ))}
+                        <option value="custom">+ Input Nama Kasir Manual</option>
+                      </select>
+                      {selectedKasirId === 'custom' && (
+                        <input
+                          type="text"
+                          value={kasirCustomName}
+                          onChange={e => setKasirCustomName(e.target.value)}
+                          placeholder="Ketik nama Kasir..."
+                          className="w-full mt-1.5 px-3 py-2 rounded-xl border border-emerald-300 text-xs focus:outline-none focus:border-emerald-500 font-semibold"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
               </>
             )}
 
-            {/* ══ STEP 2: Pengecekan SA ══════════════════════════════════ */}
+            {/* ══ STEP 2: Pengecekan SA (4 Tahap) ═══════════════════════ */}
             {step === 2 && (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0">
-                    <ClipboardList size={18} className="text-white" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0">
+                      <ClipboardList size={18} className="text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-black text-slate-900">Pengecekan Service Advisor (SA)</h2>
+                      <p className="text-sm text-slate-400">Inspeksi komprehensif 4 kategori • SA In Charge: <strong className="text-slate-700">{effectiveSaName}</strong></p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900">Pengecekan Service Advisor</h2>
-                    <p className="text-sm text-slate-400">Inspeksi lengkap 4 kategori — {allTotal} komponen total</p>
-                  </div>
-                  <div className="ml-auto hidden sm:flex gap-2 text-xs font-bold">
+
+                  <div className="hidden sm:flex gap-2 text-xs font-bold">
                     <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100"><CheckCircle size={12} /> {allOk} OK</span>
                     {allWarn > 0 && <span className="flex items-center gap-1 text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100"><AlertTriangle size={12} /> {allWarn} Perhatian</span>}
                     {allBad > 0 && <span className="flex items-center gap-1 text-red-600 bg-red-50 px-3 py-1.5 rounded-xl border border-red-100"><XCircle size={12} /> {allBad} Segera Ganti</span>}
                   </div>
                 </div>
 
-                {/* SA Info */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Nama Service Advisor</label>
-                    <input value={saAdvisor} onChange={e => setSaAdvisor(e.target.value)} placeholder="Nama SA yang bertugas..."
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-red-400 transition-colors" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Catatan SA / Keluhan Tambahan</label>
-                    <input value={saCatatan} onChange={e => setSaCatatan(e.target.value)} placeholder="Catatan umum dari SA..."
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-red-400 transition-colors" />
-                  </div>
-                </div>
-
-                {/* Tab Nav */}
+                {/* Tab Navigation */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="flex border-b border-slate-100 overflow-x-auto">
                     {checkTabs.map((tab, i) => {
@@ -747,17 +1216,10 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
                   </div>
                 </div>
 
-                {/* Quick nav between tabs */}
-                <div className="flex justify-between items-center bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-                  <button disabled={activeCheckTab === 0} onClick={() => setActiveCheckTab(t => t-1)}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 disabled:opacity-30 rounded-xl transition-all">
-                    <ChevronLeft size={13} /> Tahap Sebelumnya
-                  </button>
-                  <span className="text-xs text-slate-400 font-semibold">Tahap {activeCheckTab + 1} dari {checkTabs.length}</span>
-                  <button disabled={activeCheckTab === checkTabs.length - 1} onClick={() => setActiveCheckTab(t => t+1)}
-                    className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 disabled:opacity-30 rounded-xl transition-all">
-                    Tahap Berikutnya <ChevronRight size={13} />
-                  </button>
+                <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                  <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Catatan Tambahan Service Advisor</label>
+                  <input value={saCatatan} onChange={e => setSaCatatan(e.target.value)} placeholder="Catatan rekomendasi atau keluhan tambahan..."
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-medium" />
                 </div>
               </>
             )}
@@ -770,151 +1232,135 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
                     <ShoppingCart size={18} className="text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-slate-900">Nota Sparepart & Jasa</h2>
-                    <p className="text-sm text-slate-400">Input komponen, biaya jasa, dan kalkulasi total</p>
+                    <h2 className="text-lg font-black text-slate-900">Rincian Sparepart & Jasa Servis</h2>
+                    <p className="text-sm text-slate-400">Input kebutuhan suku cadang, ongkos kerja, dan hitung potongan harga</p>
                   </div>
                 </div>
 
-                {/* Rekomendasi dari SA */}
                 {allBad > 0 && (
                   <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
                     <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs font-bold text-red-700">Ada {allBad} komponen yang perlu segera diganti dari hasil pengecekan SA</p>
-                      <p className="text-[11px] text-red-500 mt-0.5">Pastikan sudah ditambahkan ke daftar sparepart di bawah</p>
+                      <p className="text-xs font-bold text-red-700">Terdapat {allBad} komponen berstatus "Segera Ganti" dari hasil pengecekan SA</p>
+                      <p className="text-[11px] text-red-500 mt-0.5">Pastikan suku cadang pengganti sudah dimasukkan ke dalam daftar di bawah ini.</p>
                     </div>
                   </div>
                 )}
 
-                {/* Sparepart Table */}
+                {/* Spareparts */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                     <div>
-                      <h3 className="text-sm font-black text-slate-800">Daftar Sparepart</h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{spareparts.length} item · {formatRp(subParts)}</p>
+                      <h3 className="text-sm font-black text-slate-800">Daftar Suku Cadang / Material</h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{spareparts.length} item • Total: {formatRp(subParts)}</p>
                     </div>
                     <button onClick={addPart}
-                      className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-red-600/20 active:scale-95">
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-red-600/20 active:scale-95">
                       <Plus size={13} /> Tambah Part
                     </button>
                   </div>
 
                   {spareparts.length === 0 ? (
-                    <div className="py-10 text-center text-slate-400">
-                      <ShoppingCart size={32} className="mx-auto mb-2 opacity-20" />
-                      <p className="text-sm font-semibold">Belum ada sparepart</p>
-                      <p className="text-xs mt-1">Klik "+ Tambah Part" untuk menambahkan</p>
+                    <div className="py-8 text-center text-slate-400 text-xs">
+                      Belum ada sparepart. Klik "+ Tambah Part" jika terdapat pergantian suku cadang.
                     </div>
                   ) : (
                     <>
                       <div className="px-5 py-2 bg-slate-50 border-b border-slate-100 grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        <div className="col-span-5">Nama Part / Kode</div>
-                        <div className="col-span-1 text-center">Qty</div>
+                        <div className="col-span-5">Nama Part / Kode Barang</div>
+                        <div className="col-span-2 text-center">Qty</div>
                         <div className="col-span-2">Satuan</div>
-                        <div className="col-span-3 text-right">Harga / Satuan</div>
+                        <div className="col-span-2 text-right">Harga Satuan</div>
                         <div className="col-span-1"></div>
                       </div>
                       <div className="divide-y divide-slate-50">
                         {spareparts.map(p => (
                           <div key={p.id} className="px-5 py-3 grid grid-cols-12 gap-2 items-center">
-                            <input value={p.nama} onChange={e => updPart(p.id, { nama: e.target.value })} placeholder="Nama part atau kode..."
-                              className="col-span-5 px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 transition-colors" />
+                            <input value={p.nama} onChange={e => updPart(p.id, { nama: e.target.value })} placeholder="Nama sparepart..."
+                              className="col-span-5 px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-semibold" />
                             <input type="number" value={p.qty || ''} min={1} onChange={e => updPart(p.id, { qty: Number(e.target.value) })}
-                              className="col-span-1 px-2 py-2 rounded-xl border border-slate-200 text-xs text-center focus:outline-none focus:border-red-400" />
+                              className="col-span-2 px-2 py-2 rounded-xl border border-slate-200 text-xs text-center focus:outline-none focus:border-red-400 font-bold" />
                             <select value={p.satuan} onChange={e => updPart(p.id, { satuan: e.target.value })}
                               className="col-span-2 px-2 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 bg-white">
-                              {['pcs','liter','set','meter','roll','botol','kaleng','pasang'].map(s => <option key={s}>{s}</option>)}
+                              {['pcs','liter','set','meter','botol','kaleng','pasang'].map(s => <option key={s}>{s}</option>)}
                             </select>
                             <input type="number" value={p.hargaSatuan || ''} min={0} onChange={e => updPart(p.id, { hargaSatuan: Number(e.target.value) })}
-                              placeholder="0" className="col-span-3 px-3 py-2 rounded-xl border border-slate-200 text-xs text-right focus:outline-none focus:border-red-400" />
-                            <button onClick={() => delPart(p.id)} className="col-span-1 flex justify-center text-slate-200 hover:text-red-500 transition-colors">
+                              placeholder="0" className="col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-xs text-right focus:outline-none focus:border-red-400 font-mono" />
+                            <button onClick={() => delPart(p.id)} className="col-span-1 flex justify-center text-slate-300 hover:text-red-500 transition-colors">
                               <Trash2 size={14} />
                             </button>
                           </div>
                         ))}
                       </div>
-                      <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
-                        <p className="text-xs font-bold text-slate-600">Subtotal Sparepart: <span className="text-red-600 text-sm">{formatRp(subParts)}</span></p>
+                      <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 flex justify-end">
+                        <p className="text-xs font-bold text-slate-600">Subtotal Sparepart: <span className="text-red-600 font-mono text-sm">{formatRp(subParts)}</span></p>
                       </div>
                     </>
                   )}
                 </div>
 
-                {/* Jasa Table */}
+                {/* Jasa Pekerjaan */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                     <div>
-                      <h3 className="text-sm font-black text-slate-800">Biaya Jasa Pekerjaan</h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{jasaList.length} pekerjaan · {formatRp(subJasa)}</p>
+                      <h3 className="text-sm font-black text-slate-800">Biaya Jasa Servis</h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Mekanik Pelaksana: <strong>{effectiveMekanikName}</strong> • Total: {formatRp(subJasa)}</p>
                     </div>
                     <button onClick={addJasa_}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all active:scale-95">
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all active:scale-95">
                       <Plus size={13} /> Tambah Jasa
                     </button>
                   </div>
-                  {jasaList.length === 0 ? (
-                    <div className="py-8 text-center text-slate-400 text-xs">Belum ada jasa. Klik "+ Tambah Jasa"</div>
-                  ) : (
-                    <>
-                      <div className="divide-y divide-slate-50">
-                        {jasaList.map(j => (
-                          <div key={j.id} className="px-5 py-3 flex items-center gap-3">
-                            <Wrench size={13} className="text-slate-300 flex-shrink-0" />
-                            <input value={j.nama} onChange={e => updJasa(j.id, { nama: e.target.value })} placeholder="Nama pekerjaan / jasa..."
-                              className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 transition-colors" />
-                            <input type="number" value={j.harga || ''} min={0} onChange={e => updJasa(j.id, { harga: Number(e.target.value) })}
-                              placeholder="Biaya (Rp)"
-                              className="w-40 px-3 py-2 rounded-xl border border-slate-200 text-xs text-right focus:outline-none focus:border-red-400" />
-                            <button onClick={() => delJasa(j.id)} className="text-slate-200 hover:text-red-500 transition-colors flex-shrink-0">
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        ))}
+                  <div className="divide-y divide-slate-50">
+                    {jasaList.map(j => (
+                      <div key={j.id} className="px-5 py-3 flex items-center gap-3">
+                        <Wrench size={13} className="text-slate-400 flex-shrink-0" />
+                        <input value={j.nama} onChange={e => updJasa(j.id, { nama: e.target.value })} placeholder="Jenis pekerjaan servis..."
+                          className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-semibold" />
+                        <input type="number" value={j.harga || ''} min={0} onChange={e => updJasa(j.id, { harga: Number(e.target.value) })}
+                          placeholder="Biaya (Rp)"
+                          className="w-40 px-3 py-2 rounded-xl border border-slate-200 text-xs text-right focus:outline-none focus:border-red-400 font-mono font-bold" />
+                        <button onClick={() => delJasa(j.id)} className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0">
+                          <Trash2 size={14} />
+                        </button>
                       </div>
-                      <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end">
-                        <p className="text-xs font-bold text-slate-600">Subtotal Jasa: <span className="text-slate-800 text-sm">{formatRp(subJasa)}</span></p>
-                      </div>
-                    </>
-                  )}
+                    ))}
+                  </div>
+                  <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 flex justify-end">
+                    <p className="text-xs font-bold text-slate-600">Subtotal Jasa Servis: <span className="text-slate-900 font-mono text-sm">{formatRp(subJasa)}</span></p>
+                  </div>
                 </div>
 
-                {/* Pricing Panel */}
+                {/* Diskon & Kalkulasi Total */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                    <h3 className="text-sm font-black text-slate-800 mb-4">Penyesuaian Harga</h3>
-                    <div className="space-y-3">
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Potongan Harga & Pajak</h3>
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1.5">Diskon (%)</label>
-                        <div className="relative">
-                          <Percent size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="number" value={diskon} min={0} max={100} onChange={e => setDiskon(Number(e.target.value))}
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:border-red-400 text-center" />
-                        </div>
-                        {diskon > 0 && <p className="text-xs text-amber-600 mt-1 font-semibold">Potongan: {formatRp(discAmt)}</p>}
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1">Diskon (%)</label>
+                        <input type="number" value={diskon} min={0} max={100} onChange={e => setDiskon(Number(e.target.value))}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-red-400 text-center" />
+                        {diskon > 0 && <p className="text-[11px] text-amber-600 mt-1 font-semibold">- {formatRp(discAmt)}</p>}
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1.5">PPN / Pajak (%)</label>
-                        <div className="relative">
-                          <Percent size={13} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input type="number" value={pajak} min={0} max={100} onChange={e => setPajak(Number(e.target.value))}
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-bold focus:outline-none focus:border-red-400 text-center" />
-                        </div>
-                        {pajak > 0 && <p className="text-xs text-slate-500 mt-1">PPN: {formatRp(taxAmt)}</p>}
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1">PPN / Pajak (%)</label>
+                        <input type="number" value={pajak} min={0} max={100} onChange={e => setPajak(Number(e.target.value))}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:border-red-400 text-center" />
+                        {pajak > 0 && <p className="text-[11px] text-slate-500 mt-1">+ {formatRp(taxAmt)}</p>}
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-xl">
-                    <h3 className="text-sm font-black text-slate-300 mb-4">Ringkasan Biaya</h3>
-                    <div className="space-y-2.5 text-sm">
-                      <div className="flex justify-between text-slate-300"><span>Subtotal Part</span><span>{formatRp(subParts)}</span></div>
-                      <div className="flex justify-between text-slate-300"><span>Subtotal Jasa</span><span>{formatRp(subJasa)}</span></div>
-                      <div className="flex justify-between text-slate-400"><span>Subtotal</span><span>{formatRp(subtotal)}</span></div>
-                      {diskon > 0 && <div className="flex justify-between text-amber-400 font-semibold"><span>Diskon ({diskon}%)</span><span>- {formatRp(discAmt)}</span></div>}
-                      {pajak > 0 && <div className="flex justify-between text-slate-400"><span>PPN ({pajak}%)</span><span>+ {formatRp(taxAmt)}</span></div>}
-                      <div className="border-t border-white/15 pt-3 mt-1 flex justify-between items-center">
-                        <span className="text-base font-black text-white">GRAND TOTAL</span>
-                        <span className="text-2xl font-black text-red-400">{formatRp(grand)}</span>
+                  <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 text-white shadow-xl space-y-2">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Ringkasan Biaya</h3>
+                    <div className="space-y-1.5 text-xs text-slate-300">
+                      <div className="flex justify-between"><span>Subtotal Suku Cadang:</span><span className="font-mono">{formatRp(subParts)}</span></div>
+                      <div className="flex justify-between"><span>Subtotal Jasa Servis:</span><span className="font-mono">{formatRp(subJasa)}</span></div>
+                      {diskon > 0 && <div className="flex justify-between text-amber-400 font-semibold"><span>Diskon ({diskon}%):</span><span className="font-mono">- {formatRp(discAmt)}</span></div>}
+                      {pajak > 0 && <div className="flex justify-between text-slate-400"><span>PPN ({pajak}%):</span><span className="font-mono">+ {formatRp(taxAmt)}</span></div>}
+                      <div className="border-t border-white/15 pt-2 mt-1 flex justify-between items-center text-sm font-black text-white">
+                        <span>TOTAL TAGIHAN:</span>
+                        <span className="text-xl font-mono text-red-400">{formatRp(grand)}</span>
                       </div>
                     </div>
                   </div>
@@ -922,7 +1368,7 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
               </>
             )}
 
-            {/* ══ STEP 4: LPA ══════════════════════════════════════════ */}
+            {/* ══ STEP 4: Lembar LPA Akhir ══════════════════════════════ */}
             {step === 4 && (
               <>
                 <div className="flex items-center gap-3">
@@ -930,44 +1376,35 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
                     <FileText size={18} className="text-white" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-slate-900">Lembar Pemeriksaan Akhir</h2>
-                    <p className="text-sm text-slate-400">Verifikasi kondisi kendaraan sebelum diserahkan ke pelanggan</p>
+                    <h2 className="text-lg font-black text-slate-900">Lembar Pemeriksaan Akhir (LPA)</h2>
+                    <p className="text-sm text-slate-400">Verifikasi kualitas dan kelengkapan unit sebelum diserahkan kepada pelanggan</p>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-start gap-3">
-                  <Info size={16} className="text-blue-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-700 font-semibold">LPA wajib dilengkapi sebelum kendaraan diserahkan. Semua item harus diperiksa dan ditandai kondisinya.</p>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Nama Teknisi / Mekanik</label>
-                    <input value={lpaTeknisi} onChange={e => setLpaTeknisi(e.target.value)} placeholder="Nama mekanik yang mengerjakan..."
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-purple-400 transition-colors" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Hasil Test Drive</label>
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Hasil Uji Jalan (Test Drive)</label>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => setLpaTestDrive(true)}
-                        className={`flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all ${lpaTestDrive ? 'bg-emerald-500 text-white border-emerald-500' : 'border-slate-200 text-slate-500 hover:border-emerald-300'}`}>
-                        Normal & Aman
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${lpaTestDrive ? 'bg-emerald-500 text-white border-emerald-500' : 'border-slate-200 text-slate-500 hover:border-emerald-300'}`}>
+                        Normal & Layak Jalan
                       </button>
                       <button type="button" onClick={() => setLpaTestDrive(false)}
-                        className={`flex-1 py-3 rounded-xl text-xs font-bold border-2 transition-all ${!lpaTestDrive ? 'bg-amber-500 text-white border-amber-500' : 'border-slate-200 text-slate-500 hover:border-amber-300'}`}>
+                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold border-2 transition-all ${!lpaTestDrive ? 'bg-amber-500 text-white border-amber-500' : 'border-slate-200 text-slate-500 hover:border-amber-300'}`}>
                         Ada Catatan
                       </button>
                     </div>
                   </div>
+
                   <div>
-                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Catatan LPA</label>
-                    <input value={lpaCatatan} onChange={e => setLpaCatatan(e.target.value)} placeholder="Catatan sebelum diserahkan..."
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-purple-400 transition-colors" />
+                    <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Catatan Penyerahan Unit</label>
+                    <input value={lpaCatatan} onChange={e => setLpaCatatan(e.target.value)} placeholder="Catatan kebersihan, barang bawaan, dll..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-purple-400 font-medium" />
                   </div>
                 </div>
 
                 <SACheckTable
-                  title="Checklist Kelengkapan & Kondisi Akhir Kendaraan"
+                  title="Checklist Kelengkapan & Kondisi Akhir Kendaraan (14 Poin QC)"
                   icon={<CheckCircle size={16} className="text-purple-600" />}
                   items={lpaChecklist}
                   onChange={setLpaChecklist}
@@ -975,118 +1412,93 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
               </>
             )}
 
-            {/* ══ STEP 5: Nota Akhir ════════════════════════════════════ */}
+            {/* ══ STEP 5: Nota Resmi & Pembayaran ════════════════════════ */}
             {step === 5 && (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/20 flex-shrink-0">
-                    <Receipt size={18} className="text-white" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/20 flex-shrink-0">
+                      <Receipt size={18} className="text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-black text-slate-900">Nota Resmi & Faktur Bengkel</h2>
+                      <p className="text-sm text-slate-400">Review faktur lengkap, penerimaan pembayaran, dan cetak dokumen resmi</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-lg font-black text-slate-900">Nota Akhir & Pembayaran</h2>
-                    <p className="text-sm text-slate-400">Review, pembayaran, simpan SPK, dan cetak nota</p>
-                  </div>
+
+                  <button
+                    onClick={handlePrint}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all shadow-md active:scale-95"
+                  >
+                    <Printer size={15} /> Cetak Nota / PDF
+                  </button>
                 </div>
 
-                {savedId ? (
-                  /* ── SUCCESS STATE ── */
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 p-8 text-center text-white">
-                      <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle size={40} className="text-white" />
-                      </div>
-                      <h3 className="text-2xl font-black mb-1">SPK Berhasil Disimpan!</h3>
-                      <p className="text-emerald-100 text-sm">Nomor SPK: <span className="font-black text-white">{spkNumber}</span></p>
-                    </div>
-                    <div className="p-6 flex flex-col sm:flex-row gap-3 justify-center">
-                      <button onClick={handlePrint}
-                        className="flex items-center justify-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl transition-all">
-                        <Printer size={16} /> Cetak Nota
-                      </button>
-                      <button onClick={() => onNavigate('crm-orders')}
-                        className="flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all">
-                        <FileText size={16} /> Lihat Daftar SPK
-                      </button>
-                      <button onClick={() => onNavigate('crm-dashboard')}
-                        className="flex items-center justify-center gap-2 px-6 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl transition-all">
-                        Kembali ke Dashboard
-                      </button>
-                    </div>
+                {/* Metode Bayar & Kasir */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">Metode Pembayaran (Kasir: {effectiveKasirName})</h3>
+                    <span className="text-xs font-bold text-slate-500">Total: <strong className="text-red-600 font-mono text-sm">{formatRp(grand)}</strong></span>
                   </div>
-                ) : (
-                  <>
-                    {/* Summary Cards */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {[
-                        { label: 'Pelanggan',  value: selectedCustomer?.name || '—', icon: User,     color: 'blue' },
-                        { label: 'Kendaraan',  value: `${selectedCustomer?.carBrand} ${selectedCustomer?.carModel}`, icon: Car, color: 'slate' },
-                        { label: 'Plat Nomor', value: selectedCustomer?.licensePlate || '—', icon: Hash, color: 'red', mono: true },
-                        { label: 'Grand Total',value: formatRp(grand), icon: DollarSign, color: 'emerald', big: true },
-                      ].map((c, i) => (
-                        <div key={i} className={`bg-white rounded-2xl border border-slate-200 shadow-sm p-4 ${c.big ? 'col-span-2 sm:col-span-1' : ''}`}>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{c.label}</p>
-                          <p className={`font-black text-sm ${c.mono ? 'font-mono text-red-600' : c.big ? 'text-emerald-600 text-base' : 'text-slate-800'} truncate`}>{c.value}</p>
-                        </div>
-                      ))}
-                    </div>
 
-                    {/* SA Summary */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                      <h3 className="text-sm font-black text-slate-800 mb-3">Ringkasan Pengecekan SA</h3>
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div className="bg-emerald-50 rounded-xl p-3">
-                          <p className="text-2xl font-black text-emerald-600">{allOk}</p>
-                          <p className="text-xs text-emerald-600 font-semibold mt-0.5">Kondisi OK</p>
-                        </div>
-                        <div className="bg-amber-50 rounded-xl p-3">
-                          <p className="text-2xl font-black text-amber-600">{allWarn}</p>
-                          <p className="text-xs text-amber-600 font-semibold mt-0.5">Perlu Perhatian</p>
-                        </div>
-                        <div className="bg-red-50 rounded-xl p-3">
-                          <p className="text-2xl font-black text-red-600">{allBad}</p>
-                          <p className="text-xs text-red-600 font-semibold mt-0.5">Segera Ganti</p>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    {(['cash', 'transfer', 'kredit'] as const).map(m => (
+                      <button key={m} type="button" onClick={() => setMetodeBayar(m)}
+                        className={`flex flex-col items-center gap-2 py-3 rounded-xl border-2 transition-all font-bold text-xs capitalize ${metodeBayar === m ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-500 hover:border-slate-400'}`}>
+                        {m === 'cash' ? <Banknote size={18} /> : m === 'transfer' ? <CreditCard size={18} /> : <RefreshCw size={18} />}
+                        {m === 'cash' ? 'Cash / Tunai' : m === 'transfer' ? 'Transfer Bank' : 'Debit / Kredit'}
+                      </button>
+                    ))}
+                  </div>
 
-                    {/* Payment */}
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                      <h3 className="text-sm font-black text-slate-800 mb-4">Metode Pembayaran</h3>
-                      <div className="grid grid-cols-3 gap-3 mb-4">
-                        {(['cash', 'transfer', 'kredit'] as const).map(m => (
-                          <button key={m} type="button" onClick={() => setMetodeBayar(m)}
-                            className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition-all font-bold text-xs capitalize ${metodeBayar === m ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-500 hover:border-slate-400'}`}>
-                            {m === 'cash' ? <Banknote size={20} /> : m === 'transfer' ? <CreditCard size={20} /> : <RefreshCw size={20} />}
-                            {m === 'cash' ? 'Cash Tunai' : m === 'transfer' ? 'Transfer Bank' : 'Kredit'}
-                          </button>
-                        ))}
+                  {metodeBayar === 'cash' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      <div>
+                        <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wider mb-1">Nominal Diterima Kasir (Rp)</label>
+                        <input type="number" value={dibayar || ''} onChange={e => setDibayar(Number(e.target.value))}
+                          placeholder={String(grand)} className="w-full px-3.5 py-2.5 rounded-xl border-2 border-slate-200 focus:border-red-400 text-xs font-mono font-bold focus:outline-none" />
                       </div>
-                      {metodeBayar === 'cash' && (
-                        <div className="space-y-3">
-                          <div>
-                            <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Nominal Dibayar (Rp)</label>
-                            <input type="number" value={dibayar || ''} onChange={e => setDibayar(Number(e.target.value))}
-                              placeholder={String(grand)} className="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:border-red-400 text-sm font-bold focus:outline-none transition-colors" />
-                          </div>
-                          {dibayar > 0 && (
-                            <div className={`flex justify-between items-center px-4 py-3 rounded-xl text-sm font-bold ${kembalian >= 0 ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-red-50 border border-red-200 text-red-600'}`}>
-                              <span>{kembalian >= 0 ? 'Kembalian' : 'Kurang Bayar'}</span>
-                              <span className="text-base">{formatRp(Math.abs(kembalian))}</span>
-                            </div>
-                          )}
+                      {dibayar > 0 && (
+                        <div className={`flex flex-col justify-center px-4 py-2 rounded-xl text-xs font-bold ${kembalian >= 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                          <span className="text-[10px] uppercase">{kembalian >= 0 ? 'Uang Kembalian' : 'Kekurangan Bayar'}</span>
+                          <span className="text-sm font-mono">{formatRp(Math.abs(kembalian))}</span>
                         </div>
                       )}
                     </div>
+                  )}
+                </div>
 
-                    {/* Nota Preview */}
-                    <NotaPrint spkData={spkData} />
+                {/* NOTA RESMI PRINTABLE VIEW */}
+                <div className="bg-slate-100 p-4 rounded-3xl border border-slate-200 overflow-x-auto">
+                  <NotaCorporatePrint spkData={spkData} />
+                </div>
 
-                    {/* Save Button */}
-                    <button onClick={handleSave} disabled={saving}
-                      className="w-full flex items-center justify-center gap-3 py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all active:scale-[0.98]">
-                      {saving ? <><Clock size={18} className="animate-spin" /> Menyimpan SPK...</> : <><Save size={18} /> Simpan SPK & Selesai</>}
-                    </button>
-                  </>
+                {/* Save Button */}
+                {!savedId && (
+                  <button onClick={handleSave} disabled={saving}
+                    className="w-full flex items-center justify-center gap-3 py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all active:scale-[0.98]">
+                    {saving ? <><Clock size={18} className="animate-spin" /> Menyimpan SPK ke Database...</> : <><Save size={18} /> Simpan SPK & Terbitkan Faktur Resmi</>}
+                  </button>
+                )}
+
+                {savedId && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 text-center space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-md">
+                      <Check size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-slate-900 text-base">SPK & Faktur Berhasil Disimpan</h3>
+                      <p className="text-xs text-slate-500 mt-0.5">Nomor SPK: <span className="font-mono font-bold text-slate-800">{spkNumber}</span></p>
+                    </div>
+                    <div className="flex justify-center gap-3 pt-2">
+                      <button onClick={handlePrint} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all">
+                        Cetak Nota Sekarang
+                      </button>
+                      <button onClick={() => onNavigate('crm-orders')} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 transition-all">
+                        Lihat Daftar SPK
+                      </button>
+                    </div>
+                  </div>
                 )}
               </>
             )}
@@ -1095,25 +1507,25 @@ export function CRMSPKCreate({ customers, onNavigate }: CRMSPKCreateProps) {
             {!savedId && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4 flex items-center justify-between print:hidden">
                 <button onClick={() => step === 1 ? onNavigate('crm-dashboard') : setStep(s => s - 1)}
-                  className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl transition-all">
-                  <ChevronLeft size={15} />
-                  {step === 1 ? 'Kembali ke Dashboard' : 'Langkah Sebelumnya'}
+                  className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all">
+                  <ChevronLeft size={14} />
+                  {step === 1 ? 'Kembali ke Dashboard' : 'Tahap Sebelumnya'}
                 </button>
 
                 <div className="flex items-center gap-1">
                   {STEPS.map(s => (
-                    <div key={s.id} className={`h-1.5 rounded-full transition-all ${step === s.id ? 'w-6 bg-red-600' : step > s.id ? 'w-1.5 bg-emerald-400' : 'w-1.5 bg-slate-200'}`} />
+                    <div key={s.id} className={`h-1.5 rounded-full transition-all ${step === s.id ? 'w-6 bg-red-600' : step > s.id ? 'w-1.5 bg-emerald-500' : 'w-1.5 bg-slate-200'}`} />
                   ))}
                 </div>
 
                 {step < 5 ? (
                   <button onClick={() => setStep(s => s + 1)} disabled={!canGoNext()}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-red-600/20">
-                    Langkah Berikutnya <ChevronRight size={15} />
+                    className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-red-600/20">
+                    Lanjut: {STEPS[step].short} <ChevronRight size={14} />
                   </button>
                 ) : (
                   <button onClick={handleSave} disabled={saving}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-emerald-600/20">
+                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/20">
                     {saving ? <><Clock size={14} className="animate-spin" /> Menyimpan...</> : <><Save size={14} /> Simpan SPK</>}
                   </button>
                 )}

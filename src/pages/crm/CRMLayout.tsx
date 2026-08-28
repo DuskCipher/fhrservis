@@ -69,7 +69,10 @@ const navItems: NavItem[] = [
     id: 'hrd',
     label: 'HRD',
     icon: UserSquare2,
-    children: [{ id: 'crm-dashboard', label: 'Karyawan & Absensi' }]
+    children: [
+      { id: 'crm-employees', label: 'Data Karyawan & Staf' },
+      { id: 'crm-dashboard', label: 'Absensi & Kinerja' },
+    ]
   },
   {
     id: 'crm-menu',

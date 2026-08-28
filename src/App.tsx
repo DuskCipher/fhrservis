@@ -6,7 +6,14 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
-import { subscribeToOrders, updateOrderStatus, seedInitialOrders, subscribeToCustomers, seedInitialCustomers } from './lib/firestoreService';
+import {
+  subscribeToOrders,
+  subscribeToCustomers,
+  subscribeToEmployees,
+  updateOrderStatus,
+  seedInitialOrders,
+  seedInitialCustomers,
+} from './lib/firestoreService';
 import { Navbar } from './components/Navbar';
 import { HomePage } from './pages/HomePage';
 import { ServicesPage } from './pages/ServicesPage';
@@ -20,7 +27,7 @@ import { Footer } from './components/Footer';
 import { ServiceDetailModal } from './components/ServiceDetailModal';
 import { FloatingEmergencyBar } from './components/FloatingEmergencyBar';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
-import { ServiceItem, ArticleItem, PageType, CRMOrder, CustomerItem } from './types';
+import { ServiceItem, ArticleItem, PageType, CRMOrder, CustomerItem, EmployeeItem } from './types';
 import { ARTICLES_DATA } from './data/mockData';
 
 // CRM Components
@@ -29,6 +36,7 @@ import { CRMLayout } from './pages/crm/CRMLayout';
 import { CRMDashboard } from './pages/crm/CRMDashboard';
 import { CRMOrders } from './pages/crm/CRMOrders';
 import { CRMCustomers } from './pages/crm/CRMCustomers';
+import { CRMKaryawan } from './pages/crm/CRMKaryawan';
 import { CRMLembarPemeriksaan } from './pages/crm/CRMLembarPemeriksaan';
 import { CRMSPKCreate } from './pages/crm/CRMSPKCreate';
 
@@ -44,6 +52,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = loading
   const [crmOrders, setCrmOrders] = useState<CRMOrder[]>([]);
   const [crmCustomers, setCrmCustomers] = useState<CustomerItem[]>([]);
+  const [crmEmployees, setCrmEmployees] = useState<EmployeeItem[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
   // Listen to Firebase Auth state
@@ -93,9 +102,14 @@ export default function App() {
       }
     });
 
+    const unsubEmployees = subscribeToEmployees((employees) => {
+      setCrmEmployees(employees);
+    });
+
     return () => {
       unsubOrders();
       unsubCustomers();
+      unsubEmployees();
     };
   }, [activePage, isAuthenticated]);
 
@@ -242,9 +256,16 @@ export default function App() {
         {activePage === 'crm-lpa' && (
           <CRMLembarPemeriksaan />
         )}
+        {activePage === 'crm-employees' && (
+          <CRMKaryawan
+            employees={crmEmployees}
+            onNavigate={handleNavigate}
+          />
+        )}
         {activePage === 'crm-spk-create' && (
           <CRMSPKCreate
             customers={crmCustomers}
+            employees={crmEmployees}
             onNavigate={handleNavigate}
           />
         )}
