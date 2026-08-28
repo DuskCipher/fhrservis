@@ -11,9 +11,10 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { CRMOrder, OrderStatus } from '../types';
+import { CRMOrder, OrderStatus, CustomerItem } from '../types';
 
 const ORDERS_COLLECTION = 'orders';
+const CUSTOMERS_COLLECTION = 'customers';
 
 /**
  * Subscribe to all orders in real-time.
@@ -100,3 +101,86 @@ export async function seedInitialOrders(orders: Omit<CRMOrder, 'id'>[]): Promise
     });
   }
 }
+
+/**
+ * Subscribe to all customers in real-time.
+ * Returns an unsubscribe function.
+ */
+export function subscribeToCustomers(
+  callback: (customers: CustomerItem[]) => void
+): () => void {
+  const q = query(
+    collection(db, CUSTOMERS_COLLECTION),
+    orderBy('createdAt', 'desc')
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const customers: CustomerItem[] = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        createdAt:
+          data.createdAt instanceof Timestamp
+            ? data.createdAt.toDate().toISOString()
+            : data.createdAt ?? new Date().toISOString(),
+        updatedAt:
+          data.updatedAt instanceof Timestamp
+            ? data.updatedAt.toDate().toISOString()
+            : data.updatedAt,
+      } as CustomerItem;
+    });
+    callback(customers);
+  });
+
+  return unsubscribe;
+}
+
+/**
+ * Add a new customer to Firestore.
+ */
+export async function addCustomer(
+  customer: Omit<CustomerItem, 'id' | 'createdAt'>
+): Promise<string> {
+  const docRef = await addDoc(collection(db, CUSTOMERS_COLLECTION), {
+    ...customer,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return docRef.id;
+}
+
+/**
+ * Update an existing customer.
+ */
+export async function updateCustomer(
+  customerId: string,
+  fields: Partial<CustomerItem>
+): Promise<void> {
+  const customerRef = doc(db, CUSTOMERS_COLLECTION, customerId);
+  await updateDoc(customerRef, {
+    ...fields,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Delete a customer.
+ */
+export async function deleteCustomer(customerId: string): Promise<void> {
+  await deleteDoc(doc(db, CUSTOMERS_COLLECTION, customerId));
+}
+
+/**
+ * Seed initial mock customers into Firestore (run once).
+ */
+export async function seedInitialCustomers(customers: Omit<CustomerItem, 'id'>[]): Promise<void> {
+  for (const customer of customers) {
+    await addDoc(collection(db, CUSTOMERS_COLLECTION), {
+      ...customer,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+}
+

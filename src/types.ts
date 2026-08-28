@@ -1,6 +1,25 @@
-export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-lpa';
+export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-lpa';
 
 export type OrderStatus = 'pending' | 'process' | 'completed' | 'cancelled';
+
+export interface CustomerItem {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  address: string;
+  carBrand: string;
+  carModel: string;
+  carYear: string;
+  licensePlate: string;
+  transmission?: 'Manual' | 'Matic';
+  carColor?: string;
+  notes?: string;
+  totalOrdersCount?: number;
+  totalSpent?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export interface ServiceItem {
   id: string;

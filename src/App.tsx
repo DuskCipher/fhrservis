@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
-import { subscribeToOrders, updateOrderStatus, seedInitialOrders } from './lib/firestoreService';
+import { subscribeToOrders, updateOrderStatus, seedInitialOrders, subscribeToCustomers, seedInitialCustomers } from './lib/firestoreService';
 import { Navbar } from './components/Navbar';
 import { HomePage } from './pages/HomePage';
 import { ServicesPage } from './pages/ServicesPage';
@@ -20,7 +20,7 @@ import { Footer } from './components/Footer';
 import { ServiceDetailModal } from './components/ServiceDetailModal';
 import { FloatingEmergencyBar } from './components/FloatingEmergencyBar';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
-import { ServiceItem, ArticleItem, PageType, CRMOrder } from './types';
+import { ServiceItem, ArticleItem, PageType, CRMOrder, CustomerItem } from './types';
 import { ARTICLES_DATA } from './data/mockData';
 
 // CRM Components
@@ -28,6 +28,7 @@ import { LoginPage } from './pages/crm/LoginPage';
 import { CRMLayout } from './pages/crm/CRMLayout';
 import { CRMDashboard } from './pages/crm/CRMDashboard';
 import { CRMOrders } from './pages/crm/CRMOrders';
+import { CRMCustomers } from './pages/crm/CRMCustomers';
 import { CRMLembarPemeriksaan } from './pages/crm/CRMLembarPemeriksaan';
 
 export default function App() {
@@ -41,6 +42,7 @@ export default function App() {
   // CRM State — Firebase Auth + Firestore
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = loading
   const [crmOrders, setCrmOrders] = useState<CRMOrder[]>([]);
+  const [crmCustomers, setCrmCustomers] = useState<CustomerItem[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
   // Listen to Firebase Auth state
@@ -51,13 +53,13 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Subscribe to Firestore orders in real-time (only when on CRM pages)
+  // Subscribe to Firestore orders & customers in real-time (only when on CRM pages)
   useEffect(() => {
     const isCrmPage = activePage.startsWith('crm-');
     if (!isCrmPage || !isAuthenticated) return;
 
     setOrdersLoading(true);
-    const unsubscribe = subscribeToOrders((orders) => {
+    const unsubOrders = subscribeToOrders((orders) => {
       // If Firestore is empty, seed with initial data
       if (orders.length === 0) {
         const initialOrders: Omit<CRMOrder, 'id'>[] = [
@@ -75,7 +77,25 @@ export default function App() {
       }
     });
 
-    return () => unsubscribe();
+    const unsubCustomers = subscribeToCustomers((customers) => {
+      if (customers.length === 0) {
+        const initialCustomers: Omit<CustomerItem, 'id'>[] = [
+          { name: 'Budi Santoso', phone: '081234567890', email: 'budi.santoso@gmail.com', address: 'Jl. Sudirman No. 1, Jakarta Selatan', carBrand: 'Toyota', carModel: 'Avanza 1.3 G', carYear: '2019', licensePlate: 'B 1234 ABC', transmission: 'Matic', carColor: 'Silver Metallic', notes: 'Rutin ganti oli mesin tiap 5.000 KM', totalOrdersCount: 2, totalSpent: 850000, createdAt: new Date().toISOString() },
+          { name: 'Siti Aminah', phone: '081298765432', email: 'siti.aminah@yahoo.com', address: 'Tol Dalam Kota KM 10, Jakarta', carBrand: 'Honda', carModel: 'Brio Satya E', carYear: '2021', licensePlate: 'D 5678 DEF', transmission: 'Matic', carColor: 'Putih', notes: 'Pernah minta emergency aki drop di tol', totalOrdersCount: 1, totalSpent: 450000, createdAt: new Date().toISOString() },
+          { name: 'Cholili', phone: '081223456789', email: 'cholili.trans@gmail.com', address: 'Jl. Merdeka No. 5, Purwokerto', carBrand: 'Daihatsu', carModel: 'Gran Max 1.5', carYear: '2020', licensePlate: 'R 1927 SR', transmission: 'Manual', carColor: 'Hitam', notes: 'Mobil niaga, rutin cek AC dan kampas rem', totalOrdersCount: 3, totalSpent: 1250000, createdAt: new Date().toISOString() },
+          { name: 'Galim', phone: '082112345678', email: 'galim.jaya@gmail.com', address: 'Jl. Raya Sokaraja, Banyumas', carBrand: 'Mitsubishi', carModel: 'L300', carYear: '2018', licensePlate: 'R 1785 GT', transmission: 'Manual', carColor: 'Coklat Tua', notes: 'Mesin bertenaga, perawatan rutin berkala', totalOrdersCount: 2, totalSpent: 1008000, createdAt: new Date().toISOString() },
+          { name: 'Rizky Hidayat', phone: '081987654321', email: 'rizky.hidayat@gmail.com', address: 'Jl. Veteran No. 8, Yogyakarta', carBrand: 'Toyota', carModel: 'Innova Reborn V', carYear: '2022', licensePlate: 'AB 1122 CD', transmission: 'Matic', carColor: 'Hitam Metalik', notes: 'Mobil keluarga, sparepart selalu original', totalOrdersCount: 1, totalSpent: 650000, createdAt: new Date().toISOString() }
+        ];
+        seedInitialCustomers(initialCustomers);
+      } else {
+        setCrmCustomers(customers);
+      }
+    });
+
+    return () => {
+      unsubOrders();
+      unsubCustomers();
+    };
   }, [activePage, isAuthenticated]);
 
   // Map URL pathname → PageType
@@ -84,6 +104,7 @@ export default function App() {
     if (cleanPath === '/login') return 'crm-login';
     if (cleanPath === '/crm') return 'crm-dashboard';
     if (cleanPath === '/crm/orders') return 'crm-orders';
+    if (cleanPath === '/crm/customers') return 'crm-customers';
     if (cleanPath === '/crm/lpa') return 'crm-lpa';
     return null;
   };
@@ -93,6 +114,7 @@ export default function App() {
     if (page === 'crm-login') return '/login';
     if (page === 'crm-dashboard') return '/crm';
     if (page === 'crm-orders') return '/crm/orders';
+    if (page === 'crm-customers') return '/crm/customers';
     if (page === 'crm-lpa') return '/crm/lpa';
     return '/';
   };
@@ -201,7 +223,16 @@ export default function App() {
         {activePage === 'crm-orders' && (
           <CRMOrders
             orders={crmOrders}
+            customers={crmCustomers}
             onUpdateStatus={(id, status) => updateOrderStatus(id, status)}
+            onNavigate={handleNavigate}
+          />
+        )}
+        {activePage === 'crm-customers' && (
+          <CRMCustomers
+            customers={crmCustomers}
+            orders={crmOrders}
+            onNavigate={handleNavigate}
           />
         )}
         {activePage === 'crm-lpa' && (

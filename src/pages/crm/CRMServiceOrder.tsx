@@ -4,11 +4,13 @@ import {
   AlertCircle, Clock, ChevronDown, MapPin, User, Car, 
   Calendar, MessageSquare, RefreshCw, Plus
 } from 'lucide-react';
-import { CRMOrder, OrderStatus } from '../../types';
+import { CRMOrder, OrderStatus, CustomerItem } from '../../types';
 
 interface CRMServiceOrderProps {
   orders: CRMOrder[];
+  customers?: CustomerItem[];
   onUpdateStatus: (orderId: string, newStatus: OrderStatus) => void;
+  onNavigate?: (page: any) => void;
   compact?: boolean;
 }
 
@@ -24,7 +26,7 @@ const TYPE_CONFIG: Record<string, string> = {
   BARU:  'bg-teal-100 text-teal-700',
 };
 
-export function CRMServiceOrder({ orders, onUpdateStatus, compact = false }: CRMServiceOrderProps) {
+export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavigate, compact = false }: CRMServiceOrderProps) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
   const [selected, setSelected] = useState<string[]>([]);
@@ -123,8 +125,11 @@ export function CRMServiceOrder({ orders, onUpdateStatus, compact = false }: CRM
               <Plus size={13} />
               Estimasi Cepat
             </button>
-            <button className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
-              <Plus size={13} />
+            <button
+              onClick={() => onNavigate?.('crm-customers')}
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-lg transition-all shadow-md shadow-red-600/20"
+            >
+              <Plus size={14} />
               Buat SPK Baru
             </button>
           </div>

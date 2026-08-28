@@ -52,7 +52,10 @@ const navItems: NavItem[] = [
     id: 'customer',
     label: 'Pelanggan',
     icon: Users,
-    children: [{ id: 'crm-dashboard', label: 'Customer & Mobil' }]
+    children: [
+      { id: 'crm-customers', label: 'Data Pelanggan & Mobil' },
+      { id: 'crm-orders', label: 'Riwayat SPK' },
+    ]
   },
   {
     id: 'monitoring',
