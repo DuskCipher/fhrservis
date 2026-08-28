@@ -916,9 +916,9 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
                         value={spkData.status}
                         onChange={e => setSpkData({ ...spkData, status: e.target.value as OrderStatus })}
                       >
-                        <option value="process">▶ DALAM PROSES PENGERJAAN</option>
-                        <option value="pending">⏱ DRAFT / TAHAP INSPEKSI</option>
-                        <option value="completed">✓ LANGSUNG SELESAI</option>
+                        <option value="process">DALAM PROSES PENGERJAAN</option>
+                        <option value="pending">DRAFT / TAHAP INSPEKSI</option>
+                        <option value="completed">LANGSUNG SELESAI</option>
                       </select>
                     </div>
                   </div>

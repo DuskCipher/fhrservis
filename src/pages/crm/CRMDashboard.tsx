@@ -403,7 +403,7 @@ export function CRMDashboard({ orders, onUpdateStatus, onNavigate, onBuatSPK }: 
                     <p className="font-mono text-xs font-bold text-slate-700">#{o.id?.slice(0, 8)}</p>
                     {o.isEmergency && (
                       <span className="text-[9px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded mt-0.5 inline-block">
-                        🚨 DARURAT 24J
+                        DARURAT 24J
                       </span>
                     )}
                   </td>

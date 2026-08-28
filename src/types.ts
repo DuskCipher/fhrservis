@@ -1,4 +1,4 @@
-export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-lpa';
+export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-lpa' | 'crm-spk-create';
 
 export type OrderStatus = 'pending' | 'process' | 'completed' | 'cancelled';
 

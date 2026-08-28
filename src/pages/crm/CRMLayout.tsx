@@ -32,6 +32,7 @@ const navItems: NavItem[] = [
     icon: Wrench,
     badge: 3,
     children: [
+      { id: 'crm-spk-create', label: '+ Buat SPK Baru' },
       { id: 'crm-orders', label: 'Daftar SPK' },
       { id: 'crm-dashboard', label: 'Booking Area' },
     ]
@@ -54,6 +55,7 @@ const navItems: NavItem[] = [
     icon: Users,
     children: [
       { id: 'crm-customers', label: 'Data Pelanggan & Mobil' },
+      { id: 'crm-spk-create', label: '+ Buat SPK' },
       { id: 'crm-orders', label: 'Riwayat SPK' },
     ]
   },

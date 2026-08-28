@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
-import { Lock, Mail, Eye, EyeOff, Wrench, ArrowLeft, ShieldCheck, Sparkles } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Wrench, ArrowLeft, ShieldCheck, Sparkles, AlertCircle } from 'lucide-react';
 
 interface LoginPageProps {
   onLoginSuccess: () => void;
@@ -114,7 +114,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               {/* Error Alert */}
               {error && (
                 <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 text-red-700 text-xs p-3.5 rounded-xl">
-                  <span className="text-sm leading-none flex-shrink-0">⚠️</span>
+                  <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
                   <p className="font-semibold leading-relaxed">{error}</p>
                 </div>
               )}

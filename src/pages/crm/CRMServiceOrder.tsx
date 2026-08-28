@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Search, Filter, Eye, Phone, Printer, X, CheckCircle, 
   AlertCircle, Clock, ChevronDown, MapPin, User, Car, 
-  Calendar, MessageSquare, RefreshCw, Plus
+  Calendar, MessageSquare, RefreshCw, Plus, Wrench, PlayCircle
 } from 'lucide-react';
 import { CRMOrder, OrderStatus, CustomerItem } from '../../types';
 
@@ -126,7 +126,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
               Estimasi Cepat
             </button>
             <button
-              onClick={() => onNavigate?.('crm-customers')}
+              onClick={() => onNavigate?.('crm-spk-create')}
               className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-lg transition-all shadow-md shadow-red-600/20"
             >
               <Plus size={14} />
@@ -139,13 +139,16 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
       {/* Stats bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'TOTAL AKTIF', val: orders.filter(o => o.status !== 'cancelled').length, sub: 'Filter Sub-Area', icon: '🔧', color: 'text-slate-900' },
-          { label: 'DALAM PENGERJAAN', val: orders.filter(o => o.status === 'process').length, sub: 'Mekanik Pelaksana', suffix: ' SPK', icon: '▶', color: 'text-blue-600' },
-          { label: 'TAHAP INSPEKSI', val: orders.filter(o => o.status === 'pending').length, sub: 'Permintaan Aksi', suffix: ' SPK', icon: '⏱', color: 'text-amber-500' },
-          { label: 'SELESAI', val: orders.filter(o => o.status === 'completed').length, sub: 'Siap Diserahkan', suffix: ' SPK', icon: '✓', color: 'text-emerald-600' },
+          { label: 'TOTAL AKTIF', val: orders.filter(o => o.status !== 'cancelled').length, sub: 'Filter Sub-Area', icon: <Wrench size={18} />, color: 'text-slate-900' },
+          { label: 'DALAM PENGERJAAN', val: orders.filter(o => o.status === 'process').length, sub: 'Mekanik Pelaksana', suffix: ' SPK', icon: <PlayCircle size={18} />, color: 'text-blue-600' },
+          { label: 'TAHAP INSPEKSI', val: orders.filter(o => o.status === 'pending').length, sub: 'Permintaan Aksi', suffix: ' SPK', icon: <Clock size={18} />, color: 'text-amber-500' },
+          { label: 'SELESAI', val: orders.filter(o => o.status === 'completed').length, sub: 'Siap Diserahkan', suffix: ' SPK', icon: <CheckCircle size={18} />, color: 'text-emerald-600' },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-xl border border-slate-200 px-5 py-4">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</p>
+            <div className="flex justify-between items-start">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</p>
+              <span className={`${s.color} opacity-50`}>{s.icon}</span>
+            </div>
             <p className={`text-2xl font-black mt-1 ${s.color}`}>{s.val}<span className="text-sm font-semibold">{s.suffix}</span></p>
             <p className="text-[10px] text-slate-400 mt-0.5">{s.sub}</p>
           </div>
@@ -171,9 +174,9 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
           ))}
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="flex items-center gap-2 text-xs text-slate-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-lg">
-            <span>📍</span>
-            Bengkel FHRCAR Panggilan
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg">
+            <MapPin size={12} className="text-slate-500" />
+            <span>Cabang: <strong className="text-slate-700">Cabang Utama</strong></span>
           </div>
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -257,7 +260,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
                       </td>
                       <td className="px-3 py-3">
                         <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${o.isEmergency ? 'bg-red-100 text-red-700' : 'bg-sky-100 text-sky-700'}`}>
-                          {o.isEmergency ? '🚨 Darurat' : '📱 Booking SA'}
+                          {o.isEmergency ? 'Darurat' : 'Booking SA'}
                         </span>
                       </td>
                       <td className="px-3 py-3 text-slate-600 font-medium">SA</td>
@@ -361,7 +364,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
                     {detailOrder.notes && <p className="text-xs text-slate-600 mt-2 bg-white p-2 rounded-lg border border-slate-200">{detailOrder.notes}</p>}
                   </div>
                   {detailOrder.isEmergency && (
-                    <span className="px-2 py-1 rounded text-[10px] font-black bg-red-100 text-red-700 uppercase flex-shrink-0">🚨 Darurat</span>
+                    <span className="px-2 py-1 rounded text-[10px] font-black bg-red-100 text-red-700 uppercase flex-shrink-0">Darurat</span>
                   )}
                 </div>
               </div>
