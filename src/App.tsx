@@ -19,6 +19,7 @@ import { BookingPage } from './pages/BookingPage';
 import { Footer } from './components/Footer';
 import { ServiceDetailModal } from './components/ServiceDetailModal';
 import { FloatingEmergencyBar } from './components/FloatingEmergencyBar';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { ServiceItem, ArticleItem, PageType, CRMOrder } from './types';
 import { ARTICLES_DATA } from './data/mockData';
 
@@ -98,9 +99,18 @@ export default function App() {
   useEffect(() => {
     // On first load, read URL and set correct page
     const path = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+    const action = searchParams.get('action');
+
     const page = pathToPage(path);
     if (page) {
       setActivePage(page);
+    } else if (action === 'booking') {
+      setActivePage('booking');
+    } else if (action === 'emergency') {
+      handleOpenBooking('Emergency 24 Jam', 'Panggilan darurat dari shortcut PWA');
+    } else if (action === 'layanan') {
+      setActivePage('layanan');
     }
 
     // Handle browser back/forward buttons
@@ -290,6 +300,9 @@ export default function App() {
       <FloatingEmergencyBar
         onOpenBooking={() => handleOpenBooking('Emergency 24 Jam')}
       />
+
+      {/* Progressive Web App (PWA) Install Prompt & Offline Alerts */}
+      <PWAInstallPrompt />
 
     </div>
   );

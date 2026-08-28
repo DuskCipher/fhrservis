@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Phone, MessageSquare, Wrench, Menu, X, ShieldAlert } from 'lucide-react';
+import { Phone, MessageSquare, Wrench, Menu, X, ShieldAlert, Download } from 'lucide-react';
 import { WHATSAPP_PHONE, EMERGENCY_HOTLINE } from '../data/mockData';
 import { PageType } from '../types';
+import { triggerPWAInstall } from './PWAInstallPrompt';
 
 interface NavbarProps {
   activePage: PageType;
@@ -115,7 +116,18 @@ export function Navbar({ activePage, onNavigate, onOpenBooking }: NavbarProps) {
             </nav>
 
             {/* Right Action Items - Strictly single line */}
-            <div className="hidden sm:flex items-center shrink-0 flex-nowrap">
+            <div className="hidden sm:flex items-center gap-2.5 shrink-0 flex-nowrap">
+              {/* Install PWA App Button */}
+              <button
+                id="header-install-app-btn"
+                onClick={triggerPWAInstall}
+                title="Pasang Aplikasi FHRCAR di perangkat Anda"
+                className="hidden xl:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 text-xs font-bold transition-all border border-slate-200 hover:border-red-200 shadow-sm active:scale-95 whitespace-nowrap"
+              >
+                <Download className="w-3.5 h-3.5 text-red-600" />
+                <span>Install App</span>
+              </button>
+
               {/* Primary Booking Servis CTA - No Icon, Clean & Bold */}
               <button
                 id="header-booking-btn"
@@ -179,6 +191,17 @@ export function Navbar({ activePage, onNavigate, onOpenBooking }: NavbarProps) {
             </div>
 
             <div className="pt-3 border-t border-slate-100 flex flex-col gap-2.5">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  triggerPWAInstall();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-xs shadow-md border border-slate-800 active:scale-[0.98]"
+              >
+                <Download className="w-4 h-4 text-red-500" />
+                <span>Install Aplikasi FHRCAR (PWA)</span>
+              </button>
+
               <a
                 href={`tel:${EMERGENCY_HOTLINE.replace(/[^0-9]/g, '')}`}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 text-white font-bold text-sm shadow-md shadow-red-600/30 active:scale-[0.98]"

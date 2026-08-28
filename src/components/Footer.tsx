@@ -2,10 +2,12 @@ import {
   Instagram, 
   Facebook, 
   Youtube, 
-  Rss
+  Rss,
+  Download
 } from 'lucide-react';
 import { EMERGENCY_HOTLINE, WHATSAPP_PHONE } from '../data/mockData';
 import { PageType } from '../types';
+import { triggerPWAInstall } from './PWAInstallPrompt';
 
 interface FooterProps {
   onNavigate: (page: PageType) => void;
@@ -146,6 +148,15 @@ export function Footer({ onNavigate, onOpenBooking }: FooterProps) {
               <li>
                 <button onClick={onOpenBooking} className="text-red-600 font-bold hover:underline text-left">
                   Form Booking Online
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={triggerPWAInstall} 
+                  className="flex items-center gap-1.5 font-bold text-slate-700 hover:text-red-600 transition-colors text-left"
+                >
+                  <Download className="w-3.5 h-3.5 text-red-600" />
+                  <span>Install Aplikasi PWA</span>
                 </button>
               </li>
             </ul>
