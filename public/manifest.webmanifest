@@ -2,7 +2,7 @@
   "name": "FHRCAR Auto Services — Bengkel Mobil 24 Jam",
   "short_name": "FHRCAR",
   "description": "Bengkel Mobil Panggilan 24 Jam & Emergency Roadside Service Terpercaya. Melayani ganti oli, tune up, servis AC, rem, aki, dan perbaikan mobil langsung di lokasi Anda.",
-  "start_url": "/?source=pwa",
+  "start_url": "/login?source=pwa",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

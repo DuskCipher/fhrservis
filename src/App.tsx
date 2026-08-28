@@ -80,10 +80,11 @@ export default function App() {
 
   // Map URL pathname → PageType
   const pathToPage = (path: string): PageType | null => {
-    if (path === '/login') return 'crm-login';
-    if (path === '/crm' || path === '/crm/') return 'crm-dashboard';
-    if (path === '/crm/orders') return 'crm-orders';
-    if (path === '/crm/lpa') return 'crm-lpa';
+    const cleanPath = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
+    if (cleanPath === '/login') return 'crm-login';
+    if (cleanPath === '/crm') return 'crm-dashboard';
+    if (cleanPath === '/crm/orders') return 'crm-orders';
+    if (cleanPath === '/crm/lpa') return 'crm-lpa';
     return null;
   };
 
