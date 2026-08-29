@@ -651,29 +651,25 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     }
   }, [editingOrder, safeCustomers, safeEmployees]);
 
-  /* ── Filter Staff strictly from HRD Employees ── */
+  /* ── Filter Staff strictly by HRD Role ── */
   const activeEmployees = useMemo(() => {
     return safeEmployees.filter(e => e.status !== 'inactive');
   }, [safeEmployees]);
 
   const saList = useMemo(() => {
-    const byRole = activeEmployees.filter(e => e.role === 'SA' || e.role === 'Manager');
-    return byRole.length > 0 ? byRole : activeEmployees;
+    return activeEmployees.filter(e => e.role === 'SA' || e.role === 'Manager');
   }, [activeEmployees]);
 
   const faList = useMemo(() => {
-    const byRole = activeEmployees.filter(e => e.role === 'FA' || e.role === 'Manager');
-    return byRole.length > 0 ? byRole : activeEmployees;
+    return activeEmployees.filter(e => e.role === 'FA' || e.role === 'Manager');
   }, [activeEmployees]);
 
   const mekanikList = useMemo(() => {
-    const byRole = activeEmployees.filter(e => e.role === 'Mekanik' || e.role === 'Foreman');
-    return byRole.length > 0 ? byRole : activeEmployees;
+    return activeEmployees.filter(e => e.role === 'Mekanik' || e.role === 'Foreman');
   }, [activeEmployees]);
 
   const kasirList = useMemo(() => {
-    const byRole = activeEmployees.filter(e => e.role === 'Kasir' || e.role === 'FA');
-    return byRole.length > 0 ? byRole : activeEmployees;
+    return activeEmployees.filter(e => e.role === 'Kasir' || e.role === 'FA');
   }, [activeEmployees]);
 
   // Derive active names — returns null when nothing has been selected yet
@@ -1313,9 +1309,9 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                         onChange={e => setSelectedSaId(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-blue-500 bg-white font-bold text-slate-800"
                       >
-                        <option value="">-- Pilih SA Bertugas --</option>
+                        <option value="">{saList.length > 0 ? '-- Pilih SA Bertugas --' : '-- Belum Ada Karyawan Role SA --'}</option>
                         {saList.map(sa => (
-                          <option key={sa.id} value={sa.id}>{sa.name} ({sa.nik || 'SA'})</option>
+                          <option key={sa.id} value={sa.id}>{sa.name} ({sa.role} - {sa.nik || 'Staf'})</option>
                         ))}
                         {selectedSaId && !saList.some(sa => sa.id === selectedSaId) && selectedSaId !== 'custom' && (
                           <option value={selectedSaId}>{effectiveSaName || selectedSaId}</option>
@@ -1343,7 +1339,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                         onChange={e => setSelectedFaId(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-teal-500 bg-white font-bold text-slate-800"
                       >
-                        <option value="">-- Pilih Front Advisor --</option>
+                        <option value="">{faList.length > 0 ? '-- Pilih Front Advisor --' : '-- Belum Ada Karyawan Role FA --'}</option>
                         {faList.map(fa => (
                           <option key={fa.id} value={fa.id}>{fa.name} ({fa.role})</option>
                         ))}
@@ -1373,7 +1369,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                         onChange={e => setSelectedMekanikId(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-amber-500 bg-white font-bold text-slate-800"
                       >
-                        <option value="">-- Pilih Mekanik Pelaksana --</option>
+                        <option value="">{mekanikList.length > 0 ? '-- Pilih Mekanik Pelaksana --' : '-- Belum Ada Karyawan Role Mekanik --'}</option>
                         {mekanikList.map(mk => (
                           <option key={mk.id} value={mk.id}>{mk.name} ({mk.role})</option>
                         ))}
@@ -1403,7 +1399,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                         onChange={e => setSelectedKasirId(e.target.value)}
                         className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-emerald-500 bg-white font-bold text-slate-800"
                       >
-                        <option value="">-- Pilih Kasir / Finance --</option>
+                        <option value="">{kasirList.length > 0 ? '-- Pilih Kasir / Finance --' : '-- Belum Ada Karyawan Role Kasir --'}</option>
                         {kasirList.map(ks => (
                           <option key={ks.id} value={ks.id}>{ks.name} ({ks.role})</option>
                         ))}
