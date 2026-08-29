@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Wrench, Package, ShoppingCart, Users, BarChart2,
   UserSquare2, ClipboardList, MessageSquare, HelpCircle, ChevronDown,
   ChevronRight, LogOut, Menu, X, Bell, Settings, Search, ChevronLeft,
-  UserCircle, Building2, FileText, BarChart3, TrendingDown, Star, GitMerge
+  UserCircle, Building2, FileText, BarChart3, TrendingDown, Star, GitMerge, BookOpen
 } from 'lucide-react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
@@ -78,6 +78,7 @@ const navItems: NavItem[] = [
   },
   { id: 'dap',     label: 'Activity Plan (DAP)',       icon: ClipboardList, page: 'crm-activity-plan' },
   { id: 'lpa',     label: 'Lembar Pemeriksaan (LPA)',  icon: FileText,      page: 'crm-lpa' },
+  { id: 'articles',label: 'Kelola Tips & Artikel',     icon: BookOpen,      page: 'crm-articles' },
   { id: 'diskusi', label: 'Diskusi Tim',               icon: MessageSquare, badge: 0, page: 'crm-discussion' },
   { id: 'bantuan', label: 'Bantuan',                   icon: HelpCircle,    page: 'crm-dashboard' },
 ];

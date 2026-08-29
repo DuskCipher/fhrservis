@@ -3,11 +3,14 @@ import { ArticleItem, PageType } from '../types';
 import { ChevronRight } from 'lucide-react';
 
 interface ArticlesSectionProps {
+  articles?: ArticleItem[];
   onSelectArticle: (article: ArticleItem) => void;
   onNavigate?: (page: PageType) => void;
 }
 
-export function ArticlesSection({ onSelectArticle, onNavigate }: ArticlesSectionProps) {
+export function ArticlesSection({ articles = ARTICLES_DATA, onSelectArticle, onNavigate }: ArticlesSectionProps) {
+  const displayArticles = articles.slice(0, 4);
+
   return (
     <section id="artikel" className="py-16 sm:py-24 bg-white border-t border-slate-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,7 +22,7 @@ export function ArticlesSection({ onSelectArticle, onNavigate }: ArticlesSection
               Info & Tips Perawatan Mobil
             </h2>
             <button 
-              onClick={() => onNavigate ? onNavigate('artikel') : onSelectArticle(ARTICLES_DATA[0])}
+              onClick={() => onNavigate ? onNavigate('artikel') : onSelectArticle(displayArticles[0] || ARTICLES_DATA[0])}
               className="text-xs sm:text-sm font-medium text-slate-500 hover:text-red-600 flex items-center gap-1 mt-1 group"
             >
               <span>Lihat semua artikel & tips</span>
@@ -34,7 +37,7 @@ export function ArticlesSection({ onSelectArticle, onNavigate }: ArticlesSection
 
         {/* 4 Articles Grid matching Image 5 */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {ARTICLES_DATA.map((article) => (
+          {displayArticles.map((article) => (
             <div
               key={article.id}
               id={`article-card-${article.id}`}

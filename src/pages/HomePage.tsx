@@ -9,6 +9,7 @@ import { BookingCtaBanner } from '../components/BookingCtaBanner';
 import { ServiceItem, ArticleItem, PageType } from '../types';
 
 interface HomePageProps {
+  articles?: ArticleItem[];
   onOpenBooking: (serviceName?: string, notes?: string) => void;
   onSelectService: (service: ServiceItem) => void;
   onSelectArticle: (article: ArticleItem) => void;
@@ -16,6 +17,7 @@ interface HomePageProps {
 }
 
 export function HomePage({
+  articles,
   onOpenBooking,
   onSelectService,
   onSelectArticle,
@@ -53,6 +55,7 @@ export function HomePage({
 
       {/* Info & Tips Articles Section */}
       <ArticlesSection
+        articles={articles}
         onSelectArticle={onSelectArticle}
         onNavigate={onNavigate}
       />

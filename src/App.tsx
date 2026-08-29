@@ -13,6 +13,7 @@ import {
   subscribeToInventory,
   subscribeToPurchaseOrders,
   subscribeToActivityPlans,
+  subscribeToArticles,
   updateOrderStatus,
   deleteOrder,
   seedInitialOrders,
@@ -54,6 +55,7 @@ import { CRMDiskusi } from './pages/crm/CRMDiskusi';
 import { CRMCustomerAnalysis } from './pages/crm/CRMCustomerAnalysis';
 import { CRMCustomerRFM } from './pages/crm/CRMCustomerRFM';
 import { CRMCustomerMutation } from './pages/crm/CRMCustomerMutation';
+import { CRMArticles } from './pages/crm/CRMArticles';
 
 export default function App() {
   const [activePage, setActivePage] = useState<PageType>('beranda');
@@ -62,6 +64,7 @@ export default function App() {
   
   const [selectedServiceDetail, setSelectedServiceDetail] = useState<ServiceItem | null>(null);
   const [selectedArticleDetail, setSelectedArticleDetail] = useState<ArticleItem | null>(ARTICLES_DATA[0]);
+  const [articlesList, setArticlesList] = useState<ArticleItem[]>(ARTICLES_DATA);
 
   // CRM State — Firebase Auth + Firestore
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = loading
@@ -99,40 +102,91 @@ export default function App() {
       setCrmEmployees(employees);
     });
 
+    // Always listen to articles in real-time
+    const unsubArticles = subscribeToArticles((arts) => {
+      if (arts && arts.length > 0) setArticlesList(arts);
+    });
+
     return () => {
       unsubOrders();
       unsubCustomers();
       unsubEmployees();
+      unsubArticles();
     };
   }, [activePage, isAuthenticated]);
 
-  // Map URL pathname → PageType
+  // Map URL pathname → PageType (Clean Slugs Support)
   const pathToPage = (path: string): PageType | null => {
     const cleanPath = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
+    if (!cleanPath || cleanPath === '/') return 'beranda';
+    if (cleanPath === '/layanan-servis' || cleanPath === '/layanan' || cleanPath === '/services') return 'layanan';
+    if (cleanPath === '/proses-kerja' || cleanPath === '/proses') return 'proses';
+    if (cleanPath === '/tips-artikel' || cleanPath === '/artikel' || cleanPath === '/articles') return 'artikel';
+    if (cleanPath.startsWith('/tips-artikel/') || cleanPath.startsWith('/artikel/')) {
+      const slug = cleanPath.split('/')[2];
+      if (slug) {
+        const found = articlesList.find(a => a.id === slug);
+        if (found) setSelectedArticleDetail(found);
+      }
+      return 'artikel-detail';
+    }
+    if (cleanPath === '/testimoni' || cleanPath === '/reviews') return 'testimoni';
+    if (cleanPath === '/tentang-kami' || cleanPath === '/about') return 'about';
+    if (cleanPath === '/booking-servis' || cleanPath === '/booking') return 'booking';
+
+    // CRM Routes
     if (cleanPath === '/login') return 'crm-login';
     if (cleanPath === '/crm') return 'crm-dashboard';
     if (cleanPath === '/crm/booking' || cleanPath === '/crm/reservasi') return 'crm-booking';
     if (cleanPath === '/crm/orders') return 'crm-orders';
+    if (cleanPath === '/crm/articles' || cleanPath === '/crm/artikel') return 'crm-articles';
+    if (cleanPath === '/crm/inventory') return 'crm-inventory';
+    if (cleanPath === '/crm/purchasing') return 'crm-purchasing';
+    if (cleanPath === '/crm/monitoring') return 'crm-monitoring';
+    if (cleanPath === '/crm/dap' || cleanPath === '/crm/activity-plan') return 'crm-activity-plan';
+    if (cleanPath === '/crm/diskusi' || cleanPath === '/crm/discussion') return 'crm-discussion';
     if (cleanPath === '/crm/customers') return 'crm-customers';
     if (cleanPath === '/crm/customers/create' || cleanPath === '/crm/customers/tambah') return 'crm-customer-create';
     if (cleanPath.endsWith('/edit')) return 'crm-customer-edit';
     if (cleanPath.startsWith('/crm/customers/')) return 'crm-customer-detail';
+    if (cleanPath === '/crm/customers/mutasi') return 'crm-customer-mutation';
+    if (cleanPath === '/crm/customers/analisa') return 'crm-customer-analysis';
+    if (cleanPath === '/crm/customers/rfm') return 'crm-customer-rfm';
     if (cleanPath === '/crm/lpa') return 'crm-lpa';
     if (cleanPath === '/crm/spk' || cleanPath === '/crm/spk-create' || cleanPath === '/crm/spk/create') return 'crm-spk-create';
     if (cleanPath === '/crm/employees') return 'crm-employees';
     return null;
   };
 
-  // Map PageType → URL pathname
+  // Map PageType → URL pathname (Clean Slugs)
   const pageToPath = (page: PageType): string => {
+    if (page === 'beranda') return '/';
+    if (page === 'layanan') return '/layanan-servis';
+    if (page === 'proses') return '/proses-kerja';
+    if (page === 'artikel') return '/tips-artikel';
+    if (page === 'artikel-detail') return selectedArticleDetail ? `/tips-artikel/${selectedArticleDetail.id}` : '/tips-artikel';
+    if (page === 'testimoni') return '/testimoni';
+    if (page === 'about') return '/tentang-kami';
+    if (page === 'booking') return '/booking-servis';
+
+    // CRM
     if (page === 'crm-login') return '/login';
     if (page === 'crm-dashboard') return '/crm';
     if (page === 'crm-booking') return '/crm/booking';
     if (page === 'crm-orders') return '/crm/orders';
+    if (page === 'crm-articles') return '/crm/articles';
+    if (page === 'crm-inventory') return '/crm/inventory';
+    if (page === 'crm-purchasing') return '/crm/purchasing';
+    if (page === 'crm-monitoring') return '/crm/monitoring';
+    if (page === 'crm-activity-plan') return '/crm/dap';
+    if (page === 'crm-discussion') return '/crm/diskusi';
     if (page === 'crm-customers') return '/crm/customers';
-    if (page === 'crm-customer-create') return '/crm/customers/create';
-    if (page === 'crm-customer-edit') return selectedCustomer ? `/crm/customers/${selectedCustomer.id}/edit` : '/crm/customers/create';
+    if (page === 'crm-customer-create' || page === 'crm-customer-register') return '/crm/customers/tambah';
+    if (page === 'crm-customer-edit') return selectedCustomer ? `/crm/customers/${selectedCustomer.id}/edit` : '/crm/customers/tambah';
     if (page === 'crm-customer-detail') return selectedCustomer ? `/crm/customers/${selectedCustomer.id}` : '/crm/customers';
+    if (page === 'crm-customer-mutation') return '/crm/customers/mutasi';
+    if (page === 'crm-customer-analysis') return '/crm/customers/analisa';
+    if (page === 'crm-customer-rfm') return '/crm/customers/rfm';
     if (page === 'crm-lpa') return '/crm/lpa';
     if (page === 'crm-spk-create') return '/crm/spk';
     if (page === 'crm-employees') return '/crm/employees';
@@ -170,7 +224,9 @@ export default function App() {
     setSelectedBookingService(serviceName || '');
     setBookingNotes(notes || '');
     setActivePage('booking');
-    window.history.pushState({}, '', '/');
+    if (window.location.pathname !== '/booking-servis') {
+      window.history.pushState({}, '', '/booking-servis');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -348,6 +404,15 @@ export default function App() {
             onNavigate={handleNavigate}
           />
         )}
+        {activePage === 'crm-articles' && (
+          <CRMArticles
+            onNavigate={handleNavigate}
+            onPreviewArticle={(art) => {
+              setSelectedArticleDetail(art);
+              handleNavigate('artikel-detail');
+            }}
+          />
+        )}
         {activePage === 'crm-inventory' && <CRMInventory />}
         {activePage === 'crm-purchasing' && <CRMPurchasing />}
         {activePage === 'crm-monitoring' && (
@@ -397,6 +462,7 @@ export default function App() {
       <main className="flex-grow">
         {activePage === 'beranda' && (
           <HomePage
+            articles={articlesList}
             onOpenBooking={handleOpenBooking}
             onSelectService={(service) => setSelectedServiceDetail(service)}
             onSelectArticle={handleSelectArticle}
@@ -419,6 +485,7 @@ export default function App() {
 
         {activePage === 'artikel' && (
           <ArticlesPage
+            articles={articlesList}
             onSelectArticle={handleSelectArticle}
             onOpenBooking={() => handleOpenBooking()}
           />

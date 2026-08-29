@@ -11,8 +11,9 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { CRMOrder, OrderStatus, CustomerItem, SPKDocument, EmployeeItem, EmployeeRole, InventoryItem, PurchaseOrder, POItem, ActivityPlan, DiscussionMessage } from '../types';
+import { CRMOrder, OrderStatus, CustomerItem, SPKDocument, EmployeeItem, EmployeeRole, InventoryItem, PurchaseOrder, POItem, ActivityPlan, DiscussionMessage, ArticleItem } from '../types';
 import { MASTER_JASA_DATA } from '../data/masterJasa';
+import { ARTICLES_DATA } from '../data/mockData';
 
 const ORDERS_COLLECTION = 'orders';
 const CUSTOMERS_COLLECTION = 'customers';
@@ -21,12 +22,15 @@ const INVENTORY_COLLECTION = 'inventory';
 const PURCHASE_ORDERS_COLLECTION = 'purchase_orders';
 const ACTIVITY_PLANS_COLLECTION = 'activity_plans';
 const DISCUSSION_COLLECTION = 'discussions';
+const ARTICLES_COLLECTION = 'articles';
+
 const LOCAL_CUSTOMERS_KEY = 'fhrcar_customers_store';
 const LOCAL_ORDERS_KEY = 'fhrcar_orders_store';
 const LOCAL_EMPLOYEES_KEY = 'fhrcar_employees_store';
 const LOCAL_INVENTORY_KEY = 'fhrcar_inventory_store';
 const LOCAL_PO_KEY = 'fhrcar_po_store';
 const LOCAL_ACTIVITY_KEY = 'fhrcar_activity_store';
+const LOCAL_ARTICLES_KEY = 'fhrcar_articles_store';
 
 // Helper to remove undefined fields which Firestore rejects
 function sanitizeData<T extends object>(data: T): any {
@@ -1036,3 +1040,102 @@ export async function sendDiscussionMessage(msg: Omit<DiscussionMessage, 'id' | 
     await addDoc(collection(db, DISCUSSION_COLLECTION), { ...msg, createdAt: serverTimestamp() });
   } catch (e) { console.warn('sendDiscussionMessage:', e); }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ARTICLES / CMS TIPS & ARTIKEL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getLocalArticles(): ArticleItem[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_ARTICLES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+    saveLocalArticles(ARTICLES_DATA);
+    return ARTICLES_DATA;
+  } catch { return ARTICLES_DATA; }
+}
+
+function saveLocalArticles(items: ArticleItem[]) {
+  try {
+    localStorage.setItem(LOCAL_ARTICLES_KEY, JSON.stringify(items));
+    window.dispatchEvent(new CustomEvent('fhrcar_articles_updated', { detail: items }));
+  } catch (e) { console.warn('saveLocalArticles:', e); }
+}
+
+export function subscribeToArticles(callback: (articles: ArticleItem[]) => void): () => void {
+  const local = getLocalArticles();
+  callback(local);
+
+  const handleLocal = (e: any) => { if (e.detail) callback(e.detail); };
+  window.addEventListener('fhrcar_articles_updated', handleLocal);
+
+  try {
+    const q = query(collection(db, ARTICLES_COLLECTION), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty) {
+        const items: ArticleItem[] = snap.docs.map(d => ({ ...d.data(), id: d.id } as ArticleItem));
+        saveLocalArticles(items);
+        callback(items);
+      } else {
+        callback(getLocalArticles());
+      }
+    }, () => callback(getLocalArticles()));
+    return () => { window.removeEventListener('fhrcar_articles_updated', handleLocal); unsub(); };
+  } catch {
+    return () => window.removeEventListener('fhrcar_articles_updated', handleLocal);
+  }
+}
+
+export async function addArticle(article: Omit<ArticleItem, 'id'> & { id?: string }): Promise<string> {
+  const clean = sanitizeData(article);
+  const articleId = article.id || 'art-' + Math.random().toString(36).substring(2, 9);
+  const newArt: ArticleItem = {
+    ...clean,
+    id: articleId,
+  } as ArticleItem;
+
+  const list = getLocalArticles();
+  const updated = [newArt, ...list.filter(a => a.id !== articleId)];
+  saveLocalArticles(updated);
+
+  try {
+    await addDoc(collection(db, ARTICLES_COLLECTION), {
+      ...clean,
+      createdAt: serverTimestamp(),
+    });
+    return articleId;
+  } catch (e) {
+    console.warn('addArticle cloud failed, saved local:', e);
+    return articleId;
+  }
+}
+
+export async function updateArticle(id: string, updates: Partial<ArticleItem>): Promise<void> {
+  const list = getLocalArticles();
+  const updated = list.map(a => a.id === id ? { ...a, ...updates } : a);
+  saveLocalArticles(updated);
+
+  try {
+    await updateDoc(doc(db, ARTICLES_COLLECTION, id), {
+      ...sanitizeData(updates),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (e) {
+    console.warn('updateArticle cloud failed, saved local:', e);
+  }
+}
+
+export async function deleteArticle(id: string): Promise<void> {
+  const list = getLocalArticles();
+  const updated = list.filter(a => a.id !== id);
+  saveLocalArticles(updated);
+
+  try {
+    await deleteDoc(doc(db, ARTICLES_COLLECTION, id));
+  } catch (e) {
+    console.warn('deleteArticle cloud failed, saved local:', e);
+  }
+}
+

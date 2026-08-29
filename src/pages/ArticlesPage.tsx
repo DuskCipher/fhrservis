@@ -15,11 +15,12 @@ import {
 } from 'lucide-react';
 
 interface ArticlesPageProps {
+  articles?: ArticleItem[];
   onSelectArticle: (article: ArticleItem) => void;
   onOpenBooking: () => void;
 }
 
-export function ArticlesPage({ onSelectArticle, onOpenBooking }: ArticlesPageProps) {
+export function ArticlesPage({ articles = ARTICLES_DATA, onSelectArticle, onOpenBooking }: ArticlesPageProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -31,7 +32,7 @@ export function ArticlesPage({ onSelectArticle, onOpenBooking }: ArticlesPagePro
     { id: 'AC & Kenyamanan', label: 'AC & Kenyamanan' },
   ];
 
-  const filteredArticles = ARTICLES_DATA.filter((art) => {
+  const filteredArticles = articles.filter((art) => {
     const matchesSearch = art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           art.snippet.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           art.category.toLowerCase().includes(searchQuery.toLowerCase());
