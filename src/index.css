@@ -8,6 +8,15 @@
   html {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
+
+  /* Standardize all buttons and action elements to 4px (0.25rem) */
+  button:not(.rounded-full),
+  a.btn:not(.rounded-full),
+  input:not([type="checkbox"]):not([type="radio"]):not(.rounded-full),
+  select:not(.rounded-full),
+  textarea:not(.rounded-full) {
+    border-radius: 4px !important;
+  }
 }
 
 @keyframes fadeIn {
