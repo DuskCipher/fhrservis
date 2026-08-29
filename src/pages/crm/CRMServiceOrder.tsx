@@ -4,7 +4,7 @@ import {
   AlertCircle, Clock, ChevronDown, MapPin, User, Car, 
   Calendar, MessageSquare, RefreshCw, Plus, Wrench, PlayCircle,
   TrendingUp, DollarSign, Zap, Download, ArrowUpRight, ShieldCheck,
-  CalendarRange, CheckSquare
+  CalendarRange, CheckSquare, Edit, Award, UserCheck
 } from 'lucide-react';
 import { CRMOrder, OrderStatus, CustomerItem } from '../../types';
 
@@ -13,6 +13,7 @@ interface CRMServiceOrderProps {
   customers?: CustomerItem[];
   onUpdateStatus: (orderId: string, newStatus: OrderStatus) => void;
   onNavigate?: (page: any) => void;
+  onEditSPK?: (order: CRMOrder) => void;
   compact?: boolean;
 }
 
@@ -23,31 +24,69 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: stri
   cancelled: { label: 'Dibatalkan',     bg: 'bg-slate-100',  text: 'text-slate-600',   border: 'border-slate-200' },
 };
 
-export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavigate, compact = false }: CRMServiceOrderProps) {
+const MONTH_NAMES = [
+  { val: 'all', label: 'Semua Bulan' },
+  { val: '01', label: 'Januari' },
+  { val: '02', label: 'Februari' },
+  { val: '03', label: 'Maret' },
+  { val: '04', label: 'April' },
+  { val: '05', label: 'Mei' },
+  { val: '06', label: 'Juni' },
+  { val: '07', label: 'Juli' },
+  { val: '08', label: 'Agustus' },
+  { val: '09', label: 'September' },
+  { val: '10', label: 'Oktober' },
+  { val: '11', label: 'November' },
+  { val: '12', label: 'Desember' },
+];
+
+export function CRMServiceOrder({
+  orders,
+  customers = [],
+  onUpdateStatus,
+  onNavigate,
+  onEditSPK,
+  compact = false
+}: CRMServiceOrderProps) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
   const [filterType, setFilterType] = useState<'all' | 'regular' | 'emergency'>('all');
   
-  // Date Filtering State
-  const [datePreset, setDatePreset] = useState<'all' | 'today' | '7d' | '30d' | 'custom'>('all');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Date Filtering Mode
+  const [dateFilterMode, setDateFilterMode] = useState<'preset' | 'specific' | 'range' | 'month'>('preset');
+  const [datePreset, setDatePreset] = useState<'all' | 'today' | '7d' | '30d'>('all');
+  const [specificDate, setSpecificDate] = useState(''); // e.g. "2026-02-20"
+  const [startDate, setStartDate] = useState('');      // e.g. "2026-01-01"
+  const [endDate, setEndDate] = useState('');          // e.g. "2026-01-30"
+  const [selectedMonth, setSelectedMonth] = useState('all');
+  const [selectedYear, setSelectedYear] = useState('2026');
 
   const [selected, setSelected] = useState<string[]>([]);
   const [detailOrder, setDetailOrder] = useState<CRMOrder | null>(null);
 
-  // Parse ISO date or serviceDate text to comparable Date
-  const parseOrderDate = (o: CRMOrder): Date | null => {
+  // Helper to extract ISO date YYYY-MM-DD
+  const getOrderDateString = (o: CRMOrder): string => {
     if (o.createdAt) {
       try {
-        const d = new Date(o.createdAt);
-        if (!isNaN(d.getTime())) return d;
+        return new Date(o.createdAt).toISOString().split('T')[0];
       } catch {}
     }
-    return null;
+    return '';
   };
 
-  // Filtered orders with Date Logic
+  // Find customer to determine LAMA / BARU
+  const getCustomerType = (o: CRMOrder): 'BARU' | 'LAMA' => {
+    if (o.customerType) return o.customerType;
+    const found = customers.find(c =>
+      c.phone === o.phone ||
+      c.name.toLowerCase() === o.customerName.toLowerCase() ||
+      c.licensePlate.toLowerCase() === o.licensePlate.toLowerCase()
+    );
+    if (found?.customerType) return found.customerType;
+    return o.isEmergency ? 'BARU' : 'LAMA';
+  };
+
+  // Filtered orders with Comprehensive CRM Date Logic
   const filtered = useMemo(() => {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -55,10 +94,12 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
     return orders.filter(o => {
       // 1. Search Query
       const matchSearch = !search ||
-        o.customerName.toLowerCase().includes(search.toLowerCase()) ||
-        o.licensePlate.toLowerCase().includes(search.toLowerCase()) ||
-        o.id.toLowerCase().includes(search.toLowerCase()) ||
+        o.customerName?.toLowerCase().includes(search.toLowerCase()) ||
+        o.licensePlate?.toLowerCase().includes(search.toLowerCase()) ||
+        o.id?.toLowerCase().includes(search.toLowerCase()) ||
         o.phone?.includes(search) ||
+        o.saName?.toLowerCase().includes(search.toLowerCase()) ||
+        o.mekanikName?.toLowerCase().includes(search.toLowerCase()) ||
         o.carModel?.toLowerCase().includes(search.toLowerCase()) ||
         o.serviceType?.toLowerCase().includes(search.toLowerCase());
 
@@ -71,44 +112,47 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
         (filterType === 'emergency' && o.isEmergency) ||
         (filterType === 'regular' && !o.isEmergency);
 
-      // 4. Date Preset Filter
+      // 4. CRM Date Filtering Logic
       let matchDate = true;
-      const orderDate = parseOrderDate(o);
+      const orderDateStr = getOrderDateString(o);
 
-      if (datePreset === 'today') {
-        if (orderDate) {
-          matchDate = orderDate.toISOString().split('T')[0] === todayStr;
-        } else {
-          matchDate = o.serviceDate?.toLowerCase().includes('hari ini') || false;
+      if (dateFilterMode === 'preset') {
+        if (datePreset === 'today') {
+          matchDate = orderDateStr ? orderDateStr === todayStr : (o.serviceDate?.toLowerCase().includes('hari ini') || false);
+        } else if (datePreset === '7d' && o.createdAt) {
+          try {
+            const diffDays = (now.getTime() - new Date(o.createdAt).getTime()) / (1000 * 3600 * 24);
+            matchDate = diffDays <= 7 && diffDays >= 0;
+          } catch { matchDate = true; }
+        } else if (datePreset === '30d' && o.createdAt) {
+          try {
+            const diffDays = (now.getTime() - new Date(o.createdAt).getTime()) / (1000 * 3600 * 24);
+            matchDate = diffDays <= 30 && diffDays >= 0;
+          } catch { matchDate = true; }
         }
-      } else if (datePreset === '7d') {
-        if (orderDate) {
-          const diffDays = (now.getTime() - orderDate.getTime()) / (1000 * 3600 * 24);
-          matchDate = diffDays <= 7 && diffDays >= 0;
-        }
-      } else if (datePreset === '30d') {
-        if (orderDate) {
-          const diffDays = (now.getTime() - orderDate.getTime()) / (1000 * 3600 * 24);
-          matchDate = diffDays <= 30 && diffDays >= 0;
-        }
-      } else if (datePreset === 'custom') {
-        if (orderDate) {
-          const orderDateStr = orderDate.toISOString().split('T')[0];
-          if (startDate && orderDateStr < startDate) matchDate = false;
-          if (endDate && orderDateStr > endDate) matchDate = false;
+      } else if (dateFilterMode === 'specific' && specificDate) {
+        matchDate = orderDateStr === specificDate;
+      } else if (dateFilterMode === 'range') {
+        if (startDate && orderDateStr && orderDateStr < startDate) matchDate = false;
+        if (endDate && orderDateStr && orderDateStr > endDate) matchDate = false;
+      } else if (dateFilterMode === 'month') {
+        if (orderDateStr) {
+          const [yr, mo] = orderDateStr.split('-');
+          if (selectedYear !== 'all' && yr !== selectedYear) matchDate = false;
+          if (selectedMonth !== 'all' && mo !== selectedMonth) matchDate = false;
         }
       }
 
       return matchSearch && matchStatus && matchType && matchDate;
     });
-  }, [orders, search, filterStatus, filterType, datePreset, startDate, endDate]);
+  }, [orders, search, filterStatus, filterType, dateFilterMode, datePreset, specificDate, startDate, endDate, selectedMonth, selectedYear]);
 
   const toggleSelect = (id: string) =>
     setSelected(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   const toggleAll = () =>
     setSelected(prev => prev.length === filtered.length ? [] : filtered.map(o => o.id));
 
-  const formatRp = (n?: number) => n ? 'Rp ' + n.toLocaleString('id-ID') : 'Rp 0';
+  const formatRp = (n?: number) => n ? 'Rp ' + Math.round(n).toLocaleString('id-ID') : 'Rp 0';
   
   const formatDateDisplay = (dateStr?: string, createdAt?: string) => {
     if (createdAt) {
@@ -123,7 +167,15 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
   const totalRevenueCompleted = filtered.filter(o => o.status === 'completed').reduce((s, o) => s + (o.totalPrice || 0), 0);
   const totalRevenuePending = filtered.filter(o => o.status === 'process').reduce((s, o) => s + (o.totalPrice || 0), 0);
 
-  // Compact Mode (for embedding in other views)
+  const handleEditClick = (o: CRMOrder) => {
+    if (onEditSPK) {
+      onEditSPK(o);
+    } else if (onNavigate) {
+      onNavigate('crm-spk-create');
+    }
+  };
+
+  // Compact Mode (for embedding)
   if (compact) {
     return (
       <div className="overflow-x-auto">
@@ -132,7 +184,9 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
             <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 font-extrabold uppercase text-[10px]">
               <th className="px-4 py-3 text-left">NO.</th>
               <th className="px-4 py-3 text-left">NO. SPK</th>
+              <th className="px-4 py-3 text-left">TIPE</th>
               <th className="px-4 py-3 text-left">CUSTOMER & MOBIL</th>
+              <th className="px-4 py-3 text-left">SA / MEKANIK</th>
               <th className="px-4 py-3 text-left">LAYANAN</th>
               <th className="px-4 py-3 text-left">TANGGAL MASUK</th>
               <th className="px-4 py-3 text-left">STATUS</th>
@@ -142,13 +196,24 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
           <tbody className="divide-y divide-slate-100">
             {filtered.map((o, idx) => {
               const cfg = STATUS_CONFIG[o.status] || STATUS_CONFIG.pending;
+              const type = getCustomerType(o);
               return (
                 <tr key={o.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3 text-slate-500 font-medium">{idx + 1}</td>
                   <td className="px-4 py-3 font-mono font-bold text-slate-800">#{o.id?.slice(0, 8)}</td>
                   <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                      type === 'LAMA' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    }`}>
+                      {type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
                     <p className="font-bold text-slate-900">{o.customerName}</p>
                     <p className="text-[11px] text-slate-400">{o.carBrand} {o.carModel} • {o.licensePlate}</p>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-600">
+                    <span className="font-bold">{o.saName || 'Budi Santoso'}</span>
                   </td>
                   <td className="px-4 py-3 font-medium text-slate-700">{o.serviceType}</td>
                   <td className="px-4 py-3 text-slate-600 font-medium">{formatDateDisplay(o.serviceDate, o.createdAt)}</td>
@@ -185,7 +250,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Monitoring Surat Perintah Kerja, jadwal servis masuk, status pengerjaan mekanik, dan nota tagihan
+                Monitoring Surat Perintah Kerja, Service Advisor, estimasi biaya, status mekanik, dan edit SPK tersimpan
               </p>
             </div>
           </div>
@@ -201,7 +266,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
               </button>
             )}
             <button
-              onClick={() => onNavigate?.('crm-spk-create')}
+              onClick={() => onNavigate ? onNavigate('crm-spk-create') : null}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs shadow-md shadow-red-600/20 transition-all"
             >
               <Plus size={16} />
@@ -226,7 +291,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
 
         <div className="bg-white rounded-2xl border border-blue-100 p-4 shadow-xs bg-gradient-to-br from-white to-blue-50/30">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Dalam Proses</p>
+            <p className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Dalam Pengerjaan</p>
             <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
               <PlayCircle size={14} />
             </div>
@@ -234,7 +299,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
           <p className="text-2xl font-black text-blue-700 mt-2">
             {filtered.filter(o => o.status === 'process').length}
           </p>
-          <p className="text-[11px] text-blue-600/70 mt-0.5">Nilai: {formatRp(totalRevenuePending)}</p>
+          <p className="text-[11px] text-blue-600/70 mt-0.5">Estimasi Omset: {formatRp(totalRevenuePending)}</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-emerald-100 p-4 shadow-xs bg-gradient-to-br from-white to-emerald-50/30">
@@ -247,7 +312,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
           <p className="text-2xl font-black text-emerald-700 mt-2">
             {filtered.filter(o => o.status === 'completed').length}
           </p>
-          <p className="text-[11px] text-emerald-600/70 mt-0.5">Omset: {formatRp(totalRevenueCompleted)}</p>
+          <p className="text-[11px] text-emerald-600/70 mt-0.5">Omset Real: {formatRp(totalRevenueCompleted)}</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-red-100 p-4 shadow-xs bg-gradient-to-br from-white to-red-50/30">
@@ -264,84 +329,180 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
         </div>
       </div>
 
-      {/* ─── Comprehensive Filters & Date Range Bar ─── */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
+      {/* ─── CRM Date Filter Control Panel ─── */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs space-y-4">
         
-        {/* Date Filter Controls */}
+        {/* Date Filter Mode Selector */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
-          
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mr-1">
-              <CalendarRange size={14} className="text-red-600" />
-              <span>Filter Tanggal:</span>
+              <CalendarRange size={15} className="text-red-600" />
+              <span>Pilihan Filter Tanggal:</span>
             </span>
 
-            {/* Date Preset Buttons */}
-            {(['all', 'today', '7d', '30d', 'custom'] as const).map(p => {
-              const labels = {
-                all: 'Semua Waktu',
-                today: 'Hari Ini',
-                '7d': '7 Hari Terakhir',
-                '30d': 'Bulan Ini (30 Hari)',
-                custom: 'Pilih Rentang Tanggal'
-              };
-              return (
+            {/* Mode Tabs */}
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold border border-slate-200">
+              <button
+                onClick={() => { setDateFilterMode('preset'); setDatePreset('all'); }}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  dateFilterMode === 'preset' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Preset Cepat
+              </button>
+              <button
+                onClick={() => setDateFilterMode('specific')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  dateFilterMode === 'specific' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Pilih Tanggal Tertentu
+              </button>
+              <button
+                onClick={() => setDateFilterMode('range')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  dateFilterMode === 'range' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Rentang Tanggal (Dari - Sampai)
+              </button>
+              <button
+                onClick={() => setDateFilterMode('month')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  dateFilterMode === 'month' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Per Bulan & Tahun
+              </button>
+            </div>
+          </div>
+
+          {/* Reset Date Filter Button */}
+          {(specificDate || startDate || endDate || datePreset !== 'all' || selectedMonth !== 'all') && (
+            <button
+              onClick={() => {
+                setDateFilterMode('preset');
+                setDatePreset('all');
+                setSpecificDate('');
+                setStartDate('');
+                setEndDate('');
+                setSelectedMonth('all');
+              }}
+              className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 self-start lg:self-auto"
+            >
+              <RefreshCw size={12} />
+              <span>Reset Filter Tanggal</span>
+            </button>
+          )}
+        </div>
+
+        {/* Date Filter Inputs based on active mode */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* 1. Preset Buttons */}
+          {dateFilterMode === 'preset' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {[
+                { val: 'all', label: 'Semua Waktu' },
+                { val: 'today', label: 'Hari Ini' },
+                { val: '7d', label: '7 Hari Terakhir' },
+                { val: '30d', label: 'Bulan Ini (30 Hari)' },
+              ].map(p => (
                 <button
-                  key={p}
-                  onClick={() => setDatePreset(p)}
+                  key={p.val}
+                  onClick={() => setDatePreset(p.val as any)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
-                    datePreset === p
+                    datePreset === p.val
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
-                  {labels[p]}
+                  {p.label}
                 </button>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {/* Custom Date Pickers (Shown if Custom Range is selected) */}
-          {datePreset === 'custom' && (
-            <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200 animate-fade-in">
-              <div className="flex items-center gap-1 text-xs">
-                <span className="text-slate-500 font-semibold text-[11px]">Dari:</span>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={e => setStartDate(e.target.value)}
-                  className="px-2.5 py-1 text-xs font-bold border border-slate-200 rounded-lg bg-white outline-none focus:border-red-500"
-                />
-              </div>
-              <span className="text-slate-300">-</span>
-              <div className="flex items-center gap-1 text-xs">
-                <span className="text-slate-500 font-semibold text-[11px]">Sampai:</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={e => setEndDate(e.target.value)}
-                  className="px-2.5 py-1 text-xs font-bold border border-slate-200 rounded-lg bg-white outline-none focus:border-red-500"
-                />
-              </div>
-              {(startDate || endDate) && (
-                <button
-                  onClick={() => { setStartDate(''); setEndDate(''); }}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
-                  title="Reset Tanggal"
-                >
-                  <X size={14} />
-                </button>
+          {/* 2. Specific Single Date (e.g. 20 Feb) */}
+          {dateFilterMode === 'specific' && (
+            <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+              <span className="text-xs font-bold text-slate-600">Pilih Tanggal:</span>
+              <input
+                type="date"
+                value={specificDate}
+                onChange={e => setSpecificDate(e.target.value)}
+                className="px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-xl bg-white outline-none focus:border-red-500"
+              />
+              {specificDate && (
+                <span className="text-xs font-bold text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-100">
+                  Menampilkan SPK Tanggal: {new Date(specificDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
               )}
             </div>
           )}
 
+          {/* 3. Date Range (e.g. 1 Jan - 30 Jan) */}
+          {dateFilterMode === 'range' && (
+            <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200 flex-wrap">
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-slate-600 font-bold">Dari Tanggal:</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-xl bg-white outline-none focus:border-red-500"
+                />
+              </div>
+              <span className="text-slate-400 font-bold">-</span>
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-slate-600 font-bold">Sampai Tanggal:</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-xl bg-white outline-none focus:border-red-500"
+                />
+              </div>
+              {(startDate || endDate) && (
+                <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+                  Rentang Aktif
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* 4. Month & Year Selector */}
+          {dateFilterMode === 'month' && (
+            <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-2xl border border-slate-200">
+              <span className="text-xs font-bold text-slate-600">Bulan:</span>
+              <select
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(e.target.value)}
+                className="px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-xl bg-white outline-none focus:border-red-500"
+              >
+                {MONTH_NAMES.map(m => (
+                  <option key={m.val} value={m.val}>{m.label}</option>
+                ))}
+              </select>
+
+              <span className="text-xs font-bold text-slate-600 ml-2">Tahun:</span>
+              <select
+                value={selectedYear}
+                onChange={e => setSelectedYear(e.target.value)}
+                className="px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-xl bg-white outline-none focus:border-red-500"
+              >
+                <option value="all">Semua Tahun</option>
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+              </select>
+            </div>
+          )}
         </div>
 
-        {/* Status, Type & Keyword Search Controls */}
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        {/* Secondary Status & Keyword Search Controls */}
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between pt-2">
           
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Status filter buttons */}
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
               <Filter size={13} /> Status:
             </span>
@@ -364,7 +525,6 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
 
             <span className="text-slate-200 mx-1 hidden sm:inline">|</span>
 
-            {/* Type selector */}
             <select
               value={filterType}
               onChange={e => setFilterType(e.target.value as any)}
@@ -382,7 +542,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
             <input
               type="text"
               className="w-full pl-10 pr-3.5 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-2 focus:ring-red-100 outline-none transition-all"
-              placeholder="Cari No SPK, nama customer, plat no, mobil..."
+              placeholder="Cari No SPK, customer, SA, mekanik, plat..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -392,12 +552,12 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
 
       </div>
 
-      {/* ─── Main SPK Table (Clean Light Table, No Dark Header) ─── */}
+      {/* ─── Main Complete SPK Table (With SA, Total Biaya, Tipe Baru/Lama & Edit Aksi) ─── */}
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full text-xs text-left">
             <thead>
-              <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[11px]">
+              <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[10px]">
                 <th className="pl-4 pr-2 py-4 w-8">
                   <input
                     type="checkbox"
@@ -406,46 +566,36 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
                     className="w-3.5 h-3.5 rounded accent-red-600"
                   />
                 </th>
-                <th className="px-3 py-4 w-12 text-center">NO.</th>
+                <th className="px-3 py-4 w-10 text-center">NO.</th>
                 <th className="px-3 py-4">NOMOR SPK</th>
-                <th className="px-3 py-4">TANGGAL MASUK / SERVIS</th>
+                <th className="px-3 py-4 text-center">TIPE</th>
                 <th className="px-3 py-4">PELANGGAN & KONTAK</th>
                 <th className="px-3 py-4">KENDARAAN & PLAT</th>
-                <th className="px-3 py-4">JENIS LAYANAN</th>
-                <th className="px-3 py-4 text-center">STATUS</th>
+                <th className="px-3 py-4">SERVICE ADVISOR (SA)</th>
+                <th className="px-3 py-4">MEKANIK</th>
+                <th className="px-3 py-4">TANGGAL MASUK</th>
                 <th className="px-3 py-4 text-right">TOTAL BIAYA</th>
+                <th className="px-3 py-4 text-center">STATUS</th>
                 <th className="px-4 py-4 text-right">AKSI</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-16 text-slate-400">
+                  <td colSpan={12} className="text-center py-16 text-slate-400">
                     <div className="flex flex-col items-center gap-2.5">
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
                         <Wrench size={24} />
                       </div>
                       <p className="font-bold text-slate-700 text-sm">Tidak ada data SPK yang sesuai filter</p>
-                      <p className="text-xs text-slate-400">Silakan ubah rentang tanggal atau kata kunci pencarian</p>
-                      <button
-                        onClick={() => {
-                          setSearch('');
-                          setFilterStatus('all');
-                          setFilterType('all');
-                          setDatePreset('all');
-                          setStartDate('');
-                          setEndDate('');
-                        }}
-                        className="mt-2 px-4 py-2 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 transition-all"
-                      >
-                        Reset Semua Filter
-                      </button>
+                      <p className="text-xs text-slate-400">Silakan ubah tanggal filter atau kata kunci pencarian</p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 filtered.map((o, idx) => {
                   const cfg = STATUS_CONFIG[o.status] || STATUS_CONFIG.pending;
+                  const type = getCustomerType(o);
                   const isSelected = selected.includes(o.id);
                   return (
                     <tr key={o.id} className={`hover:bg-slate-50/90 transition-colors ${isSelected ? 'bg-blue-50/40' : ''}`}>
@@ -462,7 +612,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
 
                       {/* SPK Number */}
                       <td className="px-3 py-4">
-                        <span className="font-mono font-black text-slate-800 text-xs bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
+                        <span className="font-mono font-black text-slate-900 text-xs bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
                           #{o.id?.slice(0, 8)}
                         </span>
                         {o.isEmergency && (
@@ -474,18 +624,15 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
                         )}
                       </td>
 
-                      {/* Service / Entry Date */}
-                      <td className="px-3 py-4">
-                        <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs">
-                          <Calendar size={12} className="text-red-500 shrink-0" />
-                          <span>{formatDateDisplay(o.serviceDate, o.createdAt)}</span>
-                        </div>
-                        {o.serviceTime && (
-                          <p className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1">
-                            <Clock size={10} />
-                            <span>Pukul {o.serviceTime}</span>
-                          </p>
-                        )}
+                      {/* Tipe Pelanggan (BARU / LAMA) */}
+                      <td className="px-3 py-4 text-center">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border ${
+                          type === 'LAMA'
+                            ? 'bg-amber-50 text-amber-800 border-amber-200'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        }`}>
+                          {type === 'LAMA' ? 'LAMA' : 'BARU'}
+                        </span>
                       </td>
 
                       {/* Customer Info */}
@@ -495,7 +642,7 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
                             {o.customerName?.[0]?.toUpperCase() || 'P'}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900">{o.customerName}</p>
+                            <p className="font-bold text-slate-900 text-xs">{o.customerName}</p>
                             <p className="font-mono text-[11px] text-slate-500 font-bold">{o.phone || '—'}</p>
                           </div>
                         </div>
@@ -511,17 +658,41 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
                         </span>
                       </td>
 
-                      {/* Service Type */}
+                      {/* Service Advisor (SA) */}
                       <td className="px-3 py-4">
-                        <p className="font-bold text-slate-800 max-w-[170px] truncate" title={o.serviceType}>
-                          {o.serviceType}
-                        </p>
-                        {o.locationAddress && (
-                          <p className="text-[10px] text-slate-400 truncate max-w-[150px] mt-0.5 flex items-center gap-1">
-                            <MapPin size={9} />
-                            {o.locationAddress}
+                        <div className="flex items-center gap-1.5 text-xs text-slate-800 font-bold">
+                          <UserCheck size={12} className="text-red-500 shrink-0" />
+                          <span>{o.saName || 'Budi Santoso (SA)'}</span>
+                        </div>
+                      </td>
+
+                      {/* Mekanik */}
+                      <td className="px-3 py-4">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
+                          <Wrench size={11} className="text-blue-500 shrink-0" />
+                          <span>{o.mekanikName || 'Agus Setiawan'}</span>
+                        </div>
+                      </td>
+
+                      {/* Service Date */}
+                      <td className="px-3 py-4">
+                        <div className="flex items-center gap-1 text-slate-800 font-bold text-xs">
+                          <Calendar size={11} className="text-slate-400 shrink-0" />
+                          <span>{formatDateDisplay(o.serviceDate, o.createdAt)}</span>
+                        </div>
+                        {o.serviceTime && (
+                          <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                            <Clock size={9} />
+                            <span>Pukul {o.serviceTime}</span>
                           </p>
                         )}
+                      </td>
+
+                      {/* Total Biaya (Rupiah) */}
+                      <td className="px-3 py-4 text-right">
+                        <span className="font-mono font-black text-slate-900 text-xs">
+                          {o.totalPrice ? formatRp(o.totalPrice) : <span className="text-slate-300 font-normal">—</span>}
+                        </span>
                       </td>
 
                       {/* Status */}
@@ -531,35 +702,39 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
                         </span>
                       </td>
 
-                      {/* Total Price */}
-                      <td className="px-3 py-4 text-right">
-                        <span className="font-mono font-black text-slate-900 text-xs">
-                          {o.totalPrice ? formatRp(o.totalPrice) : <span className="text-slate-300 font-normal">—</span>}
-                        </span>
-                      </td>
-
-                      {/* Actions */}
+                      {/* Actions (Edit SPK, Detail, WA, Status) */}
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Detail Button */}
+                          
+                          {/* ✏️ EDIT SPK BUTTON (Opens SPK Wizard with existing data) */}
+                          <button
+                            onClick={() => handleEditClick(o)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 text-xs font-bold transition-all shadow-2xs"
+                            title="Edit Jasa, Sparepart, SA Check & Detail SPK"
+                          >
+                            <Edit size={12} />
+                            <span>Edit SPK</span>
+                          </button>
+
+                          {/* Quick Detail */}
                           <button
                             onClick={() => setDetailOrder(o)}
-                            title="Lihat Rincian SPK"
+                            title="Lihat Rincian Cepat"
                             className="p-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors shadow-2xs"
                           >
-                            <Eye size={14} />
+                            <Eye size={13} />
                           </button>
 
                           {/* WhatsApp Chat */}
                           {o.phone && (
                             <a
-                              href={`https://wa.me/${o.phone.replace(/[^0-9]/g, '')}?text=Halo%20${encodeURIComponent(o.customerName)}%2C%20update%20pengerjaan%20SPK%20${o.id}%20kendaraan%20${o.licensePlate}.`}
+                              href={`https://wa.me/${o.phone.replace(/[^0-9]/g, '')}?text=Halo%20${encodeURIComponent(o.customerName)}%2C%20kami%20dari%20FHR%20Car%20Service%20mengenai%20SPK%20${o.id}%20kendaraan%20${o.licensePlate}.`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="p-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
                               title="Chat WhatsApp Customer"
                             >
-                              <MessageSquare size={14} />
+                              <MessageSquare size={13} />
                             </a>
                           )}
 
@@ -574,10 +749,10 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
                               };
                               onUpdateStatus(o.id, next[o.status]);
                             }}
-                            title="Ubah Status SPK ke Tahap Berikutnya"
+                            title="Ubah Status SPK"
                             className="p-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
                           >
-                            <RefreshCw size={14} />
+                            <RefreshCw size={13} />
                           </button>
                         </div>
                       </td>
@@ -619,6 +794,22 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
             {/* Modal Content */}
             <div className="p-5 space-y-5">
               
+              {/* Staff Assignments Box */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Service Advisor (SA)</p>
+                  <p className="font-black text-slate-900 mt-0.5">{detailOrder.saName || 'Budi Santoso'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Mekanik Pelaksana</p>
+                  <p className="font-black text-blue-700 mt-0.5">{detailOrder.mekanikName || 'Agus Setiawan'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Tipe Pelanggan</p>
+                  <p className="font-black text-emerald-700 mt-0.5">{getCustomerType(detailOrder)}</p>
+                </div>
+              </div>
+
               {/* Box 1: Customer & Vehicle Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-slate-50/80 rounded-2xl p-4 border border-slate-200/80 space-y-2">
@@ -700,15 +891,25 @@ export function CRMServiceOrder({ orders, customers = [], onUpdateStatus, onNavi
 
             {/* Modal Footer */}
             <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                <span>Total Estimasi: </span>
-                <strong className="text-slate-900 font-mono text-sm">{formatRp(detailOrder.totalPrice)}</strong>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const o = detailOrder;
+                    setDetailOrder(null);
+                    handleEditClick(o);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-red-600 text-white hover:bg-red-700 transition-colors shadow-xs"
+                >
+                  <Edit size={13} />
+                  <span>Buka Form Edit SPK Lengkap</span>
+                </button>
               </div>
+
               <button
                 onClick={() => setDetailOrder(null)}
                 className="px-5 py-2 text-xs font-bold rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-colors"
               >
-                Selesai
+                Tutup
               </button>
             </div>
 

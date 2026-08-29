@@ -167,6 +167,35 @@ export interface CRMOrder extends BookingData {
   createdAt: string;
   status: OrderStatus;
   totalPrice?: number;
+  // Detailed SPK & Staff Fields
+  spkNumber?: string;
+  saId?: string;
+  saName?: string;
+  mekanikId?: string;
+  mekanikName?: string;
+  faId?: string;
+  faName?: string;
+  kasirId?: string;
+  kasirName?: string;
+  customerType?: CustomerType;
+  kilometer?: string;
+  noRangka?: string;
+  noMesin?: string;
+  fuelType?: string;
+  spareparts?: SPKSparepart[];
+  jasaList?: SPKJasa[];
+  saCheckEksterior?: SACheckItem[];
+  saCheckInterior?: SACheckItem[];
+  saCheckMesin?: SACheckItem[];
+  saCheckKakiKaki?: SACheckItem[];
+  lpaChecklist?: SACheckItem[];
+  saCatatanUmum?: string;
+  lpaCatatan?: string;
+  diskon?: number;
+  pajakPersen?: number;
+  metodePembayaran?: 'cash' | 'transfer' | 'kredit';
+  dibayar?: number;
+  kembalian?: number;
 }
 
 export interface ArticleItem {

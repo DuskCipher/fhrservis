@@ -17,6 +17,7 @@ interface CRMCustomerDetailProps {
   onNavigate: (page: any) => void;
   onEdit?: (customer: CustomerItem) => void;
   onBuatSPK?: () => void;
+  onEditSPK?: (order: CRMOrder) => void;
 }
 
 const SOURCE_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
@@ -39,7 +40,7 @@ const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; b
 
 type TabId = 'profil' | 'kendaraan' | 'riwayat' | 'statistik';
 
-export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit, onBuatSPK }: CRMCustomerDetailProps) {
+export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit, onBuatSPK, onEditSPK }: CRMCustomerDetailProps) {
   const [activeTab, setActiveTab] = useState<TabId>('profil');
 
   // History search & date filter state
@@ -517,11 +518,23 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
                       </div>
 
                       {/* Price & Action */}
-                      <div className="sm:text-right shrink-0">
-                        <p className="text-xs text-slate-400 font-bold">Biaya Servis</p>
-                        <p className="text-sm sm:text-base font-black text-slate-900 mt-0.5">
-                          {order.totalPrice ? formatRp(order.totalPrice) : <span className="text-slate-400 font-normal">Belum ada nota</span>}
-                        </p>
+                      <div className="sm:text-right shrink-0 flex flex-col items-start sm:items-end justify-between gap-2">
+                        <div>
+                          <p className="text-xs text-slate-400 font-bold">Biaya Servis</p>
+                          <p className="text-sm sm:text-base font-black text-slate-900 mt-0.5">
+                            {order.totalPrice ? formatRp(order.totalPrice) : <span className="text-slate-400 font-normal">Belum ada nota</span>}
+                          </p>
+                        </div>
+                        {onEditSPK && (
+                          <button
+                            onClick={() => onEditSPK(order)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-all shadow-2xs"
+                            title="Edit Data & Rincian SPK"
+                          >
+                            <Edit size={12} />
+                            <span>Edit SPK</span>
+                          </button>
+                        )}
                       </div>
 
                     </div>

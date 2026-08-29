@@ -429,6 +429,31 @@ export async function addSPK(
   }
 }
 
+/**
+ * Update an existing SPK document.
+ */
+export async function updateSPK(
+  spkId: string,
+  fields: Partial<SPKDocument>
+): Promise<void> {
+  const cleanFields = sanitizeData(fields);
+  try {
+    const existing = localStorage.getItem(LOCAL_SPK_KEY);
+    if (existing) {
+      const list: SPKDocument[] = JSON.parse(existing);
+      const updated = list.map(s => (s.id === spkId || s.spkNumber === spkId) ? { ...s, ...cleanFields } : s);
+      localStorage.setItem(LOCAL_SPK_KEY, JSON.stringify(updated));
+    }
+  } catch {}
+
+  try {
+    const docRef = doc(db, SPK_COLLECTION, spkId);
+    await updateDoc(docRef, { ...cleanFields, updatedAt: serverTimestamp() });
+  } catch (error) {
+    console.warn('[Firestore] updateSPK fallback:', error);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // EMPLOYEES / KARYAWAN SERVICE
 // ═══════════════════════════════════════════════════════════════════

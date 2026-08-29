@@ -56,6 +56,7 @@ export default function App() {
   const [crmCustomers, setCrmCustomers] = useState<CustomerItem[]>([]);
   const [crmEmployees, setCrmEmployees] = useState<EmployeeItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerItem | null>(null);
+  const [editingSPKOrder, setEditingSPKOrder] = useState<CRMOrder | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
   // Listen to Firebase Auth state
@@ -247,7 +248,10 @@ export default function App() {
             customers={crmCustomers}
             onUpdateStatus={(id, status) => updateOrderStatus(id, status)}
             onNavigate={handleNavigate}
-            onBuatSPK={() => handleNavigate('crm-spk-create')}
+            onBuatSPK={() => {
+              setEditingSPKOrder(null);
+              handleNavigate('crm-spk-create');
+            }}
           />
         )}
         {activePage === 'crm-orders' && (
@@ -256,7 +260,14 @@ export default function App() {
             customers={crmCustomers}
             onUpdateStatus={(id, status) => updateOrderStatus(id, status)}
             onNavigate={handleNavigate}
-            onBuatSPK={() => handleNavigate('crm-spk-create')}
+            onBuatSPK={() => {
+              setEditingSPKOrder(null);
+              handleNavigate('crm-spk-create');
+            }}
+            onEditSPK={(order) => {
+              setEditingSPKOrder(order);
+              handleNavigate('crm-spk-create');
+            }}
           />
         )}
         {activePage === 'crm-customers' && (
@@ -264,7 +275,10 @@ export default function App() {
             customers={crmCustomers}
             orders={crmOrders}
             onNavigate={handleNavigate}
-            onBuatSPK={() => handleNavigate('crm-spk-create')}
+            onBuatSPK={() => {
+              setEditingSPKOrder(null);
+              handleNavigate('crm-spk-create');
+            }}
             onViewCustomer={(customer) => {
               setSelectedCustomer(customer);
               handleNavigate('crm-customer-detail');
@@ -282,10 +296,17 @@ export default function App() {
             orders={crmOrders}
             onBack={() => handleNavigate('crm-customers')}
             onNavigate={handleNavigate}
-            onBuatSPK={() => handleNavigate('crm-spk-create')}
+            onBuatSPK={() => {
+              setEditingSPKOrder(null);
+              handleNavigate('crm-spk-create');
+            }}
             onEdit={(customer) => {
               setSelectedCustomer(customer);
               handleNavigate('crm-customer-edit');
+            }}
+            onEditSPK={(order) => {
+              setEditingSPKOrder(order);
+              handleNavigate('crm-spk-create');
             }}
           />
         )}
@@ -324,7 +345,15 @@ export default function App() {
           <CRMSPKCreate
             customers={crmCustomers}
             employees={crmEmployees}
-            onNavigate={handleNavigate}
+            editingOrder={editingSPKOrder}
+            onNavigate={(page) => {
+              if (page !== 'crm-spk-create') setEditingSPKOrder(null);
+              handleNavigate(page);
+            }}
+            onSaveSuccess={() => {
+              setEditingSPKOrder(null);
+              handleNavigate('crm-orders');
+            }}
           />
         )}
       </CRMLayout>

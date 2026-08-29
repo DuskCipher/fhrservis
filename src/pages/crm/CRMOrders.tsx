@@ -7,16 +7,17 @@ interface CRMOrdersProps {
   customers?: CustomerItem[];
   onUpdateStatus: (orderId: string, newStatus: OrderStatus) => void;
   onNavigate?: (page: any) => void;
+  onEditSPK?: (order: CRMOrder) => void;
 }
 
-export function CRMOrders({ orders, customers = [], onUpdateStatus, onNavigate }: CRMOrdersProps) {
+export function CRMOrders({ orders, customers = [], onUpdateStatus, onNavigate, onEditSPK }: CRMOrdersProps) {
   return (
     <CRMServiceOrder
       orders={orders}
       customers={customers}
       onUpdateStatus={onUpdateStatus}
       onNavigate={onNavigate}
+      onEditSPK={onEditSPK}
     />
   );
 }
-

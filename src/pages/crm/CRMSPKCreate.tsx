@@ -10,15 +10,17 @@ import {
 } from 'lucide-react';
 import {
   CustomerItem, SACheckItem, SACheckResult,
-  SPKSparepart, SPKJasa, EmployeeItem
+  SPKSparepart, SPKJasa, EmployeeItem, CRMOrder
 } from '../../types';
-import { addSPK } from '../../lib/firestoreService';
+import { addSPK, updateSPK, updateOrder } from '../../lib/firestoreService';
 
 /* ─── PROPS ──────────────────────────────────────────────────────────── */
 interface CRMSPKCreateProps {
   customers?: CustomerItem[];
   employees?: EmployeeItem[];
   onNavigate: (page: any) => void;
+  editingOrder?: CRMOrder | null;
+  onSaveSuccess?: () => void;
 }
 
 /* ─── HELPERS ────────────────────────────────────────────────────────── */
@@ -495,11 +497,12 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
 /* ═══════════════════════════════════════════════════════════════════════ */
 /*  MAIN PAGE COMPONENT                                                    */
 /* ═══════════════════════════════════════════════════════════════════════ */
-export function CRMSPKCreate({ customers = [], employees = [], onNavigate }: CRMSPKCreateProps) {
+export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editingOrder, onSaveSuccess }: CRMSPKCreateProps) {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [activeCheckTab, setActiveCheckTab] = useState(0);
+  const [draftToast, setDraftToast] = useState(false);
 
   /* ── Step 1: Data Pelanggan & Kendaraan & Staf ── */
   const [platSearch, setPlatSearch] = useState('');
@@ -545,6 +548,61 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate }: CRM
   const safeEmployees = employees || [];
   const safeCustomers = customers || [];
 
+  // Initialize or Pre-fill when editing an existing Order/SPK
+  React.useEffect(() => {
+    if (editingOrder) {
+      const existingCust = safeCustomers.find(c =>
+        c.phone === editingOrder.phone ||
+        c.name.toLowerCase() === editingOrder.customerName?.toLowerCase() ||
+        c.licensePlate?.toLowerCase() === editingOrder.licensePlate?.toLowerCase()
+      ) || {
+        id: 'cust-' + editingOrder.id,
+        name: editingOrder.customerName || 'Pelanggan',
+        phone: editingOrder.phone || '',
+        address: editingOrder.locationAddress || '',
+        carBrand: editingOrder.carBrand || 'Toyota',
+        carModel: editingOrder.carModel || '',
+        carYear: editingOrder.carYear || '2022',
+        licensePlate: editingOrder.licensePlate || '',
+        customerType: editingOrder.customerType || 'BARU',
+        createdAt: editingOrder.createdAt || new Date().toISOString(),
+      };
+
+      setSelectedCustomer(existingCust);
+      setPlatSearch(existingCust.licensePlate || '');
+      if (editingOrder.kilometer) setKilometer(editingOrder.kilometer);
+      if (editingOrder.noRangka) setNoRangka(editingOrder.noRangka);
+      if (editingOrder.noMesin) setNoMesin(editingOrder.noMesin);
+      if (editingOrder.fuelType) setFuelType(editingOrder.fuelType);
+      if (editingOrder.notes) setKeluhan(editingOrder.notes);
+      if (editingOrder.saName) setSaCustomName(editingOrder.saName);
+      if (editingOrder.mekanikName) setMekanikCustomName(editingOrder.mekanikName);
+      if (editingOrder.faName) setFaCustomName(editingOrder.faName);
+      if (editingOrder.kasirName) setKasirCustomName(editingOrder.kasirName);
+
+      if (editingOrder.spareparts && editingOrder.spareparts.length > 0) {
+        setSpareparts(editingOrder.spareparts);
+      }
+      if (editingOrder.jasaList && editingOrder.jasaList.length > 0) {
+        setJasaList(editingOrder.jasaList);
+      } else if (editingOrder.serviceType) {
+        setJasaList([{ id: uid(), nama: editingOrder.serviceType, harga: editingOrder.totalPrice || 75000 }]);
+      }
+
+      if (editingOrder.saCheckEksterior && editingOrder.saCheckEksterior.length > 0) setEksterior(editingOrder.saCheckEksterior);
+      if (editingOrder.saCheckInterior && editingOrder.saCheckInterior.length > 0) setInterior(editingOrder.saCheckInterior);
+      if (editingOrder.saCheckMesin && editingOrder.saCheckMesin.length > 0) setMesin(editingOrder.saCheckMesin);
+      if (editingOrder.saCheckKakiKaki && editingOrder.saCheckKakiKaki.length > 0) setKakiKaki(editingOrder.saCheckKakiKaki);
+      if (editingOrder.lpaChecklist && editingOrder.lpaChecklist.length > 0) setLpaChecklist(editingOrder.lpaChecklist);
+      if (editingOrder.saCatatanUmum) setSaCatatan(editingOrder.saCatatanUmum);
+      if (editingOrder.lpaCatatan) setLpaCatatan(editingOrder.lpaCatatan);
+      if (editingOrder.diskon) setDiskon(editingOrder.diskon);
+      if (editingOrder.pajakPersen) setPajak(editingOrder.pajakPersen);
+      if (editingOrder.metodePembayaran) setMetodeBayar(editingOrder.metodePembayaran);
+      if (editingOrder.dibayar) setDibayar(editingOrder.dibayar);
+    }
+  }, [editingOrder, safeCustomers]);
+
   /* ── Filter Staff by Role ── */
   const saList = useMemo(() => safeEmployees.filter(e => e.role === 'SA' && e.status === 'active'), [safeEmployees]);
   const faList = useMemo(() => safeEmployees.filter(e => (e.role === 'FA' || e.role === 'Manager') && e.status === 'active'), [safeEmployees]);
@@ -578,10 +636,12 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate }: CRM
 
   /* ── SPK Number ── */
   const spkNumber = useMemo(() => {
+    if (editingOrder?.spkNumber) return editingOrder.spkNumber;
+    if (editingOrder?.id) return editingOrder.id;
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     return `SPK/${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}/${uid().toUpperCase()}`;
-  }, []);
+  }, [editingOrder]);
 
   /* ── Financials ── */
   const subParts  = spareparts.reduce((s, p) => s + (p.qty || 0) * (p.hargaSatuan || 0), 0);
@@ -634,35 +694,118 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate }: CRM
   const allBad    = allChecks.filter(x => x.result === 'segera').length;
   const allTotal  = allChecks.length;
 
-  /* ── Save SPK ── */
-  const handleSave = async () => {
-    if (!selectedCustomer) return;
+  /* ── Save SPK (Draft or Final) ── */
+  const handleSave = async (isDraft = false) => {
+    if (!selectedCustomer) {
+      alert('Pilih pelanggan dan unit kendaraan terlebih dahulu pada Langkah 1.');
+      return;
+    }
     setSaving(true);
     try {
-      const doc: any = {
-        spkNumber, createdAt: new Date().toISOString(), status: 'selesai',
-        customerId: selectedCustomer.id, customerName: selectedCustomer.name,
-        phone: selectedCustomer.phone, address: selectedCustomer.address,
-        carBrand: selectedCustomer.carBrand, carModel: selectedCustomer.carModel,
-        carYear: selectedCustomer.carYear, licensePlate: selectedCustomer.licensePlate,
+      const docPayload: any = {
+        spkNumber,
+        createdAt: editingOrder?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: isDraft ? 'draft' : 'selesai',
+        customerId: selectedCustomer.id,
+        customerName: selectedCustomer.name,
+        phone: selectedCustomer.phone,
+        address: selectedCustomer.address,
+        carBrand: selectedCustomer.carBrand,
+        carModel: selectedCustomer.carModel,
+        carYear: selectedCustomer.carYear,
+        licensePlate: selectedCustomer.licensePlate,
         transmission: selectedCustomer.transmission || 'Matic',
-        carColor: selectedCustomer.carColor || '', kilometer,
-        noRangka, noMesin, fuelType, keluhan,
-        saId: selectedSaId, saName: effectiveSaName,
-        faId: selectedFaId, faName: effectiveFaName,
-        mekanikId: selectedMekanikId, mekanikName: effectiveMekanikName,
-        kasirId: selectedKasirId, kasirName: effectiveKasirName,
-        saCheckEksterior: eksterior, saCheckInterior: interior,
-        saCheckMesin: mesin, saCheckKakiKaki: kakiKaki,
-        saAdvisorName: effectiveSaName, saCatatanUmum: saCatatan,
-        spareparts, jasaList, diskon, pajakPersen: pajak,
-        lpaChecklist, lpaTeknisi: effectiveMekanikName, lpaTestDriveOk: lpaTestDrive, lpaCatatan,
-        metodePembayaran: metodeBayar, grandTotal: grand, dibayar, kembalian,
+        carColor: selectedCustomer.carColor || '',
+        kilometer,
+        noRangka,
+        noMesin,
+        fuelType,
+        keluhan,
+        saId: selectedSaId,
+        saName: effectiveSaName,
+        faId: selectedFaId,
+        faName: effectiveFaName,
+        mekanikId: selectedMekanikId,
+        mekanikName: effectiveMekanikName,
+        kasirId: selectedKasirId,
+        kasirName: effectiveKasirName,
+        saCheckEksterior: eksterior,
+        saCheckInterior: interior,
+        saCheckMesin: mesin,
+        saCheckKakiKaki: kakiKaki,
+        saAdvisorName: effectiveSaName,
+        saCatatanUmum: saCatatan,
+        spareparts,
+        jasaList,
+        diskon,
+        pajakPersen: pajak,
+        lpaChecklist,
+        lpaTeknisi: effectiveMekanikName,
+        lpaTestDriveOk: lpaTestDrive,
+        lpaCatatan,
+        metodePembayaran: metodeBayar,
+        grandTotal: grand,
+        dibayar,
+        kembalian,
       };
-      const id = await addSPK(doc);
-      setSavedId(id);
-    } catch (e) { console.error(e); }
-    finally { setSaving(false); }
+
+      const orderPayload: Partial<CRMOrder> = {
+        customerName: selectedCustomer.name,
+        phone: selectedCustomer.phone,
+        carBrand: selectedCustomer.carBrand,
+        carModel: selectedCustomer.carModel,
+        carYear: selectedCustomer.carYear,
+        licensePlate: selectedCustomer.licensePlate,
+        locationAddress: selectedCustomer.address,
+        serviceType: jasaList[0]?.nama || 'Servis & Perbaikan SPK',
+        totalPrice: grand,
+        status: isDraft ? 'process' : 'completed',
+        saName: effectiveSaName,
+        mekanikName: effectiveMekanikName,
+        customerType: selectedCustomer.customerType || 'BARU',
+        kilometer,
+        noRangka,
+        noMesin,
+        fuelType,
+        notes: keluhan || saCatatan,
+        spareparts,
+        jasaList,
+        saCheckEksterior: eksterior,
+        saCheckInterior: interior,
+        saCheckMesin: mesin,
+        saCheckKakiKaki: kakiKaki,
+        lpaChecklist,
+        saCatatanUmum: saCatatan,
+        lpaCatatan,
+        diskon,
+        pajakPersen: pajak,
+        metodePembayaran: metodeBayar,
+        dibayar,
+        kembalian,
+      };
+
+      if (editingOrder) {
+        await updateOrder(editingOrder.id, orderPayload);
+        await updateSPK(editingOrder.id, docPayload);
+        setSavedId(editingOrder.id);
+      } else {
+        const id = await addSPK(docPayload);
+        setSavedId(id);
+      }
+
+      setDraftToast(true);
+      setTimeout(() => setDraftToast(false), 3500);
+
+      if (!isDraft && onSaveSuccess) {
+        onSaveSuccess();
+      }
+    } catch (e) {
+      console.error(e);
+      alert('Gagal menyimpan data SPK. Silakan coba kembali.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   /* ── Print Handler with A4 Optimization ── */
@@ -750,18 +893,39 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate }: CRM
   return (
     <div className="min-h-screen bg-[#f4f6fb] font-sans pb-12">
 
+      {/* Toast Notification */}
+      {draftToast && (
+        <div className="fixed top-5 right-5 z-[9999] flex items-center gap-2.5 bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-2xl text-xs font-bold animate-bounce">
+          <CheckCircle size={16} />
+          <span>Draf SPK & Jasa Tersimpan! Data aman dan tidak hilang saat diedit.</span>
+        </div>
+      )}
+
       {/* ── Top Header ─────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-20 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
-          <button onClick={() => onNavigate('crm-dashboard')}
+          <button onClick={() => onNavigate('crm-orders')}
             className="flex items-center gap-1.5 text-slate-500 hover:text-slate-900 text-xs font-semibold transition-colors">
-            <ArrowLeft size={15} /> Dashboard
+            <ArrowLeft size={15} /> Daftar SPK
           </button>
           <span className="text-slate-300">/</span>
-          <span className="text-slate-400 text-xs">Formulir SPK & Faktur Bengkel</span>
+          <span className="text-slate-400 text-xs">{editingOrder ? 'Edit SPK & Nota' : 'Formulir SPK Baru'}</span>
           <div className="flex-1" />
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline text-xs font-mono text-slate-400 bg-slate-100 px-3 py-1.5 rounded-xl font-bold">{spkNumber}</span>
+            <span className="hidden sm:inline text-xs font-mono text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl font-bold">{spkNumber}</span>
+            
+            {/* Draft Save Button (Accessible anywhere) */}
+            <button
+              type="button"
+              onClick={() => handleSave(true)}
+              disabled={saving || !selectedCustomer}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition-all shadow-2xs disabled:opacity-40"
+              title="Simpan draf SPK sementara agar tidak hilang"
+            >
+              <Save size={13} />
+              <span>{saving ? 'Menyimpan...' : 'Simpan Draf'}</span>
+            </button>
+
             {savedId ? (
               <button onClick={handlePrint}
                 className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all shadow-md">
@@ -770,7 +934,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate }: CRM
             ) : (
               <button onClick={() => onNavigate('crm-orders')}
                 className="flex items-center gap-2 px-3 py-2 text-slate-500 hover:text-red-600 text-xs font-semibold border border-slate-200 hover:border-red-200 rounded-xl transition-all">
-                <XCircle size={13} /> Batalkan
+                <XCircle size={13} /> Tutup
               </button>
             )}
           </div>
@@ -1508,17 +1672,31 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate }: CRM
 
             {/* ── BOTTOM NAVIGATION ─────────────────────────────────── */}
             {!savedId && (
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4 flex items-center justify-between print:hidden">
-                <button onClick={() => step === 1 ? onNavigate('crm-dashboard') : setStep(s => s - 1)}
-                  className="flex items-center gap-2 px-5 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
+                <button onClick={() => step === 1 ? onNavigate('crm-orders') : setStep(s => s - 1)}
+                  className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition-all">
                   <ChevronLeft size={14} />
-                  {step === 1 ? 'Kembali ke Dashboard' : 'Tahap Sebelumnya'}
+                  {step === 1 ? 'Daftar SPK' : 'Tahap Sebelumnya'}
                 </button>
 
-                <div className="flex items-center gap-1">
-                  {STEPS.map(s => (
-                    <div key={s.id} className={`h-1.5 rounded-full transition-all ${step === s.id ? 'w-6 bg-red-600' : step > s.id ? 'w-1.5 bg-emerald-500' : 'w-1.5 bg-slate-200'}`} />
-                  ))}
+                {/* Center: Save Draft & Steps indicator */}
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleSave(true)}
+                    disabled={saving || !selectedCustomer}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-bold transition-all shadow-xs disabled:opacity-40"
+                    title="Simpan sementara draf SPK agar perubahan tidak hilang"
+                  >
+                    <Save size={13} />
+                    <span>{saving ? 'Menyimpan...' : 'Simpan Draf'}</span>
+                  </button>
+
+                  <div className="hidden sm:flex items-center gap-1">
+                    {STEPS.map(s => (
+                      <div key={s.id} className={`h-1.5 rounded-full transition-all ${step === s.id ? 'w-6 bg-red-600' : step > s.id ? 'w-1.5 bg-emerald-500' : 'w-1.5 bg-slate-200'}`} />
+                    ))}
+                  </div>
                 </div>
 
                 {step < 5 ? (
@@ -1527,9 +1705,9 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate }: CRM
                     Lanjut: {STEPS[step].short} <ChevronRight size={14} />
                   </button>
                 ) : (
-                  <button onClick={handleSave} disabled={saving}
+                  <button onClick={() => handleSave(false)} disabled={saving}
                     className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/20">
-                    {saving ? <><Clock size={14} className="animate-spin" /> Menyimpan...</> : <><Save size={14} /> Simpan SPK</>}
+                    {saving ? <><Clock size={14} className="animate-spin" /> Menyimpan...</> : <><Save size={14} /> Terbitkan & Simpan SPK</>}
                   </button>
                 )}
               </div>
