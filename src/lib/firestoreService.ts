@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { CRMOrder, OrderStatus, CustomerItem, SPKDocument, EmployeeItem, EmployeeRole, InventoryItem, PurchaseOrder, POItem, ActivityPlan, DiscussionMessage } from '../types';
+import { MASTER_JASA_DATA } from '../data/masterJasa';
 
 const ORDERS_COLLECTION = 'orders';
 const CUSTOMERS_COLLECTION = 'customers';
@@ -797,7 +798,17 @@ async function seedDefaultEmployeesToCloud() {
 function getLocalInventory(): InventoryItem[] {
   try {
     const raw = localStorage.getItem(LOCAL_INVENTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+    const seeded: InventoryItem[] = MASTER_JASA_DATA.map((item) => ({
+      ...item,
+      id: 'JASA-' + item.skuCode,
+      createdAt: new Date().toISOString(),
+    }));
+    saveLocalInventory(seeded);
+    return seeded;
   } catch { return []; }
 }
 
