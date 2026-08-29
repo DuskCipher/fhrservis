@@ -121,6 +121,8 @@ export default function App() {
     if (cleanPath === '/crm/orders') return 'crm-orders';
     if (cleanPath === '/crm/customers') return 'crm-customers';
     if (cleanPath === '/crm/lpa') return 'crm-lpa';
+    if (cleanPath === '/crm/spk' || cleanPath === '/crm/spk-create' || cleanPath === '/crm/spk/create') return 'crm-spk-create';
+    if (cleanPath === '/crm/employees') return 'crm-employees';
     return null;
   };
 
@@ -131,6 +133,8 @@ export default function App() {
     if (page === 'crm-orders') return '/crm/orders';
     if (page === 'crm-customers') return '/crm/customers';
     if (page === 'crm-lpa') return '/crm/lpa';
+    if (page === 'crm-spk-create') return '/crm/spk';
+    if (page === 'crm-employees') return '/crm/employees';
     return '/';
   };
 

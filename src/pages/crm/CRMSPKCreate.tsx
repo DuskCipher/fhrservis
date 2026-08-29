@@ -6,7 +6,7 @@ import {
   Banknote, Check, ArrowLeft, Calendar, Hash, Gauge, Palette,
   Settings2, AlertCircle, Info, RefreshCw, DollarSign, Percent,
   ShoppingCart, BarChart3, ChevronDown, Fuel, UserCheck, ShieldCheck,
-  Building, CheckSquare, Layers
+  Building, CheckSquare, Layers, Users
 } from 'lucide-react';
 import {
   CustomerItem, SACheckItem, SACheckResult,
@@ -16,7 +16,7 @@ import { addSPK } from '../../lib/firestoreService';
 
 /* ─── PROPS ──────────────────────────────────────────────────────────── */
 interface CRMSPKCreateProps {
-  customers: CustomerItem[];
+  customers?: CustomerItem[];
   employees?: EmployeeItem[];
   onNavigate: (page: any) => void;
 }
@@ -495,7 +495,7 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
 /* ═══════════════════════════════════════════════════════════════════════ */
 /*  MAIN PAGE COMPONENT                                                    */
 /* ═══════════════════════════════════════════════════════════════════════ */
-export function CRMSPKCreate({ customers, employees = [], onNavigate }: CRMSPKCreateProps) {
+export function CRMSPKCreate({ customers = [], employees = [], onNavigate }: CRMSPKCreateProps) {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -542,36 +542,39 @@ export function CRMSPKCreate({ customers, employees = [], onNavigate }: CRMSPKCr
   const [metodeBayar, setMetodeBayar] = useState<'cash' | 'transfer' | 'kredit'>('cash');
   const [dibayar, setDibayar]         = useState(0);
 
+  const safeEmployees = employees || [];
+  const safeCustomers = customers || [];
+
   /* ── Filter Staff by Role ── */
-  const saList = useMemo(() => employees.filter(e => e.role === 'SA' && e.status === 'active'), [employees]);
-  const faList = useMemo(() => employees.filter(e => (e.role === 'FA' || e.role === 'Manager') && e.status === 'active'), [employees]);
-  const mekanikList = useMemo(() => employees.filter(e => (e.role === 'Mekanik' || e.role === 'Foreman') && e.status === 'active'), [employees]);
-  const kasirList = useMemo(() => employees.filter(e => (e.role === 'Kasir' || e.role === 'FA') && e.status === 'active'), [employees]);
+  const saList = useMemo(() => safeEmployees.filter(e => e.role === 'SA' && e.status === 'active'), [safeEmployees]);
+  const faList = useMemo(() => safeEmployees.filter(e => (e.role === 'FA' || e.role === 'Manager') && e.status === 'active'), [safeEmployees]);
+  const mekanikList = useMemo(() => safeEmployees.filter(e => (e.role === 'Mekanik' || e.role === 'Foreman') && e.status === 'active'), [safeEmployees]);
+  const kasirList = useMemo(() => safeEmployees.filter(e => (e.role === 'Kasir' || e.role === 'FA') && e.status === 'active'), [safeEmployees]);
 
   // Derive active names
   const effectiveSaName = useMemo(() => {
     if (selectedSaId === 'custom') return saCustomName;
-    const found = employees.find(e => e.id === selectedSaId);
+    const found = safeEmployees.find(e => e.id === selectedSaId);
     return found ? found.name : saCustomName || (saList[0]?.name || 'Budi Santoso');
-  }, [selectedSaId, saCustomName, employees, saList]);
+  }, [selectedSaId, saCustomName, safeEmployees, saList]);
 
   const effectiveFaName = useMemo(() => {
     if (selectedFaId === 'custom') return faCustomName;
-    const found = employees.find(e => e.id === selectedFaId);
+    const found = safeEmployees.find(e => e.id === selectedFaId);
     return found ? found.name : faCustomName || (faList[0]?.name || 'Rizky Pratama');
-  }, [selectedFaId, faCustomName, employees, faList]);
+  }, [selectedFaId, faCustomName, safeEmployees, faList]);
 
   const effectiveMekanikName = useMemo(() => {
     if (selectedMekanikId === 'custom') return mekanikCustomName;
-    const found = employees.find(e => e.id === selectedMekanikId);
+    const found = safeEmployees.find(e => e.id === selectedMekanikId);
     return found ? found.name : mekanikCustomName || (mekanikList[0]?.name || 'Agus Setiawan');
-  }, [selectedMekanikId, mekanikCustomName, employees, mekanikList]);
+  }, [selectedMekanikId, mekanikCustomName, safeEmployees, mekanikList]);
 
   const effectiveKasirName = useMemo(() => {
     if (selectedKasirId === 'custom') return kasirCustomName;
-    const found = employees.find(e => e.id === selectedKasirId);
+    const found = safeEmployees.find(e => e.id === selectedKasirId);
     return found ? found.name : kasirCustomName || (kasirList[0]?.name || 'Siti Rahma');
-  }, [selectedKasirId, kasirCustomName, employees, kasirList]);
+  }, [selectedKasirId, kasirCustomName, safeEmployees, kasirList]);
 
   /* ── SPK Number ── */
   const spkNumber = useMemo(() => {
@@ -581,8 +584,8 @@ export function CRMSPKCreate({ customers, employees = [], onNavigate }: CRMSPKCr
   }, []);
 
   /* ── Financials ── */
-  const subParts  = spareparts.reduce((s, p) => s + p.qty * p.hargaSatuan, 0);
-  const subJasa   = jasaList.reduce((s, j) => s + j.harga, 0);
+  const subParts  = spareparts.reduce((s, p) => s + (p.qty || 0) * (p.hargaSatuan || 0), 0);
+  const subJasa   = jasaList.reduce((s, j) => s + (j.harga || 0), 0);
   const subtotal  = subParts + subJasa;
   const discAmt   = subtotal * (diskon / 100);
   const taxAmt    = (subtotal - discAmt) * (pajak / 100);
@@ -592,13 +595,13 @@ export function CRMSPKCreate({ customers, employees = [], onNavigate }: CRMSPKCr
   /* ── Autocomplete ── */
   const platSuggestions = useMemo(() => {
     const q = platSearch.toLowerCase().replace(/\s/g, '');
-    if (!q) return customers.slice(0, 10);
-    return customers.filter(c =>
-      c.licensePlate.toLowerCase().replace(/\s/g, '').includes(q) ||
-      c.name.toLowerCase().includes(q) ||
-      (c.carBrand + ' ' + c.carModel).toLowerCase().includes(q)
+    if (!q) return safeCustomers.slice(0, 10);
+    return safeCustomers.filter(c =>
+      (c.licensePlate || '').toLowerCase().replace(/\s/g, '').includes(q) ||
+      (c.name || '').toLowerCase().includes(q) ||
+      (((c.carBrand || '') + ' ' + (c.carModel || '')).toLowerCase()).includes(q)
     ).slice(0, 10);
-  }, [platSearch, customers]);
+  }, [platSearch, safeCustomers]);
 
   /* ── Select Customer Callback ── */
   const handleSelectCustomer = (c: CustomerItem) => {
