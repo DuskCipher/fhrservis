@@ -55,7 +55,7 @@ export function FacilitySection() {
               <div className="relative overflow-hidden bg-slate-900 rounded-none border border-slate-200 shadow-md group">
                 {!imgError ? (
                   <img
-                    src="https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1000&q=80"
+                    src="https://i.ibb.co.com/zVqWQ1Q4/Gemini-Generated-Image-izqby4izqby4izqb.jpg"
                     alt="Bengkel Home Service & Panggilan 24 Jam FHRCAR Auto Services"
                     className="w-full h-[340px] sm:h-[420px] object-cover object-center group-hover:scale-105 transition-transform duration-500"
                     referrerPolicy="no-referrer"
