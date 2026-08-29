@@ -1095,6 +1095,20 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                       : <span className="italic text-slate-500 text-[10px]">Belum dipilih</span>
                     }
                   </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Final Inspector (FA):</span>
+                    {effectiveFaName
+                      ? <span className="font-semibold text-white">{effectiveFaName}</span>
+                      : <span className="italic text-slate-500 text-[10px]">Belum dipilih</span>
+                    }
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Kasir:</span>
+                    {effectiveKasirName
+                      ? <span className="font-semibold text-white">{effectiveKasirName}</span>
+                      : <span className="italic text-slate-500 text-[10px]">Belum dipilih</span>
+                    }
+                  </div>
                 </div>
 
                 {step >= 3 && (
