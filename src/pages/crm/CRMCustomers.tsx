@@ -418,7 +418,7 @@ export function CRMCustomers({
           <table className="min-w-full text-xs text-left">
             <thead>
               <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-600 font-extrabold uppercase tracking-wider text-[10px]">
-                <th className="pl-4 pr-2 py-3 w-8">
+                <th className="pl-4 pr-2 py-3 w-8 whitespace-nowrap">
                   <input
                     type="checkbox"
                     checked={selected.length === filteredCustomers.length && filteredCustomers.length > 0}
@@ -426,19 +426,19 @@ export function CRMCustomers({
                     className="w-3.5 h-3.5 rounded accent-red-600"
                   />
                 </th>
-                <th className="px-3 py-3 w-10 text-center">NO</th>
-                <th className="px-3 py-3">NAMA PELANGGAN</th>
-                <th className="px-3 py-3 text-center">TIPE</th>
-                <th className="px-3 py-3 text-right">SALDO DEPOSIT</th>
-                <th className="px-3 py-3">NO. WA / TELEPON</th>
-                <th className="px-3 py-3">ALAMAT DOMISILI</th>
-                <th className="px-3 py-3">BENGKEL ASAL</th>
-                <th className="px-3 py-3 text-center">JUMLAH UNIT</th>
-                <th className="px-3 py-3">PLAT NOMOR KENDARAAN</th>
-                <th className="px-3 py-3">MEREK & MODEL</th>
-                <th className="px-3 py-3 text-center">PIN PORTAL</th>
-                <th className="px-3 py-3">TANGGAL GABUNG</th>
-                <th className="px-3 py-3 text-right pr-4">AKSI</th>
+                <th className="px-3 py-3 w-10 text-center whitespace-nowrap">NO</th>
+                <th className="px-3 py-3 whitespace-nowrap">NAMA PELANGGAN</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">TIPE</th>
+                <th className="px-3 py-3 text-right whitespace-nowrap">SALDO DEPOSIT</th>
+                <th className="px-3 py-3 whitespace-nowrap">NO. WA / TELEPON</th>
+                <th className="px-3 py-3 whitespace-nowrap">ALAMAT DOMISILI</th>
+                <th className="px-3 py-3 whitespace-nowrap">BENGKEL ASAL</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">JUMLAH UNIT</th>
+                <th className="px-3 py-3 whitespace-nowrap">PLAT NOMOR KENDARAAN</th>
+                <th className="px-3 py-3 whitespace-nowrap">MEREK & MODEL</th>
+                <th className="px-3 py-3 text-center whitespace-nowrap">PIN PORTAL</th>
+                <th className="px-3 py-3 whitespace-nowrap">TANGGAL GABUNG</th>
+                <th className="px-3 py-3 text-right pr-4 whitespace-nowrap">AKSI</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -464,7 +464,7 @@ export function CRMCustomers({
                       className={`hover:bg-slate-50/90 transition-colors ${isSelected ? 'bg-blue-50/40' : ''}`}
                     >
                       {/* Checkbox */}
-                      <td className="pl-4 pr-2 py-3.5">
+                      <td className="pl-4 pr-2 py-3.5 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -474,17 +474,17 @@ export function CRMCustomers({
                       </td>
 
                       {/* No */}
-                      <td className="px-3 py-3.5 text-center text-slate-400 font-bold">{idx + 1}</td>
+                      <td className="px-3 py-3.5 text-center text-slate-400 font-bold whitespace-nowrap">{idx + 1}</td>
 
                       {/* Nama Pelanggan */}
-                      <td className="px-3 py-3.5">
+                      <td className="px-3 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 text-white font-black flex items-center justify-center text-xs shrink-0 shadow-xs">
                             {c.name?.charAt(0)?.toUpperCase() || '?'}
                           </div>
                           <button
                             onClick={() => handleViewClick(c)}
-                            className="font-bold text-slate-800 hover:text-red-600 transition-colors text-left text-xs"
+                            className="font-bold text-slate-800 hover:text-red-600 transition-colors text-left text-xs whitespace-nowrap"
                           >
                             {c.name}
                           </button>
@@ -492,8 +492,8 @@ export function CRMCustomers({
                       </td>
 
                       {/* Tipe */}
-                      <td className="px-3 py-3.5 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border ${
+                      <td className="px-3 py-3.5 text-center whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border whitespace-nowrap ${
                           isLama
                             ? 'bg-amber-50 text-amber-800 border-amber-200'
                             : 'bg-emerald-50 text-emerald-800 border-emerald-200'
@@ -503,8 +503,8 @@ export function CRMCustomers({
                       </td>
 
                       {/* Saldo Deposit */}
-                      <td className="px-3 py-3.5 text-right">
-                        <span className="font-bold text-slate-700 text-[11px]">
+                      <td className="px-3 py-3.5 text-right whitespace-nowrap">
+                        <span className="font-bold text-slate-700 text-[11px] whitespace-nowrap">
                           {c.depositBalance ? formatRp(c.depositBalance) : (
                             <span className="text-slate-300 font-normal">—</span>
                           )}
@@ -512,68 +512,68 @@ export function CRMCustomers({
                       </td>
 
                       {/* No WA / Telepon */}
-                      <td className="px-3 py-3.5">
-                        <div className="flex items-center gap-1.5">
+                      <td className="px-3 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
                           <Phone size={11} className="text-slate-400 shrink-0" />
-                          <span className="font-mono font-bold text-slate-700 text-[11px]">{c.phone}</span>
+                          <span className="font-mono font-bold text-slate-700 text-[11px] whitespace-nowrap">{c.phone}</span>
                         </div>
                       </td>
 
                       {/* Alamat */}
-                      <td className="px-3 py-3.5">
-                        <p className="text-[11px] text-slate-600 max-w-[160px] truncate" title={c.address}>
+                      <td className="px-3 py-3.5 whitespace-nowrap">
+                        <p className="text-[11px] text-slate-600 max-w-[180px] truncate whitespace-nowrap" title={c.address}>
                           {c.address || <span className="text-slate-300">—</span>}
                         </p>
                       </td>
 
                       {/* Bengkel Asal */}
-                      <td className="px-3 py-3.5">
-                        <div className="flex items-center gap-1">
+                      <td className="px-3 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-1 whitespace-nowrap">
                           <Building2 size={11} className="text-slate-400 shrink-0" />
-                          <span className="text-[11px] text-slate-600 font-medium">FHR Car Service</span>
+                          <span className="text-[11px] text-slate-600 font-medium whitespace-nowrap">FHR Car Service</span>
                         </div>
                       </td>
 
                       {/* Jumlah Unit */}
-                      <td className="px-3 py-3.5 text-center">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                      <td className="px-3 py-3.5 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 whitespace-nowrap">
                           {c.totalOrdersCount || 1} Unit
                         </span>
                       </td>
 
                       {/* Plat Nomor */}
-                      <td className="px-3 py-3.5">
+                      <td className="px-3 py-3.5 whitespace-nowrap">
                         {c.licensePlate ? (
-                          <span className="inline-block px-2 py-1 rounded-lg bg-slate-900 text-white font-mono font-bold text-[10px] tracking-widest shadow-xs">
+                          <span className="inline-block px-2 py-1 rounded-lg bg-slate-900 text-white font-mono font-bold text-[10px] tracking-widest shadow-xs whitespace-nowrap">
                             {c.licensePlate}
                           </span>
                         ) : <span className="text-slate-300">—</span>}
                       </td>
 
                       {/* Merek & Model */}
-                      <td className="px-3 py-3.5">
-                        <p className="font-bold text-slate-800 text-[11px]">{c.carBrand} {c.carModel}</p>
-                        <p className="text-[10px] text-slate-400">{c.carYear} • {c.transmission || 'Matic'}</p>
+                      <td className="px-3 py-3.5 whitespace-nowrap">
+                        <p className="font-bold text-slate-800 text-[11px] whitespace-nowrap">{c.carBrand} {c.carModel}</p>
+                        <p className="text-[10px] text-slate-400 whitespace-nowrap">{c.carYear} • {c.transmission || 'Matic'}</p>
                       </td>
 
                       {/* PIN Portal */}
-                      <td className="px-3 py-3.5 text-center">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                      <td className="px-3 py-3.5 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 whitespace-nowrap">
                           <Key size={9} />
                           —
                         </span>
                       </td>
 
                       {/* Tanggal Gabung */}
-                      <td className="px-3 py-3.5">
-                        <div className="flex items-center gap-1 text-slate-700">
+                      <td className="px-3 py-3.5 whitespace-nowrap">
+                        <div className="flex items-center gap-1 text-slate-700 whitespace-nowrap">
                           <Calendar size={11} className="text-red-500 shrink-0" />
-                          <span className="text-[11px] font-bold">{formatDate(c.createdAt)}</span>
+                          <span className="text-[11px] font-bold whitespace-nowrap">{formatDate(c.createdAt)}</span>
                         </div>
                       </td>
 
                       {/* Aksi */}
-                      <td className="px-3 py-3.5 pr-4 text-right">
+                      <td className="px-3 py-3.5 pr-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleViewClick(c)}
