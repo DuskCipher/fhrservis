@@ -37,6 +37,7 @@ import { CRMDashboard } from './pages/crm/CRMDashboard';
 import { CRMOrders } from './pages/crm/CRMOrders';
 import { CRMCustomers } from './pages/crm/CRMCustomers';
 import { CRMCustomerDetail } from './pages/crm/CRMCustomerDetail';
+import { CRMCustomerForm } from './pages/crm/CRMCustomerForm';
 import { CRMKaryawan } from './pages/crm/CRMKaryawan';
 import { CRMLembarPemeriksaan } from './pages/crm/CRMLembarPemeriksaan';
 import { CRMSPKCreate } from './pages/crm/CRMSPKCreate';
@@ -122,6 +123,8 @@ export default function App() {
     if (cleanPath === '/crm') return 'crm-dashboard';
     if (cleanPath === '/crm/orders') return 'crm-orders';
     if (cleanPath === '/crm/customers') return 'crm-customers';
+    if (cleanPath === '/crm/customers/create' || cleanPath === '/crm/customers/tambah') return 'crm-customer-create';
+    if (cleanPath.endsWith('/edit')) return 'crm-customer-edit';
     if (cleanPath.startsWith('/crm/customers/')) return 'crm-customer-detail';
     if (cleanPath === '/crm/lpa') return 'crm-lpa';
     if (cleanPath === '/crm/spk' || cleanPath === '/crm/spk-create' || cleanPath === '/crm/spk/create') return 'crm-spk-create';
@@ -135,6 +138,8 @@ export default function App() {
     if (page === 'crm-dashboard') return '/crm';
     if (page === 'crm-orders') return '/crm/orders';
     if (page === 'crm-customers') return '/crm/customers';
+    if (page === 'crm-customer-create') return '/crm/customers/create';
+    if (page === 'crm-customer-edit') return selectedCustomer ? `/crm/customers/${selectedCustomer.id}/edit` : '/crm/customers/create';
     if (page === 'crm-customer-detail') return selectedCustomer ? `/crm/customers/${selectedCustomer.id}` : '/crm/customers';
     if (page === 'crm-lpa') return '/crm/lpa';
     if (page === 'crm-spk-create') return '/crm/spk';
@@ -263,6 +268,11 @@ export default function App() {
               setSelectedCustomer(customer);
               handleNavigate('crm-customer-detail');
             }}
+            onTambahCustomer={() => handleNavigate('crm-customer-create')}
+            onEditCustomer={(customer) => {
+              setSelectedCustomer(customer);
+              handleNavigate('crm-customer-edit');
+            }}
           />
         )}
         {activePage === 'crm-customer-detail' && selectedCustomer && (
@@ -272,6 +282,32 @@ export default function App() {
             onBack={() => handleNavigate('crm-customers')}
             onNavigate={handleNavigate}
             onBuatSPK={() => handleNavigate('crm-spk-create')}
+            onEdit={(customer) => {
+              setSelectedCustomer(customer);
+              handleNavigate('crm-customer-edit');
+            }}
+          />
+        )}
+        {activePage === 'crm-customer-create' && (
+          <CRMCustomerForm
+            customer={null}
+            onBack={() => handleNavigate('crm-customers')}
+            onNavigate={handleNavigate}
+            onSaveSuccess={(newCust) => {
+              setSelectedCustomer(newCust);
+              handleNavigate('crm-customer-detail');
+            }}
+          />
+        )}
+        {activePage === 'crm-customer-edit' && (
+          <CRMCustomerForm
+            customer={selectedCustomer}
+            onBack={() => handleNavigate(selectedCustomer ? 'crm-customer-detail' : 'crm-customers')}
+            onNavigate={handleNavigate}
+            onSaveSuccess={(updatedCust) => {
+              setSelectedCustomer(updatedCust);
+              handleNavigate('crm-customer-detail');
+            }}
           />
         )}
         {activePage === 'crm-lpa' && (
