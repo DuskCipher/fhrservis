@@ -34,20 +34,7 @@ const navItems: NavItem[] = [
     children: [
       { id: 'crm-spk-create', label: '+ Buat SPK Baru' },
       { id: 'crm-orders', label: 'Daftar SPK' },
-      { id: 'crm-dashboard', label: 'Booking Area' },
     ]
-  },
-  {
-    id: 'inventory',
-    label: 'Stok Barang',
-    icon: Package,
-    children: [{ id: 'crm-dashboard', label: 'Inventory' }]
-  },
-  {
-    id: 'purchasing',
-    label: 'Pembelian',
-    icon: ShoppingCart,
-    children: [{ id: 'crm-dashboard', label: 'Purchasing & Vendor' }]
   },
   {
     id: 'customer',
@@ -55,15 +42,7 @@ const navItems: NavItem[] = [
     icon: Users,
     children: [
       { id: 'crm-customers', label: 'Data Pelanggan & Mobil' },
-      { id: 'crm-spk-create', label: '+ Buat SPK' },
-      { id: 'crm-orders', label: 'Riwayat SPK' },
     ]
-  },
-  {
-    id: 'monitoring',
-    label: 'Monitoring',
-    icon: BarChart2,
-    children: [{ id: 'crm-dashboard', label: 'Analitik & Laporan' }]
   },
   {
     id: 'hrd',
@@ -71,14 +50,31 @@ const navItems: NavItem[] = [
     icon: UserSquare2,
     children: [
       { id: 'crm-employees', label: 'Data Karyawan & Staf' },
-      { id: 'crm-dashboard', label: 'Absensi & Kinerja' },
     ]
+  },
+  {
+    id: 'inventory',
+    label: 'Stok Barang',
+    icon: Package,
+    page: 'crm-dashboard',
+  },
+  {
+    id: 'purchasing',
+    label: 'Pembelian',
+    icon: ShoppingCart,
+    page: 'crm-dashboard',
+  },
+  {
+    id: 'monitoring',
+    label: 'Monitoring',
+    icon: BarChart2,
+    page: 'crm-dashboard',
   },
   {
     id: 'crm-menu',
     label: 'CRM',
     icon: UserSquare2,
-    children: [{ id: 'crm-dashboard', label: 'Manajemen Pelanggan' }]
+    page: 'crm-dashboard',
   },
   { id: 'dap',     label: 'Activity Plan (DAP)',       icon: ClipboardList, page: 'crm-dashboard' },
   { id: 'lpa',     label: 'Lembar Pemeriksaan (LPA)',  icon: FileText,      page: 'crm-lpa' },
@@ -216,13 +212,14 @@ export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLay
             const isGroupActive = item.children?.some(c => c.id === activePage);
 
             if (item.page) {
+              const isPageActive = item.id === 'lpa' && activePage === 'crm-lpa';
               return (
                 <button
                   key={item.id}
                   onClick={() => handleNavClick(item.page!)}
                   title={item.label}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded text-xs font-semibold transition-all
-                    text-white/50 hover:bg-white/8 hover:text-white relative
+                    ${isPageActive ? 'bg-red-600 text-white' : 'text-white/50 hover:bg-white/8 hover:text-white'} relative
                     ${collapsed ? 'justify-center' : ''}`}
                 >
                   <Icon size={17} className="flex-shrink-0" />
