@@ -191,8 +191,9 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
 
   return (
     <div id="nota-print-area" style={{
-      background: '#fff', color: '#0f172a', fontFamily: '"Segoe UI", Arial, sans-serif',
-      fontSize: '11px', width: '100%', maxWidth: '794px', margin: '0 auto', padding: '0',
+      background: '#ffffff', color: '#0f172a', fontFamily: '"Segoe UI", Arial, sans-serif',
+      fontSize: '11px', width: '100%', maxWidth: '794px', margin: '0 auto', padding: '16px',
+      backgroundColor: '#ffffff',
     }}>
       {/* KOP SURAT */}
       <div style={{ borderBottom: '3px solid #0f172a', paddingBottom: '12px', marginBottom: '12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -1631,7 +1632,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                 </div>
 
                 {/* NOTA RESMI PRINTABLE VIEW */}
-                <div className="bg-slate-100 p-4 rounded-3xl border border-slate-200 overflow-x-auto">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto p-6">
                   <NotaCorporatePrint spkData={spkData} />
                 </div>
 
