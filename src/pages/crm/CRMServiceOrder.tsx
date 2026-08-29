@@ -684,7 +684,7 @@ export function CRMServiceOrder({
                       <td className="px-3 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium whitespace-nowrap">
                           <Wrench size={11} className="text-blue-500 shrink-0" />
-                          <span>{o.mekanikName || 'Agus Setiawan'}</span>
+                          <span>{o.mekanikName || '—'}</span>
                         </div>
                       </td>
 
@@ -821,11 +821,11 @@ export function CRMServiceOrder({
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Service Advisor (SA)</p>
-                  <p className="font-black text-slate-900 mt-0.5">{detailOrder.saName || 'Budi Santoso'}</p>
+                  <p className="font-black text-slate-900 mt-0.5">{detailOrder.saName || '—'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Mekanik Pelaksana</p>
-                  <p className="font-black text-blue-700 mt-0.5">{detailOrder.mekanikName || 'Agus Setiawan'}</p>
+                  <p className="font-black text-blue-700 mt-0.5">{detailOrder.mekanikName || '—'}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Tipe Pelanggan</p>

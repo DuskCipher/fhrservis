@@ -545,7 +545,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
   const [metodeBayar, setMetodeBayar] = useState<'cash' | 'transfer' | 'kredit'>('cash');
   const [dibayar, setDibayar]         = useState(0);
 
-  const safeEmployees = (employees && employees.length > 0) ? employees : DEFAULT_EMPLOYEES;
+  const safeEmployees = employees || [];
   const safeCustomers = customers || [];
 
   // Initialize or Pre-fill when editing an existing Order/SPK
@@ -571,10 +571,9 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
 
       setSelectedCustomer(existingCust);
       setPlatSearch(existingCust.licensePlate || '');
-      if (editingOrder.kilometer) setKilometer(editingOrder.kilometer);
-      if (editingOrder.noRangka) setNoRangka(editingOrder.noRangka);
-      if (editingOrder.noMesin) setNoMesin(editingOrder.noMesin);
-      if (editingOrder.fuelType) setFuelType(editingOrder.fuelType);
+      setTipeMobil(existingCust.carModel || '');
+      setTahunMobil(existingCust.carYear || '');
+      if (editingOrder.kilometer) setKilometer(String(editingOrder.kilometer));
       if (editingOrder.notes || (editingOrder as any).keluhan) setKeluhan((editingOrder as any).keluhan || editingOrder.notes || '');
 
       // Match SA
@@ -652,55 +651,59 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     }
   }, [editingOrder, safeCustomers, safeEmployees]);
 
-  /* ── Filter Staff by Role ── */
-  const saList = useMemo(() => {
-    const list = safeEmployees.filter(e => (e.role === 'SA' || e.role === 'Manager') && e.status === 'active');
-    return list.length > 0 ? list : [{ id: 'sa-default', name: 'Budi Santoso', role: 'SA', nik: 'SA-01' } as any];
+  /* ── Filter Staff strictly from HRD Employees ── */
+  const activeEmployees = useMemo(() => {
+    return safeEmployees.filter(e => e.status !== 'inactive');
   }, [safeEmployees]);
+
+  const saList = useMemo(() => {
+    const byRole = activeEmployees.filter(e => e.role === 'SA' || e.role === 'Manager');
+    return byRole.length > 0 ? byRole : activeEmployees;
+  }, [activeEmployees]);
 
   const faList = useMemo(() => {
-    const list = safeEmployees.filter(e => (e.role === 'FA' || e.role === 'Manager') && e.status === 'active');
-    return list.length > 0 ? list : [{ id: 'fa-default', name: 'Rizky Pratama', role: 'FA', nik: 'FA-01' } as any];
-  }, [safeEmployees]);
+    const byRole = activeEmployees.filter(e => e.role === 'FA' || e.role === 'Manager');
+    return byRole.length > 0 ? byRole : activeEmployees;
+  }, [activeEmployees]);
 
   const mekanikList = useMemo(() => {
-    const list = safeEmployees.filter(e => (e.role === 'Mekanik' || e.role === 'Foreman') && e.status === 'active');
-    return list.length > 0 ? list : [{ id: 'mk-default', name: 'Agus Setiawan', role: 'Mekanik', nik: 'MK-01' } as any, { id: 'mk-default-2', name: 'Doni Kurniawan', role: 'Mekanik', nik: 'MK-02' } as any];
-  }, [safeEmployees]);
+    const byRole = activeEmployees.filter(e => e.role === 'Mekanik' || e.role === 'Foreman');
+    return byRole.length > 0 ? byRole : activeEmployees;
+  }, [activeEmployees]);
 
   const kasirList = useMemo(() => {
-    const list = safeEmployees.filter(e => (e.role === 'Kasir' || e.role === 'FA') && e.status === 'active');
-    return list.length > 0 ? list : [{ id: 'ks-default', name: 'Siti Rahma', role: 'Kasir', nik: 'KS-01' } as any];
-  }, [safeEmployees]);
+    const byRole = activeEmployees.filter(e => e.role === 'Kasir' || e.role === 'FA');
+    return byRole.length > 0 ? byRole : activeEmployees;
+  }, [activeEmployees]);
 
   // Derive active names — returns null when nothing has been selected yet
   const effectiveSaName = useMemo(() => {
     if (!selectedSaId) return null;
     if (selectedSaId === 'custom') return saCustomName || null;
-    const found = safeEmployees.find(e => e.id === selectedSaId) || saList.find(e => e.id === selectedSaId);
+    const found = safeEmployees.find(e => e.id === selectedSaId);
     return found ? found.name : (saCustomName || null);
-  }, [selectedSaId, saCustomName, safeEmployees, saList]);
+  }, [selectedSaId, saCustomName, safeEmployees]);
 
   const effectiveFaName = useMemo(() => {
     if (!selectedFaId) return null;
     if (selectedFaId === 'custom') return faCustomName || null;
-    const found = safeEmployees.find(e => e.id === selectedFaId) || faList.find(e => e.id === selectedFaId);
+    const found = safeEmployees.find(e => e.id === selectedFaId);
     return found ? found.name : (faCustomName || null);
-  }, [selectedFaId, faCustomName, safeEmployees, faList]);
+  }, [selectedFaId, faCustomName, safeEmployees]);
 
   const effectiveMekanikName = useMemo(() => {
     if (!selectedMekanikId) return null;
     if (selectedMekanikId === 'custom') return mekanikCustomName || null;
-    const found = safeEmployees.find(e => e.id === selectedMekanikId) || mekanikList.find(e => e.id === selectedMekanikId);
+    const found = safeEmployees.find(e => e.id === selectedMekanikId);
     return found ? found.name : (mekanikCustomName || null);
-  }, [selectedMekanikId, mekanikCustomName, safeEmployees, mekanikList]);
+  }, [selectedMekanikId, mekanikCustomName, safeEmployees]);
 
   const effectiveKasirName = useMemo(() => {
     if (!selectedKasirId) return null;
     if (selectedKasirId === 'custom') return kasirCustomName || null;
-    const found = safeEmployees.find(e => e.id === selectedKasirId) || kasirList.find(e => e.id === selectedKasirId);
+    const found = safeEmployees.find(e => e.id === selectedKasirId);
     return found ? found.name : (kasirCustomName || null);
-  }, [selectedKasirId, kasirCustomName, safeEmployees, kasirList]);
+  }, [selectedKasirId, kasirCustomName, safeEmployees]);
 
   /* ── SPK Number ── */
   const spkNumber = useMemo(() => {
