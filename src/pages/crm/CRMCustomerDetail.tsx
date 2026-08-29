@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Car, Wrench,
   Calendar, DollarSign, MessageSquare, FileText, Edit,
   Trash2, CheckCircle, Clock, TrendingUp, Shield,
   Settings, BarChart2, Activity, Zap,
-  Award, ChevronRight, Share2, AlertTriangle
+  Award, ChevronRight, Share2, AlertTriangle, CalendarRange,
+  Search, CheckSquare
 } from 'lucide-react';
 import { CustomerItem, CRMOrder, CustomerSource, CustomerType } from '../../types';
 import { deleteCustomer } from '../../lib/firestoreService';
@@ -41,17 +42,47 @@ type TabId = 'profil' | 'kendaraan' | 'riwayat' | 'statistik';
 export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit, onBuatSPK }: CRMCustomerDetailProps) {
   const [activeTab, setActiveTab] = useState<TabId>('profil');
 
+  // History search & date filter state
+  const [historySearch, setHistorySearch] = useState('');
+  const [historyYear, setHistoryYear] = useState<string>('all');
+
   // Filter orders for this customer
-  const customerOrders = orders.filter(o =>
-    o.phone === customer.phone ||
-    o.customerName.toLowerCase() === customer.name.toLowerCase()
-  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const allCustomerOrders = useMemo(() => {
+    return orders.filter(o =>
+      o.phone === customer.phone ||
+      o.customerName.toLowerCase() === customer.name.toLowerCase()
+    ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [orders, customer]);
+
+  // Filtered orders inside tab riwayat
+  const filteredCustomerOrders = useMemo(() => {
+    return allCustomerOrders.filter(o => {
+      const matchSearch = !historySearch ||
+        o.serviceType?.toLowerCase().includes(historySearch.toLowerCase()) ||
+        o.id?.toLowerCase().includes(historySearch.toLowerCase()) ||
+        o.notes?.toLowerCase().includes(historySearch.toLowerCase());
+
+      let matchYear = true;
+      if (historyYear !== 'all' && o.createdAt) {
+        try {
+          const yr = new Date(o.createdAt).getFullYear().toString();
+          matchYear = yr === historyYear;
+        } catch {}
+      }
+
+      return matchSearch && matchYear;
+    });
+  }, [allCustomerOrders, historySearch, historyYear]);
 
   // Statistics
-  const totalSpent = customer.totalSpent || customerOrders.filter(o => o.status === 'completed').reduce((s, o) => s + (o.totalPrice || 0), 0);
-  const completedOrders = customerOrders.filter(o => o.status === 'completed');
+  const totalSpent = customer.totalSpent || allCustomerOrders.filter(o => o.status === 'completed').reduce((s, o) => s + (o.totalPrice || 0), 0);
+  const completedOrders = allCustomerOrders.filter(o => o.status === 'completed');
   const avgSpend = completedOrders.length ? Math.round(totalSpent / completedOrders.length) : 0;
-  const totalOrders = customer.totalOrdersCount || customerOrders.length;
+  const totalOrders = customer.totalOrdersCount || allCustomerOrders.length;
+
+  // Last service info
+  const lastOrder = allCustomerOrders[0];
+  const lastServiceDateStr = customer.lastServiceDate || lastOrder?.serviceDate || (lastOrder?.createdAt ? new Date(lastOrder.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : null);
 
   const formatRp = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
   const formatDate = (iso: string) => {
@@ -78,7 +109,7 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
   const TABS: { id: TabId; label: string; count?: number; icon: React.ReactNode }[] = [
     { id: 'profil',    label: 'Profil Lengkap',    icon: <User size={15} /> },
     { id: 'kendaraan', label: 'Spesifikasi Mobil',  icon: <Car size={15} /> },
-    { id: 'riwayat',   label: 'Riwayat Servis & SPK', count: customerOrders.length, icon: <Wrench size={15} /> },
+    { id: 'riwayat',   label: 'Riwayat Servis & SPK', count: allCustomerOrders.length, icon: <Wrench size={15} /> },
     { id: 'statistik', label: 'Statistik & Loyalitas', icon: <BarChart2 size={15} /> },
   ];
 
@@ -179,7 +210,7 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
                   </span>
                 </div>
 
-                {/* Vehicle Pill */}
+                {/* Vehicle & Last Service Date Pills */}
                 <div className="flex flex-wrap items-center gap-2 mt-3.5">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-800">
                     <Car size={13} className="text-red-600" />
@@ -191,9 +222,10 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
                     {customer.licensePlate}
                   </div>
 
-                  <span className="text-[11px] text-slate-400">
-                    Terdaftar sejak: <span className="font-semibold text-slate-600">{formatDate(customer.createdAt)}</span>
-                  </span>
+                  <div className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-red-50 text-red-700 border border-red-100 text-xs font-bold">
+                    <Clock size={12} />
+                    <span>Perbaikan Terakhir: {lastServiceDateStr || 'Belum Ada'}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -313,9 +345,7 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
                 </div>
 
                 <DetailRow label="Tanggal Terdaftar" value={formatDate(customer.createdAt)} />
-                {customer.lastServiceDate && (
-                  <DetailRow label="Servis Terakhir" value={formatDate(customer.lastServiceDate)} />
-                )}
+                <DetailRow label="Tanggal Perbaikan / Servis Terakhir" value={lastServiceDateStr || 'Belum Ada Riwayat'} />
               </div>
             </div>
 
@@ -371,26 +401,69 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
           </div>
         )}
 
-        {/* ─── TAB 3: RIWAYAT SERVIS & SPK ─── */}
+        {/* ─── TAB 3: RIWAYAT SERVIS & SPK (WITH DATE & KEYWORD FILTER) ─── */}
         {activeTab === 'riwayat' && (
           <div className="space-y-4">
-            {customerOrders.length === 0 ? (
+
+            {/* Filter Bar inside Riwayat Tab */}
+            {allCustomerOrders.length > 0 && (
+              <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    <CalendarRange size={13} className="text-red-600" />
+                    <span>Filter Tahun:</span>
+                  </span>
+                  {['all', '2026', '2025', '2024'].map(yr => (
+                    <button
+                      key={yr}
+                      onClick={() => setHistoryYear(yr)}
+                      className={`px-3 py-1 rounded-xl text-xs font-bold transition-all border ${
+                        historyYear === yr
+                          ? 'bg-slate-900 text-white border-slate-900'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {yr === 'all' ? 'Semua Tahun' : yr}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative min-w-[220px]">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={historySearch}
+                    onChange={e => setHistorySearch(e.target.value)}
+                    placeholder="Cari jenis servis, catatan..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-red-500 outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            {filteredCustomerOrders.length === 0 ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
                 <Wrench size={36} className="text-slate-300 mx-auto mb-3" />
-                <h3 className="text-sm font-black text-slate-800">Belum Ada Riwayat Servis</h3>
+                <h3 className="text-sm font-black text-slate-800">
+                  {allCustomerOrders.length === 0 ? 'Belum Ada Riwayat Servis' : 'Tidak Ada Riwayat Sesuai Filter'}
+                </h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                  Pelanggan ini belum memiliki catatan Surat Perintah Kerja (SPK) di sistem bengkel.
+                  {allCustomerOrders.length === 0
+                    ? 'Pelanggan ini belum memiliki catatan Surat Perintah Kerja (SPK) di sistem bengkel.'
+                    : 'Coba ubah kata kunci pencarian atau filter tahun servis.'}
                 </p>
-                <button
-                  onClick={onBuatSPK}
-                  className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/20 transition-all"
-                >
-                  <FileText size={14} />
-                  <span>Buat SPK Pertama Sekarang</span>
-                </button>
+                {allCustomerOrders.length === 0 && (
+                  <button
+                    onClick={onBuatSPK}
+                    className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md shadow-red-600/20 transition-all"
+                  >
+                    <FileText size={14} />
+                    <span>Buat SPK Pertama Sekarang</span>
+                  </button>
+                )}
               </div>
             ) : (
-              customerOrders.map((order) => {
+              filteredCustomerOrders.map((order) => {
                 const st = STATUS_LABEL[order.status] || STATUS_LABEL.pending;
                 return (
                   <div key={order.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:border-slate-300 transition-colors">
@@ -419,13 +492,15 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
                             )}
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-500">
-                            <span className="flex items-center gap-1">
-                              <Calendar size={12} className="text-slate-400" />
-                              {order.serviceDate} {order.serviceTime ? `• ${order.serviceTime}` : ''}
+                          {/* Specific Date of Repair */}
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-xs text-slate-600">
+                            <span className="flex items-center gap-1 font-bold text-slate-800">
+                              <Calendar size={12} className="text-red-500" />
+                              <span>Tanggal Pengerjaan: {order.serviceDate || formatDate(order.createdAt)}</span>
+                              {order.serviceTime && <span className="font-normal text-slate-400">• {order.serviceTime}</span>}
                             </span>
                             {order.locationAddress && (
-                              <span className="flex items-center gap-1">
+                              <span className="flex items-center gap-1 text-slate-500">
                                 <MapPin size={12} className="text-slate-400" />
                                 {order.locationAddress}
                               </span>
@@ -508,7 +583,7 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {(['pending', 'process', 'completed', 'cancelled'] as const).map(st => {
-                  const count = customerOrders.filter(o => o.status === st).length;
+                  const count = allCustomerOrders.filter(o => o.status === st).length;
                   const cfg = STATUS_LABEL[st];
                   return (
                     <div key={st} className={`p-4 rounded-xl border ${cfg.bg} ${cfg.border} text-center`}>

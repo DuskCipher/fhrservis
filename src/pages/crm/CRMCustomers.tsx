@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Users, Search, Plus, Phone, MessageSquare, Car, MapPin,
   Calendar, Edit, Trash2, CheckCircle, FileText,
-  Filter, Eye, DollarSign, Award, Zap, ChevronRight, Share2
+  Filter, Eye, DollarSign, Award, Zap, ChevronRight, Share2,
+  CalendarRange, X, Clock
 } from 'lucide-react';
 import { CustomerItem, CustomerSource, CustomerType } from '../../types';
 import { deleteCustomer } from '../../lib/firestoreService';
@@ -34,6 +35,12 @@ export function CRMCustomers({
   const [search, setSearch] = useState('');
   const [filterBrand, setFilterBrand] = useState('all');
   const [filterType, setFilterType] = useState<'all' | 'BARU' | 'LAMA'>('all');
+  
+  // Date Filtering for Customers
+  const [datePreset, setDatePreset] = useState<'all' | 'today' | '7d' | '30d' | 'custom'>('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -41,24 +48,62 @@ export function CRMCustomers({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Filtered customers
-  const filteredCustomers = customers.filter(c => {
-    const matchSearch = !search ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.phone.includes(search) ||
-      c.licensePlate.toLowerCase().includes(search.toLowerCase()) ||
-      c.carModel.toLowerCase().includes(search.toLowerCase()) ||
-      c.carBrand.toLowerCase().includes(search.toLowerCase());
-    const matchBrand = filterBrand === 'all' || c.carBrand.toLowerCase() === filterBrand.toLowerCase();
-    const matchType = filterType === 'all' || c.customerType === filterType;
-    return matchSearch && matchBrand && matchType;
-  });
+  // Filtered customers with Date Logic
+  const filteredCustomers = useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    return customers.filter(c => {
+      const matchSearch = !search ||
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.phone.includes(search) ||
+        c.licensePlate.toLowerCase().includes(search.toLowerCase()) ||
+        c.carModel.toLowerCase().includes(search.toLowerCase()) ||
+        c.carBrand.toLowerCase().includes(search.toLowerCase());
+
+      const matchBrand = filterBrand === 'all' || c.carBrand.toLowerCase() === filterBrand.toLowerCase();
+      const matchType = filterType === 'all' || c.customerType === filterType;
+
+      let matchDate = true;
+      if (c.createdAt) {
+        try {
+          const custDate = new Date(c.createdAt);
+          const custDateStr = custDate.toISOString().split('T')[0];
+
+          if (datePreset === 'today') {
+            matchDate = custDateStr === todayStr;
+          } else if (datePreset === '7d') {
+            const diffDays = (now.getTime() - custDate.getTime()) / (1000 * 3600 * 24);
+            matchDate = diffDays <= 7 && diffDays >= 0;
+          } else if (datePreset === '30d') {
+            const diffDays = (now.getTime() - custDate.getTime()) / (1000 * 3600 * 24);
+            matchDate = diffDays <= 30 && diffDays >= 0;
+          } else if (datePreset === 'custom') {
+            if (startDate && custDateStr < startDate) matchDate = false;
+            if (endDate && custDateStr > endDate) matchDate = false;
+          }
+        } catch {}
+      }
+
+      return matchSearch && matchBrand && matchType && matchDate;
+    });
+  }, [customers, search, filterBrand, filterType, datePreset, startDate, endDate]);
 
   // Stats calculation
   const lamaCount = customers.filter(c => c.customerType === 'LAMA').length;
   const baruCount = customers.filter(c => c.customerType === 'BARU' || !c.customerType).length;
   const totalSpent = customers.reduce((s, c) => s + (c.totalSpent || 0), 0);
   const formatRp = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
+
+  const formatDate = (isoString?: string) => {
+    if (!isoString) return '-';
+    try {
+      const d = new Date(isoString);
+      return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+      return isoString;
+    }
+  };
 
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Yakin ingin menghapus data pelanggan "${name}"?`)) {
@@ -108,11 +153,11 @@ export function CRMCustomers({
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-black text-slate-900">Database Pelanggan</h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-black">
-                  {customers.length} Data
+                  {filteredCustomers.length} Data
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Kelola data pemilik mobil, sumber akuisisi, klasifikasi pelanggan, dan buat Surat Perintah Kerja (SPK)
+                Kelola data pemilik mobil, riwayat tanggal servis, klasifikasi pelanggan, dan buat SPK baru
               </p>
             </div>
           </div>
@@ -186,11 +231,77 @@ export function CRMCustomers({
         </div>
       </div>
 
-      {/* ─── Filters & Search (Clean & Modern) ─── */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+      {/* ─── Filters & Search (With Date Range Filtering) ─── */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
+        
+        {/* Date Filter Row */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5 mr-1">
+              <CalendarRange size={14} className="text-red-600" />
+              <span>Filter Tanggal Registrasi:</span>
+            </span>
+
+            {(['all', 'today', '7d', '30d', 'custom'] as const).map(p => {
+              const labels = {
+                all: 'Semua Waktu',
+                today: 'Hari Ini',
+                '7d': '7 Hari Terakhir',
+                '30d': 'Bulan Ini',
+                custom: 'Pilih Tanggal'
+              };
+              return (
+                <button
+                  key={p}
+                  onClick={() => setDatePreset(p)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    datePreset === p
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  {labels[p]}
+                </button>
+              );
+            })}
+          </div>
+
+          {datePreset === 'custom' && (
+            <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-2xl border border-slate-200">
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-slate-500 font-semibold text-[11px]">Dari:</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="px-2.5 py-1 text-xs font-bold border border-slate-200 rounded-lg bg-white outline-none focus:border-red-500"
+                />
+              </div>
+              <span className="text-slate-300">-</span>
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-slate-500 font-semibold text-[11px]">Sampai:</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="px-2.5 py-1 text-xs font-bold border border-slate-200 rounded-lg bg-white outline-none focus:border-red-500"
+                />
+              </div>
+              {(startDate || endDate) && (
+                <button
+                  onClick={() => { setStartDate(''); setEndDate(''); }}
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-700"
+                  title="Reset Tanggal"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Secondary Category & Search Controls */}
         <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          
-          {/* Tag Filters */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
               <Filter size={13} /> Kategori:
@@ -235,11 +346,11 @@ export function CRMCustomers({
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-
         </div>
+
       </div>
 
-      {/* ─── Customer Table (CLEAN LIGHT TABLE, NO BLACK THEAD) ─── */}
+      {/* ─── Customer Table (With Date Display) ─── */}
       <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full text-xs text-left">
@@ -247,6 +358,7 @@ export function CRMCustomers({
               <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[11px]">
                 <th className="px-4 py-4 text-center w-12">NO</th>
                 <th className="px-4 py-4">NAMA & KONTAK</th>
+                <th className="px-4 py-4">TANGGAL MASUK</th>
                 <th className="px-4 py-4">KATEGORI & SUMBER</th>
                 <th className="px-4 py-4">UNIT KENDARAAN</th>
                 <th className="px-4 py-4">PLAT NOMOR</th>
@@ -258,19 +370,13 @@ export function CRMCustomers({
             <tbody className="divide-y divide-slate-100">
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="text-center py-16 text-slate-400">
+                  <td colSpan={9} className="text-center py-16 text-slate-400">
                     <div className="flex flex-col items-center gap-2.5">
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400">
                         <Users size={24} />
                       </div>
-                      <p className="font-bold text-slate-700 text-sm">Tidak ada data pelanggan yang sesuai</p>
-                      <p className="text-xs text-slate-400">Coba ubah kata kunci pencarian atau tambah data pelanggan baru</p>
-                      <button
-                        onClick={handleAddClick}
-                        className="mt-2 px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 transition-all shadow-sm"
-                      >
-                        + Tambah Pelanggan Baru
-                      </button>
+                      <p className="font-bold text-slate-700 text-sm">Tidak ada data pelanggan yang sesuai filter</p>
+                      <p className="text-xs text-slate-400">Silakan ubah rentang tanggal atau kata kunci pencarian</p>
                     </div>
                   </td>
                 </tr>
@@ -298,14 +404,22 @@ export function CRMCustomers({
                               <Phone size={10} className="text-slate-400" />
                               <span className="font-mono text-[11px] font-bold text-slate-700">{c.phone}</span>
                             </div>
-                            {c.address && (
-                              <div className="flex items-center gap-1 text-[10px] text-slate-400 mt-0.5 max-w-[180px] truncate">
-                                <MapPin size={10} className="shrink-0" />
-                                <span className="truncate">{c.address}</span>
-                              </div>
-                            )}
                           </div>
                         </div>
+                      </td>
+
+                      {/* Registration / Entry Date */}
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-1.5 text-slate-800 font-bold text-xs">
+                          <Calendar size={12} className="text-red-500 shrink-0" />
+                          <span>{formatDate(c.createdAt)}</span>
+                        </div>
+                        {c.lastServiceDate && (
+                          <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                            <Clock size={10} />
+                            <span>Terakhir: {formatDate(c.lastServiceDate)}</span>
+                          </p>
+                        )}
                       </td>
 
                       {/* Category & Source */}
@@ -344,7 +458,7 @@ export function CRMCustomers({
                         </div>
                       </td>
 
-                      {/* License Plate (Clean white plate with border, NO pitch black) */}
+                      {/* License Plate */}
                       <td className="px-4 py-4">
                         <span className="inline-block px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-mono font-bold text-xs tracking-wider border border-slate-300 shadow-2xs">
                           {c.licensePlate}
@@ -399,7 +513,7 @@ export function CRMCustomers({
                             <MessageSquare size={14} />
                           </a>
 
-                          {/* Edit Form (Navigates to dedicated edit page) */}
+                          {/* Edit Form */}
                           <button
                             onClick={() => handleEditClick(c)}
                             className="p-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors"
