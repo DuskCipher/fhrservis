@@ -89,7 +89,7 @@ const navItems: NavItem[] = [
 export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [openGroups, setOpenGroups] = useState<string[]>(['service-order']);
+  const [openGroup, setOpenGroup] = useState<string | null>('service-order');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -98,6 +98,14 @@ export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLay
     const unsub = onAuthStateChanged(auth, (u) => setCurrentUser(u));
     return () => unsub();
   }, []);
+
+  // Sync open group with active page
+  useEffect(() => {
+    const matchingGroup = navItems.find(item => item.children?.some(c => c.id === activePage));
+    if (matchingGroup) {
+      setOpenGroup(matchingGroup.id);
+    }
+  }, [activePage]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -111,9 +119,7 @@ export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLay
   }, []);
 
   const toggleGroup = (id: string) => {
-    setOpenGroups(prev =>
-      prev.includes(id) ? prev.filter(g => g !== id) : [...prev, id]
-    );
+    setOpenGroup(prev => (prev === id ? null : id));
   };
 
   const handleNavClick = (page: PageType) => {
@@ -206,7 +212,7 @@ export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLay
 
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isOpen = openGroups.includes(item.id);
+            const isOpen = openGroup === item.id;
             const isGroupActive = item.children?.some(c => c.id === activePage);
 
             if (item.page) {
