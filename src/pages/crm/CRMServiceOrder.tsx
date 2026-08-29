@@ -572,7 +572,7 @@ export function CRMServiceOrder({
           <table className="min-w-full text-xs text-left">
             <thead>
               <tr className="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-extrabold uppercase tracking-wider text-[10px]">
-                <th className="pl-4 pr-2 py-4 w-8">
+                <th className="pl-4 pr-2 py-4 w-8 whitespace-nowrap">
                   <input
                     type="checkbox"
                     checked={selected.length === filtered.length && filtered.length > 0}
@@ -580,17 +580,17 @@ export function CRMServiceOrder({
                     className="w-3.5 h-3.5 rounded accent-red-600"
                   />
                 </th>
-                <th className="px-3 py-4 w-10 text-center">NO.</th>
-                <th className="px-3 py-4">NOMOR SPK</th>
-                <th className="px-3 py-4 text-center">TIPE</th>
-                <th className="px-3 py-4">PELANGGAN & KONTAK</th>
-                <th className="px-3 py-4">KENDARAAN & PLAT</th>
-                <th className="px-3 py-4">SERVICE ADVISOR (SA)</th>
-                <th className="px-3 py-4">MEKANIK</th>
-                <th className="px-3 py-4">TANGGAL MASUK</th>
-                <th className="px-3 py-4 text-right">TOTAL BIAYA</th>
-                <th className="px-3 py-4 text-center">STATUS</th>
-                <th className="px-4 py-4 text-right">AKSI</th>
+                <th className="px-3 py-4 w-10 text-center whitespace-nowrap">NO.</th>
+                <th className="px-3 py-4 whitespace-nowrap">NOMOR SPK</th>
+                <th className="px-3 py-4 text-center whitespace-nowrap">TIPE</th>
+                <th className="px-3 py-4 whitespace-nowrap">PELANGGAN & KONTAK</th>
+                <th className="px-3 py-4 whitespace-nowrap">KENDARAAN & PLAT</th>
+                <th className="px-3 py-4 whitespace-nowrap">SERVICE ADVISOR (SA)</th>
+                <th className="px-3 py-4 whitespace-nowrap">MEKANIK</th>
+                <th className="px-3 py-4 whitespace-nowrap">TANGGAL MASUK</th>
+                <th className="px-3 py-4 text-right whitespace-nowrap">TOTAL BIAYA</th>
+                <th className="px-3 py-4 text-center whitespace-nowrap">STATUS</th>
+                <th className="px-4 py-4 text-right whitespace-nowrap">AKSI</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -613,7 +613,7 @@ export function CRMServiceOrder({
                   const isSelected = selected.includes(o.id);
                   return (
                     <tr key={o.id} className={`hover:bg-slate-50/90 transition-colors ${isSelected ? 'bg-blue-50/40' : ''}`}>
-                      <td className="pl-4 pr-2 py-4">
+                      <td className="pl-4 pr-2 py-4 whitespace-nowrap">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -622,25 +622,25 @@ export function CRMServiceOrder({
                         />
                       </td>
 
-                      <td className="px-3 py-4 text-center text-slate-400 font-bold">{idx + 1}</td>
+                      <td className="px-3 py-4 text-center text-slate-400 font-bold whitespace-nowrap">{idx + 1}</td>
 
                       {/* SPK Number */}
-                      <td className="px-3 py-4">
-                        <span className="font-mono font-black text-slate-900 text-xs bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">
-                          #{o.id?.slice(0, 8)}
-                        </span>
-                        {o.isEmergency && (
-                          <div className="mt-1">
-                            <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-black bg-red-100 text-red-700 uppercase border border-red-200">
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-black text-slate-900 text-xs bg-slate-100 px-2 py-1 rounded-lg border border-slate-200 whitespace-nowrap">
+                            #{o.id?.slice(0, 8)}
+                          </span>
+                          {o.isEmergency && (
+                            <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-black bg-red-100 text-red-700 uppercase border border-red-200 whitespace-nowrap">
                               Darurat 24J
                             </span>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </td>
 
                       {/* Tipe Pelanggan (BARU / LAMA) */}
-                      <td className="px-3 py-4 text-center">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border ${
+                      <td className="px-3 py-4 text-center whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black border whitespace-nowrap ${
                           type === 'LAMA'
                             ? 'bg-amber-50 text-amber-800 border-amber-200'
                             : 'bg-emerald-50 text-emerald-800 border-emerald-200'
@@ -650,52 +650,52 @@ export function CRMServiceOrder({
                       </td>
 
                       {/* Customer Info */}
-                      <td className="px-3 py-4">
+                      <td className="px-3 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-2.5">
                           <div className="w-8 h-8 rounded-xl bg-red-100 text-red-600 font-black text-xs flex items-center justify-center shrink-0">
                             {o.customerName?.[0]?.toUpperCase() || 'P'}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 text-xs">{o.customerName}</p>
-                            <p className="font-mono text-[11px] text-slate-500 font-bold">{o.phone || '—'}</p>
+                            <p className="font-bold text-slate-900 text-xs whitespace-nowrap">{o.customerName}</p>
+                            <p className="font-mono text-[11px] text-slate-500 font-bold whitespace-nowrap">{o.phone || '—'}</p>
                           </div>
                         </div>
                       </td>
 
                       {/* Vehicle & Plate */}
-                      <td className="px-3 py-4">
-                        <p className="font-bold text-slate-800 text-xs">
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <p className="font-bold text-slate-800 text-xs whitespace-nowrap">
                           {o.carBrand} {o.carModel}
                         </p>
-                        <span className="inline-block px-2 py-0.5 mt-0.5 rounded bg-slate-100 text-slate-800 font-mono font-bold text-[11px] border border-slate-300">
+                        <span className="inline-block px-2 py-0.5 mt-0.5 rounded bg-slate-100 text-slate-800 font-mono font-bold text-[11px] border border-slate-300 whitespace-nowrap">
                           {o.licensePlate}
                         </span>
                       </td>
 
                       {/* Service Advisor (SA) */}
-                      <td className="px-3 py-4">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-800 font-bold">
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-800 font-bold whitespace-nowrap">
                           <UserCheck size={12} className="text-red-500 shrink-0" />
                           <span>{o.saName || 'Budi Santoso (SA)'}</span>
                         </div>
                       </td>
 
                       {/* Mekanik */}
-                      <td className="px-3 py-4">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium">
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-700 font-medium whitespace-nowrap">
                           <Wrench size={11} className="text-blue-500 shrink-0" />
                           <span>{o.mekanikName || 'Agus Setiawan'}</span>
                         </div>
                       </td>
 
                       {/* Service Date */}
-                      <td className="px-3 py-4">
-                        <div className="flex items-center gap-1 text-slate-800 font-bold text-xs">
+                      <td className="px-3 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-1 text-slate-800 font-bold text-xs whitespace-nowrap">
                           <Calendar size={11} className="text-slate-400 shrink-0" />
                           <span>{formatDateDisplay(o.serviceDate, o.createdAt)}</span>
                         </div>
                         {o.serviceTime && (
-                          <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
+                          <p className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1 whitespace-nowrap">
                             <Clock size={9} />
                             <span>Pukul {o.serviceTime}</span>
                           </p>
@@ -703,18 +703,18 @@ export function CRMServiceOrder({
                       </td>
 
                       {/* Total Biaya (Rupiah) */}
-                      <td className="px-3 py-4 text-right">
-                        <span className="font-mono font-black text-slate-900 text-xs">
+                      <td className="px-3 py-4 text-right whitespace-nowrap">
+                        <span className="font-mono font-black text-slate-900 text-xs whitespace-nowrap">
                           {o.totalPrice ? formatRp(o.totalPrice) : <span className="text-slate-300 font-normal">—</span>}
                         </span>
                       </td>
 
                       {/* Status Selector Real-Time */}
-                      <td className="px-3 py-4 text-center">
+                      <td className="px-3 py-4 text-center whitespace-nowrap">
                         <select
                           value={o.status}
                           onChange={(e) => onUpdateStatus(o.id, e.target.value as OrderStatus)}
-                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border transition-all cursor-pointer outline-none ${cfg.bg} ${cfg.text} ${cfg.border} hover:shadow-xs`}
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border transition-all cursor-pointer outline-none whitespace-nowrap ${cfg.bg} ${cfg.text} ${cfg.border} hover:shadow-xs`}
                           title="Klik untuk mengubah status pengerjaan secara langsung"
                         >
                           <option value="pending">Tahap Inspeksi</option>
@@ -725,7 +725,7 @@ export function CRMServiceOrder({
                       </td>
 
                       {/* Actions (Edit SPK, Detail, WA, Hapus) */}
-                      <td className="px-4 py-4 text-right">
+                      <td className="px-4 py-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           
                           {/* ✏️ EDIT SPK BUTTON (Opens SPK Wizard with existing data) */}
