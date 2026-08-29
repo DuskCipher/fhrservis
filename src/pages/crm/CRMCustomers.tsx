@@ -1,51 +1,51 @@
 import React, { useState } from 'react';
 import {
-  Users, Search, Plus, Phone, MessageSquare, Car, MapPin, 
-  Calendar, Wrench, Edit, Trash2, X, CheckCircle, FileText, 
-  Filter, Shield, ArrowRight, Clock, DollarSign, Sparkles
+  Users, Search, Plus, Phone, MessageSquare, Car, MapPin,
+  Calendar, Edit, Trash2, X, CheckCircle, FileText,
+  Filter, Star, Zap, Eye, TrendingUp, DollarSign, Award
 } from 'lucide-react';
-import { CustomerItem, CRMOrder, OrderStatus } from '../../types';
-import { addCustomer, updateCustomer, deleteCustomer, addOrder } from '../../lib/firestoreService';
+import { CustomerItem, CustomerSource, CustomerType } from '../../types';
+import { addCustomer, updateCustomer, deleteCustomer } from '../../lib/firestoreService';
 
 interface CRMCustomersProps {
   customers: CustomerItem[];
-  orders: CRMOrder[];
+  orders: any[];
   onNavigate: (page: any) => void;
   onBuatSPK?: () => void;
+  onViewCustomer?: (customer: CustomerItem) => void;
 }
 
 const CAR_BRANDS = [
-  'Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi', 
-  'Nissan', 'Hyundai', 'Wuling', 'Isuzu', 'Mazda', 
+  'Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi',
+  'Nissan', 'Hyundai', 'Wuling', 'Isuzu', 'Mazda',
   'BMW', 'Mercedes-Benz', 'Chevrolet', 'Kia', 'Lainnya'
 ];
 
-const SERVICE_TYPES = [
-  'Ganti Oli Mesin & Filter',
-  'Tune Up & Gurah Mesin (Carbon Clean)',
-  'Servis AC Mobil & Isi Freon',
-  'Ganti Kampas & Minyak Rem',
-  'Ganti Aki & Kelistrikan / Alternator',
-  'Servis Kaki-kaki & Suspensi',
-  'General Check-up & Inspeksi 50 Titik',
-  'Emergency Roadside / Mobil Mogok 24 Jam',
-  'Overhaul / Turun Mesin',
-  'Lainnya (Custom Servis)',
+const ALL_SOURCES: CustomerSource[] = [
+  'Rekomendasi Teman/Keluarga', 'Google Maps', 'Instagram', 'TikTok',
+  'WhatsApp', 'Walk-in Langsung', 'Facebook', 'Lainnya'
 ];
 
-export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCustomersProps) {
+const SOURCE_EMOJI: Record<string, string> = {
+  'Rekomendasi Teman/Keluarga': '🤝',
+  'Google Maps': '🗺️',
+  'Instagram': '📸',
+  'TikTok': '🎵',
+  'WhatsApp': '💬',
+  'Walk-in Langsung': '🚶',
+  'Facebook': '📘',
+  'Lainnya': '📣',
+};
+
+export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK, onViewCustomer }: CRMCustomersProps) {
   const [search, setSearch] = useState('');
   const [filterBrand, setFilterBrand] = useState('all');
-  
-  // Customer Modal state
-  const [showCustomerModal, setShowCustomerModal] = useState(false);
+  const [filterType, setFilterType] = useState<'all' | 'BARU' | 'LAMA'>('all');
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<CustomerItem | null>(null);
-  
-  // Create SPK Modal state
-  const [showSpkModal, setShowSpkModal] = useState(false);
-  const [targetCustomer, setTargetCustomer] = useState<CustomerItem | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successSpkId, setSuccessSpkId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -53,38 +53,20 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Customer Form State
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    address: '',
-    carBrand: 'Toyota',
-    carModel: '',
-    carYear: new Date().getFullYear().toString(),
-    licensePlate: '',
-    transmission: 'Matic' as 'Manual' | 'Matic',
-    carColor: '',
-    vinNumber: '',
-    engineNumber: '',
+  // Form state
+  const defaultForm = {
+    name: '', phone: '', email: '', address: '',
+    carBrand: 'Toyota', carModel: '', carYear: new Date().getFullYear().toString(),
+    licensePlate: '', transmission: 'Matic' as 'Manual' | 'Matic',
+    carColor: '', vinNumber: '', engineNumber: '',
     fuelType: 'Bensin' as 'Bensin' | 'Diesel' | 'Hybrid' | 'EV',
     notes: '',
-    createSpkDirectly: false,
-  });
+    source: 'Walk-in Langsung' as CustomerSource,
+    customerType: 'BARU' as CustomerType,
+  };
+  const [formData, setFormData] = useState(defaultForm);
 
-  // SPK Form State
-  const [spkData, setSpkData] = useState({
-    serviceType: SERVICE_TYPES[0],
-    isEmergency: false,
-    serviceDate: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-    serviceTime: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-    locationAddress: '',
-    totalPrice: 0,
-    status: 'process' as OrderStatus,
-    notes: '',
-  });
-
-  // Filter customers
+  // Filtered customers
   const filteredCustomers = customers.filter(c => {
     const matchSearch = !search ||
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -93,74 +75,42 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
       c.carModel.toLowerCase().includes(search.toLowerCase()) ||
       c.carBrand.toLowerCase().includes(search.toLowerCase());
     const matchBrand = filterBrand === 'all' || c.carBrand.toLowerCase() === filterBrand.toLowerCase();
-    return matchSearch && matchBrand;
+    const matchType = filterType === 'all' || c.customerType === filterType;
+    return matchSearch && matchBrand && matchType;
   });
 
-  // Calculate stats
-  const totalCustomers = customers.length;
+  // Stats
+  const lamaCount = customers.filter(c => c.customerType === 'LAMA').length;
+  const baruCount = customers.filter(c => c.customerType === 'BARU' || !c.customerType).length;
+  const totalSpent = customers.reduce((s, c) => s + (c.totalSpent || 0), 0);
   const activeOrdersCount = orders.filter(o => o.status === 'process' || o.status === 'pending').length;
+  const formatRp = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
 
+  // Open modal for adding
   const openAddModal = () => {
     setEditingCustomer(null);
-    setFormData({
-      name: '',
-      phone: '',
-      email: '',
-      address: '',
-      carBrand: 'Toyota',
-      carModel: '',
-      carYear: new Date().getFullYear().toString(),
-      licensePlate: '',
-      transmission: 'Matic',
-      carColor: '',
-      vinNumber: '',
-      engineNumber: '',
-      fuelType: 'Bensin',
-      notes: '',
-      createSpkDirectly: false,
-    });
-    setShowCustomerModal(true);
+    setFormData(defaultForm);
+    setShowModal(true);
   };
 
+  // Open modal for editing
   const openEditModal = (c: CustomerItem) => {
     setEditingCustomer(c);
     setFormData({
-      name: c.name,
-      phone: c.phone,
-      email: c.email || '',
-      address: c.address,
-      carBrand: c.carBrand,
-      carModel: c.carModel,
-      carYear: c.carYear,
-      licensePlate: c.licensePlate,
+      name: c.name, phone: c.phone, email: c.email || '',
+      address: c.address, carBrand: c.carBrand, carModel: c.carModel,
+      carYear: c.carYear, licensePlate: c.licensePlate,
       transmission: c.transmission || 'Matic',
-      carColor: c.carColor || '',
-      vinNumber: c.vinNumber || '',
-      engineNumber: c.engineNumber || '',
-      fuelType: c.fuelType || 'Bensin',
+      carColor: c.carColor || '', vinNumber: c.vinNumber || '',
+      engineNumber: c.engineNumber || '', fuelType: c.fuelType || 'Bensin',
       notes: c.notes || '',
-      createSpkDirectly: false,
+      source: c.source || 'Lainnya',
+      customerType: c.customerType || 'BARU',
     });
-    setShowCustomerModal(true);
+    setShowModal(true);
   };
 
-  const openSpkModalForCustomer = (c: CustomerItem) => {
-    setTargetCustomer(c);
-    setSpkData({
-      serviceType: SERVICE_TYPES[0],
-      isEmergency: false,
-      serviceDate: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-      serviceTime: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-      locationAddress: c.address,
-      totalPrice: 0,
-      status: 'process',
-      notes: '',
-    });
-    setSuccessSpkId(null);
-    setShowSpkModal(true);
-  };
-
-  const handleSaveCustomer = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const name = formData.name.trim();
     const phone = formData.phone.trim();
@@ -174,156 +124,84 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
 
     setIsSubmitting(true);
     try {
+      const payload = {
+        name, phone,
+        email: formData.email.trim() || '',
+        address: formData.address.trim() || '—',
+        carBrand: formData.carBrand || 'Toyota',
+        carModel, carYear: formData.carYear.trim() || '2020',
+        licensePlate,
+        transmission: formData.transmission || 'Matic',
+        carColor: formData.carColor.trim() || '',
+        vinNumber: formData.vinNumber.trim() || '',
+        engineNumber: formData.engineNumber.trim() || '',
+        fuelType: formData.fuelType || 'Bensin',
+        notes: formData.notes.trim() || '',
+        source: formData.source,
+        customerType: formData.customerType,
+      };
+
       if (editingCustomer) {
-        await updateCustomer(editingCustomer.id, {
-          name,
-          phone,
-          email: formData.email.trim() || '',
-          address: formData.address.trim() || '—',
-          carBrand: formData.carBrand || 'Toyota',
-          carModel,
-          carYear: formData.carYear.trim() || '2020',
-          licensePlate,
-          transmission: formData.transmission || 'Matic',
-          carColor: formData.carColor.trim() || '',
-          vinNumber: formData.vinNumber.trim() || '',
-          engineNumber: formData.engineNumber.trim() || '',
-          fuelType: formData.fuelType || 'Bensin',
-          notes: formData.notes.trim() || '',
-        });
-        setShowCustomerModal(false);
+        await updateCustomer(editingCustomer.id, payload);
         showToast('Data pelanggan berhasil diperbarui!');
       } else {
-        const newCustId = await addCustomer({
-          name,
-          phone,
-          email: formData.email.trim() || '',
-          address: formData.address.trim() || '—',
-          carBrand: formData.carBrand || 'Toyota',
-          carModel,
-          carYear: formData.carYear.trim() || '2020',
-          licensePlate,
-          transmission: formData.transmission || 'Matic',
-          carColor: formData.carColor.trim() || '',
-          vinNumber: formData.vinNumber.trim() || '',
-          engineNumber: formData.engineNumber.trim() || '',
-          fuelType: formData.fuelType || 'Bensin',
-          notes: formData.notes.trim() || '',
-          totalOrdersCount: 0,
-          totalSpent: 0,
-        });
-
-        setShowCustomerModal(false);
-        showToast('Data pelanggan baru berhasil disimpan!');
-
-        if (formData.createSpkDirectly) {
-          const createdCustomerObj: CustomerItem = {
-            id: newCustId,
-            name,
-            phone,
-            email: formData.email.trim() || '',
-            address: formData.address.trim() || '—',
-            carBrand: formData.carBrand || 'Toyota',
-            carModel,
-            carYear: formData.carYear.trim() || '2020',
-            licensePlate,
-            transmission: formData.transmission || 'Matic',
-            carColor: formData.carColor.trim() || '',
-            notes: formData.notes.trim() || '',
-            createdAt: new Date().toISOString(),
-          };
-          openSpkModalForCustomer(createdCustomerObj);
-        }
+        await addCustomer({ ...payload, totalOrdersCount: 0, totalSpent: 0 });
+        showToast('Pelanggan baru berhasil ditambahkan!');
       }
-    } catch (err: any) {
+      setShowModal(false);
+    } catch (err) {
       console.error('Error saving customer:', err);
-      showToast('Data tersimpan di perangkat lokal.');
-      setShowCustomerModal(false);
+      showToast('Gagal menyimpan. Cek koneksi internet.');
+      setShowModal(false);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteCustomer = async (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Yakin ingin menghapus data pelanggan "${name}"?`)) {
       try {
         await deleteCustomer(id);
-      } catch (err) {
-        console.error('Error deleting customer:', err);
+        showToast('Data pelanggan dihapus.');
+      } catch {
         alert('Gagal menghapus pelanggan.');
       }
     }
   };
 
-  const handleCreateSPK = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!targetCustomer) return;
-
-    setIsSubmitting(true);
-    try {
-      const orderPayload: Omit<CRMOrder, 'id' | 'createdAt'> = {
-        customerName: targetCustomer.name,
-        phone: targetCustomer.phone,
-        serviceType: spkData.serviceType,
-        carBrand: targetCustomer.carBrand,
-        carModel: targetCustomer.carModel,
-        carYear: targetCustomer.carYear,
-        licensePlate: targetCustomer.licensePlate,
-        locationAddress: spkData.locationAddress || targetCustomer.address,
-        isEmergency: spkData.isEmergency,
-        notes: spkData.notes,
-        serviceDate: spkData.serviceDate,
-        serviceTime: spkData.serviceTime,
-        status: spkData.status,
-        totalPrice: Number(spkData.totalPrice) || 0,
-      };
-
-      const newOrderId = await addOrder(orderPayload);
-      
-      // Update customer total count
-      await updateCustomer(targetCustomer.id, {
-        totalOrdersCount: (targetCustomer.totalOrdersCount || 0) + 1,
-        totalSpent: (targetCustomer.totalSpent || 0) + (Number(spkData.totalPrice) || 0),
-      });
-
-      setSuccessSpkId(newOrderId);
-    } catch (err) {
-      console.error('Error creating SPK:', err);
-      alert('Gagal membuat SPK. Silakan coba lagi.');
-    } finally {
-      setIsSubmitting(false);
+  const handleViewCustomer = (c: CustomerItem) => {
+    if (onViewCustomer) {
+      onViewCustomer(c);
+    } else {
+      onNavigate('crm-customer-detail');
     }
   };
 
-  const formatRp = (n?: number) => n ? 'Rp ' + n.toLocaleString('id-ID') : 'Rp 0';
-
   return (
     <div className="p-4 sm:p-5 space-y-4 font-sans">
-      {/* Toast Notification */}
+
+      {/* Toast */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-[9999] flex items-center gap-3 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-xl shadow-emerald-600/30 text-sm font-semibold animate-fade-in">
+        <div className="fixed top-5 right-5 z-[9999] flex items-center gap-3 bg-emerald-600 text-white px-5 py-3.5 rounded-2xl shadow-xl shadow-emerald-600/30 text-sm font-semibold">
           <CheckCircle size={18} className="shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Page Header */}
+      {/* ─── Page Header ─── */}
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-red-50 text-red-600 border border-red-100">
-                <Users size={20} />
-              </span>
-              <div>
-                <h1 className="text-lg sm:text-xl font-black text-slate-900">Database Pelanggan</h1>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Input data pelanggan & kendaraan, lalu buat SPK (Surat Perintah Kerja) secara otomatis
-                </p>
-              </div>
+          <div className="flex items-center gap-3">
+            <span className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-100">
+              <Users size={20} />
+            </span>
+            <div>
+              <h1 className="text-lg sm:text-xl font-black text-slate-900">Database Pelanggan</h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Kelola profil pelanggan, kendaraan, sumber akuisisi, dan riwayat servis
+              </p>
             </div>
           </div>
-          
           <div className="flex items-center gap-2.5">
             {onBuatSPK && (
               <button
@@ -345,187 +223,223 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
         </div>
       </div>
 
-      {/* Stats Summary Cards */}
+      {/* ─── Stats Cards ─── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Pelanggan</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">{totalCustomers}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Database bengkel terdaftar</p>
+          <p className="text-2xl font-black text-slate-900 mt-1">{customers.length}</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Database terdaftar</p>
         </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SPK Aktif / Proses</p>
-          <p className="text-2xl font-black text-blue-600 mt-1">{activeOrdersCount} <span className="text-xs font-semibold">Mobil</span></p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Sedang dalam pengerjaan</p>
+        <div className="bg-white rounded-2xl border border-amber-100 p-4 shadow-sm bg-gradient-to-br from-white to-amber-50/30">
+          <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1"><Award size={10} /> Pelanggan Lama</p>
+          <p className="text-2xl font-black text-amber-700 mt-1">{lamaCount}</p>
+          <p className="text-[10px] text-amber-500 mt-0.5">Pelanggan loyal</p>
         </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Mobil Terdaftar</p>
-          <p className="text-2xl font-black text-emerald-600 mt-1">{customers.length} <span className="text-xs font-semibold">Unit</span></p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Unit siap servis & home service</p>
+        <div className="bg-white rounded-2xl border border-emerald-100 p-4 shadow-sm bg-gradient-to-br from-white to-emerald-50/30">
+          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider flex items-center gap-1"><Zap size={10} /> Pelanggan Baru</p>
+          <p className="text-2xl font-black text-emerald-700 mt-1">{baruCount}</p>
+          <p className="text-[10px] text-emerald-500 mt-0.5">Akuisisi baru</p>
         </div>
-
         <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Merek Terbanyak</p>
-          <p className="text-lg font-black text-slate-800 mt-1 truncate">Toyota / Honda</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Dominasi kendaraan pelanggan</p>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><DollarSign size={10} /> Total Revenue</p>
+          <p className="text-sm font-black text-violet-700 mt-1 truncate">{formatRp(totalSpent)}</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Dari semua pelanggan</p>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-3.5 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
-            <Filter size={13} /> MEREK:
-          </span>
-          <button
-            onClick={() => setFilterBrand('all')}
-            className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors border ${
-              filterBrand === 'all'
-                ? 'bg-slate-900 text-white border-slate-900'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            Semua ({customers.length})
-          </button>
-          {['Toyota', 'Honda', 'Daihatsu', 'Mitsubishi', 'Suzuki'].map(b => (
-            <button
-              key={b}
-              onClick={() => setFilterBrand(b)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors border ${
-                filterBrand.toLowerCase() === b.toLowerCase()
-                  ? 'bg-slate-900 text-white border-slate-900'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {b}
+      {/* ─── Filter & Search ─── */}
+      <div className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm space-y-3">
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          {/* Filters */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-slate-500 flex items-center gap-1">
+              <Filter size={13} /> FILTER:
+            </span>
+            {/* Type filter */}
+            {(['all', 'LAMA', 'BARU'] as const).map(t => (
+              <button key={t}
+                onClick={() => setFilterType(t)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors border ${
+                  filterType === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}>
+                {t === 'all' ? 'Semua' : t === 'LAMA' ? '⭐ Lama' : '🆕 Baru'}
+              </button>
+            ))}
+            <span className="text-slate-200">|</span>
+            {/* Brand filter */}
+            <button onClick={() => setFilterBrand('all')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors border ${filterBrand === 'all' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+              Semua Merek
             </button>
-          ))}
+            {['Toyota', 'Honda', 'Daihatsu', 'Mitsubishi', 'Suzuki'].map(b => (
+              <button key={b} onClick={() => setFilterBrand(b)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors border ${filterBrand.toLowerCase() === b.toLowerCase() ? 'bg-red-600 text-white border-red-600' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
+                {b}
+              </button>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div className="relative min-w-[240px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all"
+              placeholder="Cari nama, no HP, plat, mobil..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
         </div>
 
-        <div className="relative min-w-[240px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all"
-            placeholder="Cari nama, no HP, plat no, mobil..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
+        <p className="text-xs text-slate-400">
+          Menampilkan <span className="font-bold text-slate-700">{filteredCustomers.length}</span> dari {customers.length} pelanggan
+        </p>
       </div>
 
-      {/* Customer List Table */}
+      {/* ─── Customer Table ─── */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full text-xs text-left">
             <thead>
               <tr className="bg-slate-900 text-white font-semibold">
                 <th className="px-4 py-3.5 text-center w-12">NO</th>
-                <th className="px-4 py-3.5">NAMA PELANGGAN & KONTAK</th>
+                <th className="px-4 py-3.5">PELANGGAN</th>
+                <th className="px-4 py-3.5">SUMBER</th>
                 <th className="px-4 py-3.5">KENDARAAN</th>
-                <th className="px-4 py-3.5">PLAT NOMOR</th>
-                <th className="px-4 py-3.5">ALAMAT DOMISILI</th>
-                <th className="px-4 py-3.5 text-center">TOTAL SPK</th>
-                <th className="px-4 py-3.5 text-right font-bold">AKSI CEPAT</th>
+                <th className="px-4 py-3.5">PLAT</th>
+                <th className="px-4 py-3.5 text-center">SPK</th>
+                <th className="px-4 py-3.5 text-center">SPENDING</th>
+                <th className="px-4 py-3.5 text-right">AKSI</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredCustomers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-16 text-slate-400">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Users size={32} className="text-slate-300" />
+                  <td colSpan={8} className="text-center py-16 text-slate-400">
+                    <div className="flex flex-col items-center gap-2">
+                      <Users size={32} className="text-slate-200" />
                       <p className="font-semibold text-slate-600">Belum ada data pelanggan yang cocok.</p>
-                      <button
-                        onClick={openAddModal}
-                        className="mt-2 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors"
-                      >
-                        + Input Data Pelanggan Baru
+                      <button onClick={openAddModal}
+                        className="mt-2 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 font-bold hover:bg-red-100 transition-colors">
+                        + Tambah Pelanggan Baru
                       </button>
                     </div>
                   </td>
                 </tr>
               ) : (
                 filteredCustomers.map((c, idx) => {
+                  const isLama = c.customerType === 'LAMA';
                   return (
-                    <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
+                    <tr key={c.id} className="hover:bg-slate-50/80 transition-colors group">
                       <td className="px-4 py-3.5 text-center text-slate-400 font-semibold">{idx + 1}</td>
-                      
-                      {/* Name & Contact */}
+
+                      {/* Name + Contact */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-red-100 text-red-700 font-black flex items-center justify-center text-xs shrink-0">
-                            {c.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-bold text-slate-900 text-sm">{c.name}</p>
-                            <div className="flex items-center gap-2 mt-0.5 text-slate-500">
-                              <span className="font-mono text-[11px]">{c.phone}</span>
-                              {c.email && (
-                                <>
-                                  <span>•</span>
-                                  <span className="text-[10px] text-slate-400 truncate max-w-[120px]">{c.email}</span>
-                                </>
-                              )}
+                          <div className="relative">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white font-black flex items-center justify-center text-sm shrink-0 shadow-sm">
+                              {c.name.charAt(0).toUpperCase()}
                             </div>
                           </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-bold text-slate-900">{c.name}</p>
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black border ${
+                                isLama
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              }`}>
+                                {isLama ? '⭐ LAMA' : '🆕 BARU'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5 text-slate-500">
+                              <Phone size={10} className="text-slate-400" />
+                              <span className="font-mono text-[11px]">{c.phone}</span>
+                            </div>
+                            {c.address && (
+                              <div className="flex items-center gap-1 mt-0.5 text-slate-400">
+                                <MapPin size={10} />
+                                <span className="text-[10px] truncate max-w-[140px]">{c.address}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
 
-                      {/* Car Details */}
+                      {/* Source */}
+                      <td className="px-4 py-3.5">
+                        {c.source ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-100 text-[11px] font-semibold text-slate-600">
+                            <span>{SOURCE_EMOJI[c.source] || '📣'}</span>
+                            <span className="max-w-[100px] truncate">{c.source}</span>
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
+                      </td>
+
+                      {/* Vehicle */}
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2">
-                          <Car size={15} className="text-red-600 shrink-0" />
+                          <Car size={14} className="text-red-500 shrink-0" />
                           <div>
-                            <p className="font-bold text-slate-800">
-                              {c.carBrand} {c.carModel}
-                            </p>
+                            <p className="font-bold text-slate-800">{c.carBrand} {c.carModel}</p>
                             <p className="text-[11px] text-slate-400">
-                              Tahun {c.carYear} • {c.transmission || 'Matic'} {c.carColor ? `• ${c.carColor}` : ''}
+                              {c.carYear} • {c.transmission || 'Matic'}
+                              {c.carColor ? ` • ${c.carColor}` : ''}
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      {/* License Plate Badge */}
+                      {/* License Plate */}
                       <td className="px-4 py-3.5">
-                        <span className="inline-block px-2.5 py-1 rounded bg-slate-900 text-white font-mono font-bold text-xs tracking-wider border border-slate-700 shadow-xs">
+                        <span className="inline-block px-2.5 py-1 rounded bg-slate-900 text-white font-mono font-bold text-xs tracking-wider border border-slate-700">
                           {c.licensePlate}
                         </span>
                       </td>
 
-                      {/* Address */}
-                      <td className="px-4 py-3.5 text-slate-600 max-w-xs">
-                        <div className="flex items-start gap-1">
-                          <MapPin size={12} className="text-slate-400 shrink-0 mt-0.5" />
-                          <span className="line-clamp-2 text-xs">{c.address || '—'}</span>
-                        </div>
-                      </td>
-
                       {/* Total SPK */}
                       <td className="px-4 py-3.5 text-center">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
-                          {c.totalOrdersCount || 0} SPK
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                          {c.totalOrdersCount || 0}x
+                        </span>
+                      </td>
+
+                      {/* Spending */}
+                      <td className="px-4 py-3.5 text-center">
+                        <span className="text-xs font-bold text-emerald-700">
+                          {c.totalSpent ? formatRp(c.totalSpent) : <span className="text-slate-300">—</span>}
                         </span>
                       </td>
 
                       {/* Actions */}
                       <td className="px-4 py-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* PRIMARY ACTION: BUAT SPK */}
+                          {/* View Profile */}
+                          <button
+                            onClick={() => handleViewCustomer(c)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-700 active:scale-95 text-white font-bold text-xs transition-all shadow-sm"
+                            title="Lihat Profil Lengkap"
+                          >
+                            <Eye size={13} />
+                            <span>Profil</span>
+                          </button>
+
+                          {/* Buat SPK */}
                           <button
                             onClick={() => onBuatSPK ? onBuatSPK() : onNavigate('crm-spk-create')}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs shadow-sm shadow-red-600/30 transition-all"
-                            title="Buat Surat Perintah Kerja dari pelanggan ini"
+                            title="Buat SPK dari pelanggan ini"
                           >
                             <FileText size={13} />
-                            <span>Buat SPK</span>
+                            <span>SPK</span>
                           </button>
 
-                          {/* WhatsApp Chat */}
+                          {/* WhatsApp */}
                           <a
-                            href={`https://wa.me/${c.phone.replace(/[^0-9]/g, '')}?text=Halo%20Bpk/Ibu%20${encodeURIComponent(c.name)},%20kami%20dari%20FHRCAR%20Auto%20Services.`}
+                            href={`https://wa.me/${c.phone.replace(/[^0-9]/g, '')}?text=Halo%20${encodeURIComponent(c.name)}%2C%20kami%20dari%20FHR%20Car%20Service.`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
@@ -534,20 +448,20 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
                             <MessageSquare size={14} />
                           </a>
 
-                          {/* Edit Customer */}
+                          {/* Edit */}
                           <button
                             onClick={() => openEditModal(c)}
                             className="p-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
-                            title="Edit Data Pelanggan"
+                            title="Edit Data"
                           >
                             <Edit size={14} />
                           </button>
 
-                          {/* Delete Customer */}
+                          {/* Delete */}
                           <button
-                            onClick={() => handleDeleteCustomer(c.id, c.name)}
+                            onClick={() => handleDelete(c.id, c.name)}
                             className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
-                            title="Hapus Data Pelanggan"
+                            title="Hapus"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -562,491 +476,192 @@ export function CRMCustomers({ customers, orders, onNavigate, onBuatSPK }: CRMCu
         </div>
       </div>
 
-      {/* ---------------------------------------------------- */}
-      {/* 1. MODAL TAMBAH / EDIT PELANGGAN                    */}
-      {/* ---------------------------------------------------- */}
-      {showCustomerModal && (
+      {/* ─────────────── MODAL TAMBAH / EDIT ─────────────── */}
+      {showModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCustomerModal(false)} />
-          <div className="relative bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 shadow-2xl animate-slideUp">
-            
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="relative bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 shadow-2xl">
+
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50 sticky top-0 z-10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center font-bold shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center">
                   <Users size={20} />
                 </div>
                 <div>
-                  <h2 className="text-base sm:text-lg font-black text-slate-900">
-                    {editingCustomer ? 'Edit Data Pelanggan' : 'Tambah Data Pelanggan Baru'}
+                  <h2 className="text-base font-black text-slate-900">
+                    {editingCustomer ? 'Edit Data Pelanggan' : 'Tambah Pelanggan Baru'}
                   </h2>
                   <p className="text-xs text-slate-400">
-                    Simpan data kontak & unit mobil pelanggan untuk kemudahan pembuatan SPK
+                    {editingCustomer ? 'Perbarui data kontak & kendaraan' : 'Input data lengkap pelanggan & kendaraan'}
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowCustomerModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
-              >
-                <X size={16} />
+              <button onClick={() => setShowModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors text-lg font-bold">
+                ×
               </button>
             </div>
 
-            {/* Modal Form */}
-            <form onSubmit={handleSaveCustomer} className="p-5 sm:p-6 space-y-6">
-              
-              {/* Bagian 1: Informasi Pelanggan */}
-              <div className="space-y-3.5">
-                <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-800 pb-1 border-b border-slate-100">
-                  <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                  <span>1. INFORMASI PEMILIK MOBIL</span>
-                </div>
+            <form onSubmit={handleSave} className="p-5 space-y-6">
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Nama Lengkap Pelanggan <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: Budi Santoso"
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Nomor HP / WhatsApp <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="Contoh: 081234567890"
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono"
-                      value={formData.phone}
-                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Email (Opsional)
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="Contoh: budi@gmail.com"
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                      value={formData.email}
-                      onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Alamat / Lokasi Domisili <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: Jl. Sudirman No. 12, Jakarta"
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                      value={formData.address}
-                      onChange={e => setFormData({ ...formData, address: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Bagian 2: Informasi Kendaraan */}
-              <div className="space-y-3.5">
-                <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-800 pb-1 border-b border-slate-100">
-                  <span className="w-2 h-2 rounded-full bg-red-600"></span>
-                  <span>2. DATA SPESIFIKASI KENDARAAN</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Merek Mobil <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      required
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none bg-white"
-                      value={formData.carBrand}
-                      onChange={e => setFormData({ ...formData, carBrand: e.target.value })}
-                    >
-                      {CAR_BRANDS.map(b => (
-                        <option key={b} value={b}>{b}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Model / Tipe Mobil <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: Avanza 1.3 G / Brio RS"
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                      value={formData.carModel}
-                      onChange={e => setFormData({ ...formData, carModel: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Tahun Pembuatan <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      placeholder="Contoh: 2020"
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono"
-                      value={formData.carYear}
-                      onChange={e => setFormData({ ...formData, carYear: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Plat Nomor Polisi <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Contoh: B 1234 ABC"
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono uppercase font-bold"
-                      value={formData.licensePlate}
-                      onChange={e => setFormData({ ...formData, licensePlate: e.target.value.toUpperCase() })}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Transmisi
-                    </label>
-                    <select
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none bg-white"
-                      value={formData.transmission}
-                      onChange={e => setFormData({ ...formData, transmission: e.target.value as any })}
-                    >
-                      <option value="Matic">Matic (AT / CVT)</option>
-                      <option value="Manual">Manual (MT)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Warna Mobil
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Hitam Metalik"
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                      value={formData.carColor}
-                      onChange={e => setFormData({ ...formData, carColor: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Catatan Khusus / Riwayat Servis Pelanggan (Opsional)
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Contoh: Sering ganti oli Shell Helix 5W-30, rem depan agak berbunyi saat hujan..."
+              {/* Section 1: Informasi Pemilik */}
+              <SectionHeader label="1. Informasi Pemilik Kendaraan" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <FormField label="Nama Lengkap" required>
+                  <input type="text" required placeholder="Contoh: Budi Santoso"
                     className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                    value={formData.notes}
-                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                  />
-                </div>
+                    value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                </FormField>
+                <FormField label="No. HP / WhatsApp" required>
+                  <input type="tel" required placeholder="081234567890"
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono"
+                    value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                </FormField>
+                <FormField label="Email (Opsional)">
+                  <input type="email" placeholder="budi@gmail.com"
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
+                    value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                </FormField>
+                <FormField label="Alamat Domisili" required>
+                  <input type="text" required placeholder="Jl. Sudirman No. 12, Jakarta"
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
+                    value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                </FormField>
               </div>
 
-              {/* Option to immediately create SPK */}
-              {!editingCustomer && (
-                <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="createSpkDirectly"
-                    className="w-4 h-4 rounded text-red-600 accent-red-600 mt-0.5 cursor-pointer"
-                    checked={formData.createSpkDirectly}
-                    onChange={e => setFormData({ ...formData, createSpkDirectly: e.target.checked })}
-                  />
-                  <label htmlFor="createSpkDirectly" className="text-xs font-bold text-amber-900 cursor-pointer">
-                    <span>Langsung buat SPK (Surat Perintah Kerja) setelah data pelanggan ini disimpan</span>
-                    <p className="text-[11px] font-normal text-amber-700 mt-0.5">
-                      Form SPK akan langsung terbuka otomatis dengan data pelanggan & mobil yang baru Anda masukkan.
-                    </p>
-                  </label>
-                </div>
-              )}
+              {/* Section 2: Kategori & Sumber */}
+              <SectionHeader label="2. Kategori & Sumber Pelanggan" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <FormField label="Tipe Pelanggan">
+                  <div className="flex gap-2">
+                    {(['BARU', 'LAMA'] as CustomerType[]).map(t => (
+                      <button type="button" key={t}
+                        onClick={() => setFormData({...formData, customerType: t})}
+                        className={`flex-1 py-2 rounded-xl text-xs font-black border transition-all ${
+                          formData.customerType === t
+                            ? t === 'LAMA' ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-emerald-100 text-emerald-700 border-emerald-300'
+                            : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                        }`}>
+                        {t === 'LAMA' ? '⭐ PELANGGAN LAMA' : '🆕 PELANGGAN BARU'}
+                      </button>
+                    ))}
+                  </div>
+                </FormField>
+                <FormField label="Sumber / Dari Mana Tahu Bengkel Ini">
+                  <select value={formData.source}
+                    onChange={e => setFormData({...formData, source: e.target.value as CustomerSource})}
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none bg-white">
+                    {ALL_SOURCES.map(s => <option key={s} value={s}>{SOURCE_EMOJI[s]} {s}</option>)}
+                  </select>
+                </FormField>
+              </div>
 
-              {/* Modal Buttons */}
+              {/* Section 3: Data Kendaraan */}
+              <SectionHeader label="3. Data Spesifikasi Kendaraan" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <FormField label="Merek Mobil" required>
+                  <select required value={formData.carBrand}
+                    onChange={e => setFormData({...formData, carBrand: e.target.value})}
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none bg-white">
+                    {CAR_BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </FormField>
+                <FormField label="Model / Tipe" required>
+                  <input type="text" required placeholder="Avanza 1.3 G / Brio RS"
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
+                    value={formData.carModel} onChange={e => setFormData({...formData, carModel: e.target.value})} />
+                </FormField>
+                <FormField label="Tahun" required>
+                  <input type="number" required placeholder="2020"
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono"
+                    value={formData.carYear} onChange={e => setFormData({...formData, carYear: e.target.value})} />
+                </FormField>
+                <FormField label="Plat Nomor" required>
+                  <input type="text" required placeholder="B 1234 ABC"
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono uppercase font-bold"
+                    value={formData.licensePlate} onChange={e => setFormData({...formData, licensePlate: e.target.value.toUpperCase()})} />
+                </FormField>
+                <FormField label="Transmisi">
+                  <select value={formData.transmission}
+                    onChange={e => setFormData({...formData, transmission: e.target.value as any})}
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none bg-white">
+                    <option value="Matic">Matic (AT / CVT)</option>
+                    <option value="Manual">Manual (MT)</option>
+                  </select>
+                </FormField>
+                <FormField label="Bahan Bakar">
+                  <select value={formData.fuelType}
+                    onChange={e => setFormData({...formData, fuelType: e.target.value as any})}
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none bg-white">
+                    <option value="Bensin">Bensin</option>
+                    <option value="Diesel">Diesel</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="EV">EV (Listrik)</option>
+                  </select>
+                </FormField>
+                <FormField label="Warna Mobil">
+                  <input type="text" placeholder="Hitam Metalik"
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
+                    value={formData.carColor} onChange={e => setFormData({...formData, carColor: e.target.value})} />
+                </FormField>
+                <FormField label="No. Rangka (VIN)">
+                  <input type="text" placeholder="Opsional"
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono"
+                    value={formData.vinNumber} onChange={e => setFormData({...formData, vinNumber: e.target.value})} />
+                </FormField>
+                <FormField label="No. Mesin">
+                  <input type="text" placeholder="Opsional"
+                    className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono"
+                    value={formData.engineNumber} onChange={e => setFormData({...formData, engineNumber: e.target.value})} />
+                </FormField>
+              </div>
+
+              <FormField label="Catatan Khusus Pelanggan (Opsional)">
+                <textarea rows={2}
+                  placeholder="Preferensi oli, catatan teknis, keluhan berulang..."
+                  className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
+                  value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} />
+              </FormField>
+
+              {/* Modal Actions */}
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowCustomerModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors"
-                >
+                <button type="button" onClick={() => setShowModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors">
                   Batal
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-red-600/30 transition-all disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Menyimpan...' : (editingCustomer ? 'Perbarui Data' : 'Simpan Data Pelanggan')}
+                <button type="submit" disabled={isSubmitting}
+                  className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 disabled:opacity-50 text-white font-black text-xs shadow-md shadow-red-600/30 transition-all flex items-center gap-2">
+                  {isSubmitting ? 'Menyimpan...' : (
+                    <><CheckCircle size={13} /> {editingCustomer ? 'Perbarui Data' : 'Simpan Pelanggan Baru'}</>
+                  )}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* ---------------------------------------------------- */}
-      {/* 2. MODAL BUAT SPK DARI DATA PELANGGAN                */}
-      {/* ---------------------------------------------------- */}
-      {showSpkModal && targetCustomer && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowSpkModal(false)} />
-          <div className="relative bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 shadow-2xl animate-slideUp">
-            
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-slate-100 bg-red-50/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-red-600 text-white flex items-center justify-center font-bold shrink-0 shadow-md shadow-red-600/20">
-                  <FileText size={20} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base sm:text-lg font-black text-slate-900">Buat Surat Perintah Kerja (SPK)</h2>
-                    <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-extrabold">BARU</span>
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    Otomatis mengambil data dari pelanggan terpilih
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowSpkModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
+// ─── Helper Components ───
+function SectionHeader({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-slate-800 pb-1 border-b border-slate-100">
+      <span className="w-2 h-2 rounded-full bg-red-600 shrink-0" />
+      <span>{label}</span>
+    </div>
+  );
+}
 
-            {/* If SPK already successfully created */}
-            {successSpkId ? (
-              <div className="p-8 text-center space-y-5">
-                <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/20 animate-bounce">
-                  <CheckCircle size={36} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-black text-slate-900">SPK Berhasil Diterbitkan!</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Nomor ID SPK: <span className="font-mono font-bold text-slate-800">{successSpkId}</span>
-                  </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Data SPK telah otomatis masuk ke antrean Service Order dan riwayat pelanggan diperbarui.
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-center gap-3 pt-3">
-                  <button
-                    onClick={() => {
-                      setShowSpkModal(false);
-                      onNavigate('crm-orders');
-                    }}
-                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition-colors flex items-center gap-1.5"
-                  >
-                    <span>Lihat di Halaman Daftar SPK</span>
-                    <ArrowRight size={14} />
-                  </button>
-                  <button
-                    onClick={() => setShowSpkModal(false)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors"
-                  >
-                    Selesai
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* SPK Creation Form */
-              <form onSubmit={handleCreateSPK} className="p-5 sm:p-6 space-y-5">
-                
-                {/* Pre-filled Customer Info Box */}
-                <div className="bg-slate-900 text-white p-4 rounded-2xl space-y-2 border border-slate-800">
-                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">DATA PELANGGAN TERPILIH</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <p className="font-black text-sm text-white">{targetCustomer.name}</p>
-                      <p className="text-slate-300 font-mono text-[11px] mt-0.5">{targetCustomer.phone}</p>
-                    </div>
-                    <div className="sm:text-right">
-                      <p className="font-black text-sm text-red-400">{targetCustomer.carBrand} {targetCustomer.carModel} ({targetCustomer.carYear})</p>
-                      <span className="inline-block px-2 py-0.5 mt-1 rounded bg-red-600 text-white font-mono font-bold text-xs tracking-wider">
-                        {targetCustomer.licensePlate}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Form Fields for Service Order */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Jenis Pekerjaan / Layanan Servis <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        required
-                        className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none bg-white font-semibold"
-                        value={spkData.serviceType}
-                        onChange={e => setSpkData({ ...spkData, serviceType: e.target.value })}
-                      >
-                        {SERVICE_TYPES.map(st => (
-                          <option key={st} value={st}>{st}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Status Awal SPK <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        required
-                        className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none bg-white font-bold"
-                        value={spkData.status}
-                        onChange={e => setSpkData({ ...spkData, status: e.target.value as OrderStatus })}
-                      >
-                        <option value="process">DALAM PROSES PENGERJAAN</option>
-                        <option value="pending">DRAFT / TAHAP INSPEKSI</option>
-                        <option value="completed">LANGSUNG SELESAI</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Tanggal Pelaksanaan <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                        value={spkData.serviceDate}
-                        onChange={e => setSpkData({ ...spkData, serviceDate: e.target.value })}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Jam Servis <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono"
-                        value={spkData.serviceTime}
-                        onChange={e => setSpkData({ ...spkData, serviceTime: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Total Estimasi / Biaya Servis (Rp)
-                      </label>
-                      <input
-                        type="number"
-                        placeholder="Contoh: 350000"
-                        className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none font-mono font-bold"
-                        value={spkData.totalPrice || ''}
-                        onChange={e => setSpkData({ ...spkData, totalPrice: Number(e.target.value) })}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Lokasi Servis / Alamat Pengerjaan
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Alamat pengerjaan unit..."
-                        className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                        value={spkData.locationAddress}
-                        onChange={e => setSpkData({ ...spkData, locationAddress: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Deskripsi Keluhan / Catatan Teknisi
-                    </label>
-                    <textarea
-                      rows={2}
-                      placeholder="Masukkan keluhan dari customer atau instruksi suku cadang yang diganti..."
-                      className="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
-                      value={spkData.notes}
-                      onChange={e => setSpkData({ ...spkData, notes: e.target.value })}
-                    />
-                  </div>
-
-                  {/* Emergency Toggle */}
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50/70 border border-red-200">
-                    <input
-                      type="checkbox"
-                      id="spkEmergency"
-                      className="w-4 h-4 rounded text-red-600 accent-red-600 cursor-pointer"
-                      checked={spkData.isEmergency}
-                      onChange={e => setSpkData({ ...spkData, isEmergency: e.target.checked })}
-                    />
-                    <label htmlFor="spkEmergency" className="text-xs font-bold text-red-900 cursor-pointer">
-                      Tandai sebagai Layanan Panggilan Darurat (Roadside SOS 24 Jam)
-                    </label>
-                  </div>
-                </div>
-
-                {/* Modal Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowSpkModal(false)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs shadow-md shadow-red-600/30 transition-all disabled:opacity-50 flex items-center gap-1.5"
-                  >
-                    <FileText size={14} />
-                    <span>{isSubmitting ? 'Memproses...' : 'Terbitkan SPK Sekarang'}</span>
-                  </button>
-                </div>
-              </form>
-            )}
-
-          </div>
-        </div>
-      )}
-
+function FormField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-bold text-slate-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {children}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-lpa' | 'crm-spk-create' | 'crm-employees';
+export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-customer-detail' | 'crm-lpa' | 'crm-spk-create' | 'crm-employees';
 
 export type OrderStatus = 'pending' | 'process' | 'completed' | 'cancelled';
 
@@ -104,6 +104,9 @@ export interface SPKDocument {
 }
 
 
+export type CustomerSource = 'Rekomendasi Teman/Keluarga' | 'Google Maps' | 'Instagram' | 'TikTok' | 'WhatsApp' | 'Walk-in Langsung' | 'Facebook' | 'Lainnya';
+export type CustomerType = 'BARU' | 'LAMA';
+
 export interface CustomerItem {
   id: string;
   name: string;
@@ -122,6 +125,11 @@ export interface CustomerItem {
   notes?: string;
   totalOrdersCount?: number;
   totalSpent?: number;
+  // Enhanced profile fields
+  source?: CustomerSource;
+  customerType?: CustomerType;
+  lastServiceDate?: string;
+  firstServiceDate?: string;
   createdAt: string;
   updatedAt?: string;
 }

@@ -36,6 +36,7 @@ import { CRMLayout } from './pages/crm/CRMLayout';
 import { CRMDashboard } from './pages/crm/CRMDashboard';
 import { CRMOrders } from './pages/crm/CRMOrders';
 import { CRMCustomers } from './pages/crm/CRMCustomers';
+import { CRMCustomerDetail } from './pages/crm/CRMCustomerDetail';
 import { CRMKaryawan } from './pages/crm/CRMKaryawan';
 import { CRMLembarPemeriksaan } from './pages/crm/CRMLembarPemeriksaan';
 import { CRMSPKCreate } from './pages/crm/CRMSPKCreate';
@@ -53,6 +54,7 @@ export default function App() {
   const [crmOrders, setCrmOrders] = useState<CRMOrder[]>([]);
   const [crmCustomers, setCrmCustomers] = useState<CustomerItem[]>([]);
   const [crmEmployees, setCrmEmployees] = useState<EmployeeItem[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerItem | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
   // Listen to Firebase Auth state
@@ -120,6 +122,7 @@ export default function App() {
     if (cleanPath === '/crm') return 'crm-dashboard';
     if (cleanPath === '/crm/orders') return 'crm-orders';
     if (cleanPath === '/crm/customers') return 'crm-customers';
+    if (cleanPath.startsWith('/crm/customers/')) return 'crm-customer-detail';
     if (cleanPath === '/crm/lpa') return 'crm-lpa';
     if (cleanPath === '/crm/spk' || cleanPath === '/crm/spk-create' || cleanPath === '/crm/spk/create') return 'crm-spk-create';
     if (cleanPath === '/crm/employees') return 'crm-employees';
@@ -132,6 +135,7 @@ export default function App() {
     if (page === 'crm-dashboard') return '/crm';
     if (page === 'crm-orders') return '/crm/orders';
     if (page === 'crm-customers') return '/crm/customers';
+    if (page === 'crm-customer-detail') return selectedCustomer ? `/crm/customers/${selectedCustomer.id}` : '/crm/customers';
     if (page === 'crm-lpa') return '/crm/lpa';
     if (page === 'crm-spk-create') return '/crm/spk';
     if (page === 'crm-employees') return '/crm/employees';
@@ -253,6 +257,19 @@ export default function App() {
           <CRMCustomers
             customers={crmCustomers}
             orders={crmOrders}
+            onNavigate={handleNavigate}
+            onBuatSPK={() => handleNavigate('crm-spk-create')}
+            onViewCustomer={(customer) => {
+              setSelectedCustomer(customer);
+              handleNavigate('crm-customer-detail');
+            }}
+          />
+        )}
+        {activePage === 'crm-customer-detail' && selectedCustomer && (
+          <CRMCustomerDetail
+            customer={selectedCustomer}
+            orders={crmOrders}
+            onBack={() => handleNavigate('crm-customers')}
             onNavigate={handleNavigate}
             onBuatSPK={() => handleNavigate('crm-spk-create')}
           />
