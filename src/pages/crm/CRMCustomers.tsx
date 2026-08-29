@@ -32,7 +32,6 @@ const COMING_SOON_PAGES = [
   'crm-customer-mutation',
   'crm-customer-analysis',
   'crm-customer-rfm',
-  'crm-customer-retention',
 ];
 
 const PAGE_LABELS: Record<string, string> = {
@@ -41,7 +40,6 @@ const PAGE_LABELS: Record<string, string> = {
   'crm-customer-mutation': 'Mutasi Kepemilikan',
   'crm-customer-analysis': 'Analisa Pelanggan',
   'crm-customer-rfm': 'Segmentasi RFM',
-  'crm-customer-retention': 'Retensi & Churn Pelanggan',
 };
 
 const PAGE_ICONS: Record<string, React.ReactNode> = {
@@ -50,7 +48,6 @@ const PAGE_ICONS: Record<string, React.ReactNode> = {
   'crm-customer-mutation': <GitMerge size={32} className="text-amber-400" />,
   'crm-customer-analysis': <BarChart3 size={32} className="text-cyan-400" />,
   'crm-customer-rfm': <StarIcon size={32} className="text-yellow-400" />,
-  'crm-customer-retention': <TrendingDown size={32} className="text-red-400" />,
 };
 
 export function CRMCustomers({

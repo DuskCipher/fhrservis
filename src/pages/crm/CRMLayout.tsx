@@ -47,7 +47,6 @@ const navItems: NavItem[] = [
       { id: 'crm-customer-mutation', label: 'Mutasi Kepemilikan' },
       { id: 'crm-customer-analysis', label: 'Analisa Pelanggan' },
       { id: 'crm-customer-rfm', label: 'Segmentasi RFM' },
-      { id: 'crm-customer-retention', label: 'Retensi & Churn Pelanggan' },
     ]
   },
   {

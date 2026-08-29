@@ -8,7 +8,7 @@ export type PageType =
   // Customers
   | 'crm-customers' | 'crm-customer-detail' | 'crm-customer-create' | 'crm-customer-edit'
   | 'crm-customer-register' | 'crm-customer-profile' | 'crm-customer-mutation'
-  | 'crm-customer-analysis' | 'crm-customer-rfm' | 'crm-customer-retention'
+  | 'crm-customer-analysis' | 'crm-customer-rfm'
   // Staff / HRD
   | 'crm-employees'
   // Inventory / Products

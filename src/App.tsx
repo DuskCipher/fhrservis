@@ -52,7 +52,6 @@ import { CRMActivityPlan } from './pages/crm/CRMActivityPlan';
 import { CRMDiskusi } from './pages/crm/CRMDiskusi';
 import { CRMCustomerAnalysis } from './pages/crm/CRMCustomerAnalysis';
 import { CRMCustomerRFM } from './pages/crm/CRMCustomerRFM';
-import { CRMCustomerRetention } from './pages/crm/CRMCustomerRetention';
 import { CRMCustomerMutation } from './pages/crm/CRMCustomerMutation';
 
 export default function App() {
@@ -349,9 +348,6 @@ export default function App() {
         )}
         {activePage === 'crm-customer-rfm' && (
           <CRMCustomerRFM customers={crmCustomers} orders={crmOrders} onNavigate={handleNavigate} />
-        )}
-        {activePage === 'crm-customer-retention' && (
-          <CRMCustomerRetention customers={crmCustomers} onNavigate={handleNavigate} />
         )}
         {activePage === 'crm-spk-create' && (
           <CRMSPKCreate
