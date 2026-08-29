@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Wrench, Package, ShoppingCart, Users, BarChart2,
   UserSquare2, ClipboardList, MessageSquare, HelpCircle, ChevronDown,
   ChevronRight, LogOut, Menu, X, Bell, Settings, Search, ChevronLeft,
-  UserCircle, Building2, FileText
+  UserCircle, Building2, FileText, BarChart3, TrendingDown, Star, GitMerge
 } from 'lucide-react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
@@ -60,31 +60,25 @@ const navItems: NavItem[] = [
   },
   {
     id: 'inventory',
-    label: 'Stok Barang',
+    label: 'Kelola Produk & Jasa',
     icon: Package,
-    page: 'crm-dashboard',
+    page: 'crm-inventory',
   },
   {
     id: 'purchasing',
-    label: 'Pembelian',
+    label: 'Pembelian / PO',
     icon: ShoppingCart,
-    page: 'crm-dashboard',
+    page: 'crm-purchasing',
   },
   {
     id: 'monitoring',
-    label: 'Monitoring',
+    label: 'Monitoring & Laporan',
     icon: BarChart2,
-    page: 'crm-dashboard',
+    page: 'crm-monitoring',
   },
-  {
-    id: 'crm-menu',
-    label: 'CRM',
-    icon: UserSquare2,
-    page: 'crm-dashboard',
-  },
-  { id: 'dap',     label: 'Activity Plan (DAP)',       icon: ClipboardList, page: 'crm-dashboard' },
+  { id: 'dap',     label: 'Activity Plan (DAP)',       icon: ClipboardList, page: 'crm-activity-plan' },
   { id: 'lpa',     label: 'Lembar Pemeriksaan (LPA)',  icon: FileText,      page: 'crm-lpa' },
-  { id: 'diskusi', label: 'Diskusi',                   icon: MessageSquare, badge: 5, page: 'crm-dashboard' },
+  { id: 'diskusi', label: 'Diskusi Tim',               icon: MessageSquare, badge: 0, page: 'crm-discussion' },
   { id: 'bantuan', label: 'Bantuan',                   icon: HelpCircle,    page: 'crm-dashboard' },
 ];
 

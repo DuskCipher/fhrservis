@@ -1,4 +1,110 @@
-export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-customer-detail' | 'crm-customer-create' | 'crm-customer-edit' | 'crm-lpa' | 'crm-spk-create' | 'crm-employees' | 'crm-customer-register' | 'crm-customer-profile' | 'crm-customer-mutation' | 'crm-customer-analysis' | 'crm-customer-rfm' | 'crm-customer-retention';
+export type PageType = 
+  // Landing
+  | 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking'
+  // CRM Auth
+  | 'crm-login'
+  // CRM Core
+  | 'crm-dashboard' | 'crm-orders' | 'crm-spk-create' | 'crm-lpa'
+  // Customers
+  | 'crm-customers' | 'crm-customer-detail' | 'crm-customer-create' | 'crm-customer-edit'
+  | 'crm-customer-register' | 'crm-customer-profile' | 'crm-customer-mutation'
+  | 'crm-customer-analysis' | 'crm-customer-rfm' | 'crm-customer-retention'
+  // Staff / HRD
+  | 'crm-employees'
+  // Inventory / Products
+  | 'crm-inventory'
+  // Purchasing
+  | 'crm-purchasing'
+  // Monitoring / Reports
+  | 'crm-monitoring'
+  // Activity Plan
+  | 'crm-activity-plan'
+  // Discussion
+  | 'crm-discussion';
+
+// ─── Inventory / Kelola Produk & Jasa ───────────────────────────────────────
+export type ProductCategory = 
+  | 'SERVICE AC' | 'TUNE UP' | 'GANTI OLI' | 'REM & KAMPAS' | 'KELISTRIKAN'
+  | 'KAKI-KAKI' | 'MESIN' | 'TRANSMISI' | 'BODY & CAT' | 'SPAREPART UMUM'
+  | 'JASA LAINNYA';
+
+export interface InventoryItem {
+  id: string;
+  skuCode: string;
+  name: string;
+  category: ProductCategory | string;
+  type: 'sparepart' | 'jasa';
+  unit: string;         // pcs, liter, set, dll
+  stock: number;        // qty stok (untuk sparepart)
+  minStock: number;     // batas stok minimum
+  buyPrice: number;     // HPP / harga beli
+  sellPrice: number;    // harga jual
+  durationMinutes?: number;  // durasi pengerjaan (untuk jasa)
+  warrantyDays?: number;     // garansi (hari)
+  notes?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// ─── Purchase Order ──────────────────────────────────────────────────────────
+export type POStatus = 'draft' | 'ordered' | 'received' | 'cancelled';
+
+export interface POItem {
+  id: string;
+  inventoryId: string;
+  name: string;
+  qty: number;
+  unit: string;
+  buyPrice: number;
+  totalPrice: number;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  poNumber: string;
+  supplier: string;
+  supplierPhone?: string;
+  status: POStatus;
+  items: POItem[];
+  totalAmount: number;
+  notes?: string;
+  orderedAt?: string;
+  receivedAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// ─── Activity Plan / DAP ─────────────────────────────────────────────────────
+export interface ActivityPlanTask {
+  id: string;
+  title: string;
+  target: number;
+  achieved: number;
+  unit: string;
+}
+
+export interface ActivityPlan {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeRole: string;
+  date: string;   // YYYY-MM-DD
+  tasks: ActivityPlanTask[];
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+// ─── Discussion / Chat Internal ──────────────────────────────────────────────
+export interface DiscussionMessage {
+  id: string;
+  userId: string;
+  userName: string;
+  userInitial: string;
+  message: string;
+  createdAt: string;
+}
 
 export type OrderStatus = 'pending' | 'process' | 'completed' | 'cancelled';
 

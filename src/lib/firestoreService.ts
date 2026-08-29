@@ -11,14 +11,21 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { CRMOrder, OrderStatus, CustomerItem, SPKDocument, EmployeeItem, EmployeeRole } from '../types';
+import { CRMOrder, OrderStatus, CustomerItem, SPKDocument, EmployeeItem, EmployeeRole, InventoryItem, PurchaseOrder, POItem, ActivityPlan, DiscussionMessage } from '../types';
 
 const ORDERS_COLLECTION = 'orders';
 const CUSTOMERS_COLLECTION = 'customers';
 const EMPLOYEES_COLLECTION = 'employees';
+const INVENTORY_COLLECTION = 'inventory';
+const PURCHASE_ORDERS_COLLECTION = 'purchase_orders';
+const ACTIVITY_PLANS_COLLECTION = 'activity_plans';
+const DISCUSSION_COLLECTION = 'discussions';
 const LOCAL_CUSTOMERS_KEY = 'fhrcar_customers_store';
 const LOCAL_ORDERS_KEY = 'fhrcar_orders_store';
 const LOCAL_EMPLOYEES_KEY = 'fhrcar_employees_store';
+const LOCAL_INVENTORY_KEY = 'fhrcar_inventory_store';
+const LOCAL_PO_KEY = 'fhrcar_po_store';
+const LOCAL_ACTIVITY_KEY = 'fhrcar_activity_store';
 
 // Helper to remove undefined fields which Firestore rejects
 function sanitizeData<T extends object>(data: T): any {
@@ -579,9 +586,9 @@ export async function seedInitialCustomers(customers: Omit<CustomerItem, 'id'>[]
 }
 
 
-// ???????????????????????????????????????????????????????????????????
+// ═══════════════════════════════════════════════════════════════════
 // EMPLOYEES / KARYAWAN SERVICE
-// ???????????????????????????????????????????????????????????????????
+// ═══════════════════════════════════════════════════════════════════
 
 export const DEFAULT_EMPLOYEES: EmployeeItem[] = [
   { id: 'emp-1', name: 'Budi Santoso', nik: 'SA-001', role: 'SA', phone: '081234567891', email: 'budi.sa@fhrcar.xyz', status: 'active', createdAt: '2026-01-10T08:00:00.000Z' },
@@ -781,4 +788,240 @@ async function seedDefaultEmployeesToCloud() {
       });
     } catch {}
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INVENTORY / KELOLA PRODUK & JASA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getLocalInventory(): InventoryItem[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_INVENTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveLocalInventory(items: InventoryItem[]) {
+  try {
+    localStorage.setItem(LOCAL_INVENTORY_KEY, JSON.stringify(items));
+    window.dispatchEvent(new CustomEvent('fhrcar_inventory_updated', { detail: items }));
+  } catch (e) { console.warn('Failed to save inventory:', e); }
+}
+
+export function subscribeToInventory(callback: (items: InventoryItem[]) => void): () => void {
+  const local = getLocalInventory();
+  if (local.length > 0) callback(local);
+
+  const handleLocal = (e: any) => { if (e.detail) callback(e.detail); };
+  window.addEventListener('fhrcar_inventory_updated', handleLocal);
+
+  try {
+    const q = query(collection(db, INVENTORY_COLLECTION), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty) {
+        const items: InventoryItem[] = snap.docs.map(d => {
+          const data = d.data();
+          return { ...data, id: d.id, createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()) } as InventoryItem;
+        });
+        saveLocalInventory(items);
+        callback(items);
+      } else {
+        callback(local);
+      }
+    }, () => callback(local));
+    return () => { window.removeEventListener('fhrcar_inventory_updated', handleLocal); unsub(); };
+  } catch {
+    return () => window.removeEventListener('fhrcar_inventory_updated', handleLocal);
+  }
+}
+
+export async function addInventoryItem(item: Omit<InventoryItem, 'id' | 'createdAt'>): Promise<string> {
+  const tempId = 'INV-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+  const now = new Date().toISOString();
+  const newItem: InventoryItem = { ...item, id: tempId, createdAt: now };
+  const list = getLocalInventory();
+  list.unshift(newItem);
+  saveLocalInventory(list);
+  try {
+    const ref = await addDoc(collection(db, INVENTORY_COLLECTION), { ...sanitizeData(item), createdAt: serverTimestamp() });
+    const updated = list.map(i => i.id === tempId ? { ...i, id: ref.id } : i);
+    saveLocalInventory(updated);
+    return ref.id;
+  } catch { return tempId; }
+}
+
+export async function updateInventoryItem(id: string, updates: Partial<InventoryItem>): Promise<void> {
+  const list = getLocalInventory();
+  const updated = list.map(i => i.id === id ? { ...i, ...updates, updatedAt: new Date().toISOString() } : i);
+  saveLocalInventory(updated);
+  try {
+    await updateDoc(doc(db, INVENTORY_COLLECTION, id), { ...sanitizeData(updates), updatedAt: serverTimestamp() });
+  } catch (e) { console.warn('updateInventoryItem cloud error:', e); }
+}
+
+export async function deleteInventoryItem(id: string): Promise<void> {
+  const list = getLocalInventory();
+  saveLocalInventory(list.filter(i => i.id !== id));
+  try { await deleteDoc(doc(db, INVENTORY_COLLECTION, id)); } catch (e) { console.warn('deleteInventoryItem:', e); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PURCHASE ORDERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getLocalPO(): PurchaseOrder[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_PO_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveLocalPO(list: PurchaseOrder[]) {
+  try {
+    localStorage.setItem(LOCAL_PO_KEY, JSON.stringify(list));
+    window.dispatchEvent(new CustomEvent('fhrcar_po_updated', { detail: list }));
+  } catch (e) { console.warn('Failed to save PO:', e); }
+}
+
+export function subscribeToPurchaseOrders(callback: (pos: PurchaseOrder[]) => void): () => void {
+  const local = getLocalPO();
+  if (local.length > 0) callback(local);
+
+  const handleLocal = (e: any) => { if (e.detail) callback(e.detail); };
+  window.addEventListener('fhrcar_po_updated', handleLocal);
+
+  try {
+    const q = query(collection(db, PURCHASE_ORDERS_COLLECTION), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty) {
+        const pos: PurchaseOrder[] = snap.docs.map(d => {
+          const data = d.data();
+          return { ...data, id: d.id, createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()) } as PurchaseOrder;
+        });
+        saveLocalPO(pos);
+        callback(pos);
+      } else { callback(local); }
+    }, () => callback(local));
+    return () => { window.removeEventListener('fhrcar_po_updated', handleLocal); unsub(); };
+  } catch {
+    return () => window.removeEventListener('fhrcar_po_updated', handleLocal);
+  }
+}
+
+export async function addPurchaseOrder(po: Omit<PurchaseOrder, 'id' | 'createdAt'>): Promise<string> {
+  const tempId = 'PO-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+  const now = new Date().toISOString();
+  const newPO: PurchaseOrder = { ...po, id: tempId, createdAt: now };
+  const list = getLocalPO();
+  list.unshift(newPO);
+  saveLocalPO(list);
+  try {
+    const ref = await addDoc(collection(db, PURCHASE_ORDERS_COLLECTION), { ...sanitizeData(po), createdAt: serverTimestamp() });
+    saveLocalPO(list.map(p => p.id === tempId ? { ...p, id: ref.id } : p));
+    return ref.id;
+  } catch { return tempId; }
+}
+
+export async function updatePurchaseOrder(id: string, updates: Partial<PurchaseOrder>): Promise<void> {
+  const list = getLocalPO();
+  saveLocalPO(list.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p));
+  try {
+    await updateDoc(doc(db, PURCHASE_ORDERS_COLLECTION, id), { ...sanitizeData(updates), updatedAt: serverTimestamp() });
+  } catch (e) { console.warn('updatePO:', e); }
+}
+
+export async function deletePurchaseOrder(id: string): Promise<void> {
+  saveLocalPO(getLocalPO().filter(p => p.id !== id));
+  try { await deleteDoc(doc(db, PURCHASE_ORDERS_COLLECTION, id)); } catch (e) { console.warn('deletePO:', e); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ACTIVITY PLANS / DAP
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function getLocalActivity(): ActivityPlan[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_ACTIVITY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveLocalActivity(list: ActivityPlan[]) {
+  try {
+    localStorage.setItem(LOCAL_ACTIVITY_KEY, JSON.stringify(list));
+    window.dispatchEvent(new CustomEvent('fhrcar_activity_updated', { detail: list }));
+  } catch (e) { console.warn('Failed to save activity plans:', e); }
+}
+
+export function subscribeToActivityPlans(callback: (plans: ActivityPlan[]) => void): () => void {
+  const local = getLocalActivity();
+  if (local.length > 0) callback(local);
+
+  const handleLocal = (e: any) => { if (e.detail) callback(e.detail); };
+  window.addEventListener('fhrcar_activity_updated', handleLocal);
+
+  try {
+    const q = query(collection(db, ACTIVITY_PLANS_COLLECTION), orderBy('date', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      if (!snap.empty) {
+        const plans: ActivityPlan[] = snap.docs.map(d => ({ ...d.data(), id: d.id } as ActivityPlan));
+        saveLocalActivity(plans);
+        callback(plans);
+      } else { callback(local); }
+    }, () => callback(local));
+    return () => { window.removeEventListener('fhrcar_activity_updated', handleLocal); unsub(); };
+  } catch {
+    return () => window.removeEventListener('fhrcar_activity_updated', handleLocal);
+  }
+}
+
+export async function addActivityPlan(plan: Omit<ActivityPlan, 'id' | 'createdAt'>): Promise<string> {
+  const tempId = 'DAP-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+  const now = new Date().toISOString();
+  const newPlan: ActivityPlan = { ...plan, id: tempId, createdAt: now };
+  const list = getLocalActivity();
+  list.unshift(newPlan);
+  saveLocalActivity(list);
+  try {
+    const ref = await addDoc(collection(db, ACTIVITY_PLANS_COLLECTION), { ...sanitizeData(plan), createdAt: serverTimestamp() });
+    saveLocalActivity(list.map(p => p.id === tempId ? { ...p, id: ref.id } : p));
+    return ref.id;
+  } catch { return tempId; }
+}
+
+export async function updateActivityPlan(id: string, updates: Partial<ActivityPlan>): Promise<void> {
+  const list = getLocalActivity();
+  saveLocalActivity(list.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p));
+  try {
+    await updateDoc(doc(db, ACTIVITY_PLANS_COLLECTION, id), { ...sanitizeData(updates), updatedAt: serverTimestamp() });
+  } catch (e) { console.warn('updateActivityPlan:', e); }
+}
+
+export async function deleteActivityPlan(id: string): Promise<void> {
+  saveLocalActivity(getLocalActivity().filter(p => p.id !== id));
+  try { await deleteDoc(doc(db, ACTIVITY_PLANS_COLLECTION, id)); } catch (e) { console.warn('deleteActivityPlan:', e); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DISCUSSION / CHAT INTERNAL
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function subscribeToDiscussion(callback: (msgs: DiscussionMessage[]) => void): () => void {
+  try {
+    const q = query(collection(db, DISCUSSION_COLLECTION), orderBy('createdAt', 'asc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const msgs: DiscussionMessage[] = snap.docs.map(d => {
+        const data = d.data();
+        return { ...data, id: d.id, createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()) } as DiscussionMessage;
+      });
+      callback(msgs);
+    });
+    return unsub;
+  } catch { return () => {}; }
+}
+
+export async function sendDiscussionMessage(msg: Omit<DiscussionMessage, 'id' | 'createdAt'>): Promise<void> {
+  try {
+    await addDoc(collection(db, DISCUSSION_COLLECTION), { ...msg, createdAt: serverTimestamp() });
+  } catch (e) { console.warn('sendDiscussionMessage:', e); }
 }

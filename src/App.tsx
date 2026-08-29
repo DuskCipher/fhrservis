@@ -10,6 +10,9 @@ import {
   subscribeToOrders,
   subscribeToCustomers,
   subscribeToEmployees,
+  subscribeToInventory,
+  subscribeToPurchaseOrders,
+  subscribeToActivityPlans,
   updateOrderStatus,
   deleteOrder,
   seedInitialOrders,
@@ -42,6 +45,14 @@ import { CRMCustomerForm } from './pages/crm/CRMCustomerForm';
 import { CRMKaryawan } from './pages/crm/CRMKaryawan';
 import { CRMLembarPemeriksaan } from './pages/crm/CRMLembarPemeriksaan';
 import { CRMSPKCreate } from './pages/crm/CRMSPKCreate';
+import { CRMInventory } from './pages/crm/CRMInventory';
+import { CRMPurchasing } from './pages/crm/CRMPurchasing';
+import { CRMMonitoring } from './pages/crm/CRMMonitoring';
+import { CRMActivityPlan } from './pages/crm/CRMActivityPlan';
+import { CRMDiskusi } from './pages/crm/CRMDiskusi';
+import { CRMCustomerAnalysis } from './pages/crm/CRMCustomerAnalysis';
+import { CRMCustomerRFM } from './pages/crm/CRMCustomerRFM';
+import { CRMCustomerRetention } from './pages/crm/CRMCustomerRetention';
 
 export default function App() {
   const [activePage, setActivePage] = useState<PageType>('beranda');
@@ -319,6 +330,24 @@ export default function App() {
             employees={crmEmployees}
             onNavigate={handleNavigate}
           />
+        )}
+        {activePage === 'crm-inventory' && <CRMInventory />}
+        {activePage === 'crm-purchasing' && <CRMPurchasing />}
+        {activePage === 'crm-monitoring' && (
+          <CRMMonitoring orders={crmOrders} customers={crmCustomers} />
+        )}
+        {activePage === 'crm-activity-plan' && (
+          <CRMActivityPlan employees={crmEmployees} />
+        )}
+        {activePage === 'crm-discussion' && <CRMDiskusi />}
+        {activePage === 'crm-customer-analysis' && (
+          <CRMCustomerAnalysis customers={crmCustomers} orders={crmOrders} onNavigate={handleNavigate} />
+        )}
+        {activePage === 'crm-customer-rfm' && (
+          <CRMCustomerRFM customers={crmCustomers} orders={crmOrders} onNavigate={handleNavigate} />
+        )}
+        {activePage === 'crm-customer-retention' && (
+          <CRMCustomerRetention customers={crmCustomers} onNavigate={handleNavigate} />
         )}
         {activePage === 'crm-spk-create' && (
           <CRMSPKCreate
