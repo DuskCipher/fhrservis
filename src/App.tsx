@@ -243,6 +243,10 @@ export default function App() {
   const handleSelectArticle = (article: ArticleItem) => {
     setSelectedArticleDetail(article);
     setActivePage('artikel-detail');
+    const newPath = `/tips-artikel/${article.id}`;
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({}, '', newPath);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -494,6 +498,7 @@ export default function App() {
         {activePage === 'artikel-detail' && selectedArticleDetail && (
           <ArticleDetailPage
             article={selectedArticleDetail}
+            articles={articlesList}
             onBack={() => handleNavigate('artikel')}
             onSelectArticle={handleSelectArticle}
             onNavigate={handleNavigate}

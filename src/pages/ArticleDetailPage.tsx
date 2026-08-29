@@ -22,6 +22,7 @@ import { ARTICLES_DATA, EMERGENCY_HOTLINE, WHATSAPP_PHONE } from '../data/mockDa
 
 interface ArticleDetailPageProps {
   article: ArticleItem;
+  articles?: ArticleItem[];
   onBack: () => void;
   onSelectArticle: (article: ArticleItem) => void;
   onNavigate: (page: PageType) => void;
@@ -30,6 +31,7 @@ interface ArticleDetailPageProps {
 
 export function ArticleDetailPage({
   article,
+  articles = ARTICLES_DATA,
   onBack,
   onSelectArticle,
   onNavigate,
@@ -37,7 +39,7 @@ export function ArticleDetailPage({
 }: ArticleDetailPageProps) {
   const [copied, setCopied] = useState(false);
 
-  const relatedArticles = ARTICLES_DATA.filter((a) => a.id !== article.id).slice(0, 3);
+  const relatedArticles = articles.filter((a) => a.id !== article.id).slice(0, 3);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
