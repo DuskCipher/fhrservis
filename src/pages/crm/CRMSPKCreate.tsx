@@ -552,11 +552,12 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
   React.useEffect(() => {
     if (editingOrder) {
       const existingCust = safeCustomers.find(c =>
-        c.phone === editingOrder.phone ||
-        c.name.toLowerCase() === editingOrder.customerName?.toLowerCase() ||
-        c.licensePlate?.toLowerCase() === editingOrder.licensePlate?.toLowerCase()
+        (editingOrder.customerId && c.id === editingOrder.customerId) ||
+        (editingOrder.phone && c.phone === editingOrder.phone) ||
+        (editingOrder.customerName && c.name.toLowerCase() === editingOrder.customerName?.toLowerCase()) ||
+        (editingOrder.licensePlate && c.licensePlate?.toLowerCase() === editingOrder.licensePlate?.toLowerCase())
       ) || {
-        id: 'cust-' + editingOrder.id,
+        id: editingOrder.customerId || ('cust-' + editingOrder.id),
         name: editingOrder.customerName || 'Pelanggan',
         phone: editingOrder.phone || '',
         address: editingOrder.locationAddress || '',
@@ -574,11 +575,59 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
       if (editingOrder.noRangka) setNoRangka(editingOrder.noRangka);
       if (editingOrder.noMesin) setNoMesin(editingOrder.noMesin);
       if (editingOrder.fuelType) setFuelType(editingOrder.fuelType);
-      if (editingOrder.notes) setKeluhan(editingOrder.notes);
-      if (editingOrder.saName) setSaCustomName(editingOrder.saName);
-      if (editingOrder.mekanikName) setMekanikCustomName(editingOrder.mekanikName);
-      if (editingOrder.faName) setFaCustomName(editingOrder.faName);
-      if (editingOrder.kasirName) setKasirCustomName(editingOrder.kasirName);
+      if (editingOrder.notes || (editingOrder as any).keluhan) setKeluhan((editingOrder as any).keluhan || editingOrder.notes || '');
+
+      // Match SA
+      if (editingOrder.saId) {
+        setSelectedSaId(editingOrder.saId);
+      } else if (editingOrder.saName) {
+        const found = safeEmployees.find(e => e.name.toLowerCase() === editingOrder.saName?.toLowerCase());
+        if (found) {
+          setSelectedSaId(found.id);
+        } else {
+          setSelectedSaId('custom');
+          setSaCustomName(editingOrder.saName);
+        }
+      }
+
+      // Match Mekanik
+      if (editingOrder.mekanikId) {
+        setSelectedMekanikId(editingOrder.mekanikId);
+      } else if (editingOrder.mekanikName) {
+        const found = safeEmployees.find(e => e.name.toLowerCase() === editingOrder.mekanikName?.toLowerCase());
+        if (found) {
+          setSelectedMekanikId(found.id);
+        } else {
+          setSelectedMekanikId('custom');
+          setMekanikCustomName(editingOrder.mekanikName);
+        }
+      }
+
+      // Match FA
+      if (editingOrder.faId) {
+        setSelectedFaId(editingOrder.faId);
+      } else if (editingOrder.faName) {
+        const found = safeEmployees.find(e => e.name.toLowerCase() === editingOrder.faName?.toLowerCase());
+        if (found) {
+          setSelectedFaId(found.id);
+        } else {
+          setSelectedFaId('custom');
+          setFaCustomName(editingOrder.faName);
+        }
+      }
+
+      // Match Kasir
+      if (editingOrder.kasirId) {
+        setSelectedKasirId(editingOrder.kasirId);
+      } else if (editingOrder.kasirName) {
+        const found = safeEmployees.find(e => e.name.toLowerCase() === editingOrder.kasirName?.toLowerCase());
+        if (found) {
+          setSelectedKasirId(found.id);
+        } else {
+          setSelectedKasirId('custom');
+          setKasirCustomName(editingOrder.kasirName);
+        }
+      }
 
       if (editingOrder.spareparts && editingOrder.spareparts.length > 0) {
         setSpareparts(editingOrder.spareparts);
@@ -596,41 +645,56 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
       if (editingOrder.lpaChecklist && editingOrder.lpaChecklist.length > 0) setLpaChecklist(editingOrder.lpaChecklist);
       if (editingOrder.saCatatanUmum) setSaCatatan(editingOrder.saCatatanUmum);
       if (editingOrder.lpaCatatan) setLpaCatatan(editingOrder.lpaCatatan);
-      if (editingOrder.diskon) setDiskon(editingOrder.diskon);
-      if (editingOrder.pajakPersen) setPajak(editingOrder.pajakPersen);
+      if (typeof editingOrder.diskon === 'number') setDiskon(editingOrder.diskon);
+      if (typeof editingOrder.pajakPersen === 'number') setPajak(editingOrder.pajakPersen);
       if (editingOrder.metodePembayaran) setMetodeBayar(editingOrder.metodePembayaran);
-      if (editingOrder.dibayar) setDibayar(editingOrder.dibayar);
+      if (typeof editingOrder.dibayar === 'number') setDibayar(editingOrder.dibayar);
     }
-  }, [editingOrder, safeCustomers]);
+  }, [editingOrder, safeCustomers, safeEmployees]);
 
   /* ── Filter Staff by Role ── */
-  const saList = useMemo(() => safeEmployees.filter(e => e.role === 'SA' && e.status === 'active'), [safeEmployees]);
-  const faList = useMemo(() => safeEmployees.filter(e => (e.role === 'FA' || e.role === 'Manager') && e.status === 'active'), [safeEmployees]);
-  const mekanikList = useMemo(() => safeEmployees.filter(e => (e.role === 'Mekanik' || e.role === 'Foreman') && e.status === 'active'), [safeEmployees]);
-  const kasirList = useMemo(() => safeEmployees.filter(e => (e.role === 'Kasir' || e.role === 'FA') && e.status === 'active'), [safeEmployees]);
+  const saList = useMemo(() => {
+    const list = safeEmployees.filter(e => (e.role === 'SA' || e.role === 'Manager') && e.status === 'active');
+    return list.length > 0 ? list : [{ id: 'sa-default', name: 'Budi Santoso', role: 'SA', nik: 'SA-01' } as any];
+  }, [safeEmployees]);
+
+  const faList = useMemo(() => {
+    const list = safeEmployees.filter(e => (e.role === 'FA' || e.role === 'Manager') && e.status === 'active');
+    return list.length > 0 ? list : [{ id: 'fa-default', name: 'Rizky Pratama', role: 'FA', nik: 'FA-01' } as any];
+  }, [safeEmployees]);
+
+  const mekanikList = useMemo(() => {
+    const list = safeEmployees.filter(e => (e.role === 'Mekanik' || e.role === 'Foreman') && e.status === 'active');
+    return list.length > 0 ? list : [{ id: 'mk-default', name: 'Agus Setiawan', role: 'Mekanik', nik: 'MK-01' } as any, { id: 'mk-default-2', name: 'Doni Kurniawan', role: 'Mekanik', nik: 'MK-02' } as any];
+  }, [safeEmployees]);
+
+  const kasirList = useMemo(() => {
+    const list = safeEmployees.filter(e => (e.role === 'Kasir' || e.role === 'FA') && e.status === 'active');
+    return list.length > 0 ? list : [{ id: 'ks-default', name: 'Siti Rahma', role: 'Kasir', nik: 'KS-01' } as any];
+  }, [safeEmployees]);
 
   // Derive active names
   const effectiveSaName = useMemo(() => {
-    if (selectedSaId === 'custom') return saCustomName;
-    const found = safeEmployees.find(e => e.id === selectedSaId);
+    if (selectedSaId === 'custom') return saCustomName || 'Budi Santoso';
+    const found = safeEmployees.find(e => e.id === selectedSaId) || saList.find(e => e.id === selectedSaId);
     return found ? found.name : saCustomName || (saList[0]?.name || 'Budi Santoso');
   }, [selectedSaId, saCustomName, safeEmployees, saList]);
 
   const effectiveFaName = useMemo(() => {
-    if (selectedFaId === 'custom') return faCustomName;
-    const found = safeEmployees.find(e => e.id === selectedFaId);
+    if (selectedFaId === 'custom') return faCustomName || 'Rizky Pratama';
+    const found = safeEmployees.find(e => e.id === selectedFaId) || faList.find(e => e.id === selectedFaId);
     return found ? found.name : faCustomName || (faList[0]?.name || 'Rizky Pratama');
   }, [selectedFaId, faCustomName, safeEmployees, faList]);
 
   const effectiveMekanikName = useMemo(() => {
-    if (selectedMekanikId === 'custom') return mekanikCustomName;
-    const found = safeEmployees.find(e => e.id === selectedMekanikId);
+    if (selectedMekanikId === 'custom') return mekanikCustomName || 'Agus Setiawan';
+    const found = safeEmployees.find(e => e.id === selectedMekanikId) || mekanikList.find(e => e.id === selectedMekanikId);
     return found ? found.name : mekanikCustomName || (mekanikList[0]?.name || 'Agus Setiawan');
   }, [selectedMekanikId, mekanikCustomName, safeEmployees, mekanikList]);
 
   const effectiveKasirName = useMemo(() => {
-    if (selectedKasirId === 'custom') return kasirCustomName;
-    const found = safeEmployees.find(e => e.id === selectedKasirId);
+    if (selectedKasirId === 'custom') return kasirCustomName || 'Siti Rahma';
+    const found = safeEmployees.find(e => e.id === selectedKasirId) || kasirList.find(e => e.id === selectedKasirId);
     return found ? found.name : kasirCustomName || (kasirList[0]?.name || 'Siti Rahma');
   }, [selectedKasirId, kasirCustomName, safeEmployees, kasirList]);
 
@@ -1226,6 +1290,9 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                         {saList.map(sa => (
                           <option key={sa.id} value={sa.id}>{sa.name} ({sa.nik || 'SA'})</option>
                         ))}
+                        {selectedSaId && !saList.some(sa => sa.id === selectedSaId) && selectedSaId !== 'custom' && (
+                          <option value={selectedSaId}>{effectiveSaName}</option>
+                        )}
                         <option value="custom">+ Input Nama SA Manual</option>
                       </select>
                       {selectedSaId === 'custom' && (
@@ -1253,6 +1320,9 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                         {faList.map(fa => (
                           <option key={fa.id} value={fa.id}>{fa.name} ({fa.role})</option>
                         ))}
+                        {selectedFaId && !faList.some(fa => fa.id === selectedFaId) && selectedFaId !== 'custom' && (
+                          <option value={selectedFaId}>{effectiveFaName}</option>
+                        )}
                         <option value="custom">+ Input Nama FA Manual</option>
                       </select>
                       {selectedFaId === 'custom' && (
@@ -1280,6 +1350,9 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                         {mekanikList.map(mk => (
                           <option key={mk.id} value={mk.id}>{mk.name} ({mk.role})</option>
                         ))}
+                        {selectedMekanikId && !mekanikList.some(mk => mk.id === selectedMekanikId) && selectedMekanikId !== 'custom' && (
+                          <option value={selectedMekanikId}>{effectiveMekanikName}</option>
+                        )}
                         <option value="custom">+ Input Nama Mekanik Manual</option>
                       </select>
                       {selectedMekanikId === 'custom' && (
@@ -1307,6 +1380,9 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                         {kasirList.map(ks => (
                           <option key={ks.id} value={ks.id}>{ks.name} ({ks.role})</option>
                         ))}
+                        {selectedKasirId && !kasirList.some(ks => ks.id === selectedKasirId) && selectedKasirId !== 'custom' && (
+                          <option value={selectedKasirId}>{effectiveKasirName}</option>
+                        )}
                         <option value="custom">+ Input Nama Kasir Manual</option>
                       </select>
                       {selectedKasirId === 'custom' && (

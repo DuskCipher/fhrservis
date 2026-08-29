@@ -11,6 +11,7 @@ import {
   subscribeToCustomers,
   subscribeToEmployees,
   updateOrderStatus,
+  deleteOrder,
   seedInitialOrders,
   seedInitialCustomers,
 } from './lib/firestoreService';
@@ -259,6 +260,7 @@ export default function App() {
             orders={crmOrders}
             customers={crmCustomers}
             onUpdateStatus={(id, status) => updateOrderStatus(id, status)}
+            onDeleteOrder={(id) => deleteOrder(id)}
             onNavigate={handleNavigate}
             onBuatSPK={() => {
               setEditingSPKOrder(null);

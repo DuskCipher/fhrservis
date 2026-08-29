@@ -52,13 +52,42 @@ function saveLocalCustomers(customers: CustomerItem[]) {
   }
 }
 
+function getLocalOrders(): CRMOrder[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_ORDERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalOrders(orders: CRMOrder[]) {
+  try {
+    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders));
+    window.dispatchEvent(new CustomEvent('fhrcar_orders_updated', { detail: orders }));
+  } catch (e) {
+    console.error('Failed to save orders locally:', e);
+  }
+}
+
 /**
- * Subscribe to all orders in real-time.
+ * Subscribe to all orders in real-time (with immediate local sync).
  * Returns an unsubscribe function.
  */
 export function subscribeToOrders(
   callback: (orders: CRMOrder[]) => void
 ): () => void {
+  // Emit local cache immediately for instant UI
+  const initialLocal = getLocalOrders();
+  if (initialLocal.length > 0) {
+    callback(initialLocal);
+  }
+
+  const handleLocalUpdate = (e: any) => {
+    if (e.detail) callback(e.detail);
+  };
+  window.addEventListener('fhrcar_orders_updated', handleLocalUpdate);
+
   try {
     const q = query(
       collection(db, ORDERS_COLLECTION),
@@ -68,36 +97,39 @@ export function subscribeToOrders(
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const orders: CRMOrder[] = snapshot.docs.map((docSnap) => {
-          const data = docSnap.data();
-          return {
-            id: docSnap.id,
-            ...data,
-            createdAt:
-              data.createdAt instanceof Timestamp
-                ? data.createdAt.toDate().toISOString()
-                : data.createdAt ?? new Date().toISOString(),
-          } as CRMOrder;
-        });
-        // Cache to local
-        try {
-          localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders));
-        } catch {}
-        callback(orders);
+        if (!snapshot.empty) {
+          const orders: CRMOrder[] = snapshot.docs.map((docSnap) => {
+            const data = docSnap.data();
+            return {
+              id: docSnap.id,
+              ...data,
+              createdAt:
+                data.createdAt instanceof Timestamp
+                  ? data.createdAt.toDate().toISOString()
+                  : data.createdAt ?? new Date().toISOString(),
+            } as CRMOrder;
+          });
+          saveLocalOrders(orders);
+          callback(orders);
+        } else {
+          callback(getLocalOrders());
+        }
       },
       (error) => {
         console.warn('[Firestore] Orders subscription error, using local fallback:', error);
-        try {
-          const raw = localStorage.getItem(LOCAL_ORDERS_KEY);
-          if (raw) callback(JSON.parse(raw));
-        } catch {}
+        callback(getLocalOrders());
       }
     );
 
-    return unsubscribe;
+    return () => {
+      window.removeEventListener('fhrcar_orders_updated', handleLocalUpdate);
+      unsubscribe();
+    };
   } catch (err) {
     console.warn('[Firestore] subscribeToOrders failed:', err);
-    return () => {};
+    return () => {
+      window.removeEventListener('fhrcar_orders_updated', handleLocalUpdate);
+    };
   }
 }
 
@@ -108,86 +140,243 @@ export async function addOrder(
   order: Omit<CRMOrder, 'id' | 'createdAt'>
 ): Promise<string> {
   const cleanOrder = sanitizeData(order);
+  const tempId = 'ORD-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+  const newOrder: CRMOrder = {
+    id: tempId,
+    ...cleanOrder,
+    createdAt: new Date().toISOString(),
+  };
+
+  const list = getLocalOrders();
+  list.unshift(newOrder);
+  saveLocalOrders(list);
+
   try {
     const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
       ...cleanOrder,
       createdAt: serverTimestamp(),
     });
+    const updated = list.map(o => o.id === tempId ? { ...o, id: docRef.id } : o);
+    saveLocalOrders(updated);
     return docRef.id;
   } catch (error) {
-    console.warn('[Firestore] addOrder failed in cloud, saving locally:', error);
-    const localId = 'ORD-' + Math.random().toString(36).substring(2, 9).toUpperCase();
-    const newOrder: CRMOrder = {
-      id: localId,
-      ...cleanOrder,
-      createdAt: new Date().toISOString(),
-    };
-    try {
-      const existing = localStorage.getItem(LOCAL_ORDERS_KEY);
-      const list: CRMOrder[] = existing ? JSON.parse(existing) : [];
-      list.unshift(newOrder);
-      localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(list));
-    } catch {}
-    return localId;
+    console.warn('[Firestore] addOrder failed in cloud, saved locally:', error);
+    return tempId;
   }
 }
 
 /**
- * Update the status of an existing order.
+ * Update the status of an existing order immediately in real-time.
  */
 export async function updateOrderStatus(
   orderId: string,
   newStatus: OrderStatus
 ): Promise<void> {
+  // 1. Instant local update
+  const list = getLocalOrders();
+  const updated = list.map(o => o.id === orderId ? { ...o, status: newStatus, updatedAt: new Date().toISOString() } : o);
+  saveLocalOrders(updated);
+
+  // 2. Cloud Firestore sync
   try {
     const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-    await updateDoc(orderRef, { status: newStatus });
+    await updateDoc(orderRef, {
+      status: newStatus,
+      updatedAt: serverTimestamp(),
+    });
   } catch (error) {
     console.warn('[Firestore] updateOrderStatus fallback:', error);
-    try {
-      const existing = localStorage.getItem(LOCAL_ORDERS_KEY);
-      if (existing) {
-        const list: CRMOrder[] = JSON.parse(existing);
-        const updated = list.map(o => o.id === orderId ? { ...o, status: newStatus } : o);
-        localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(updated));
-      }
-    } catch {}
   }
 }
 
 /**
- * Update any fields of an order.
+ * Update any fields of an order immediately in real-time.
  */
 export async function updateOrder(
   orderId: string,
   fields: Partial<CRMOrder>
 ): Promise<void> {
   const cleanFields = sanitizeData(fields);
+  const now = new Date().toISOString();
+
+  // 1. Instant local update
+  const list = getLocalOrders();
+  const updated = list.map(o => o.id === orderId ? { ...o, ...cleanFields, updatedAt: now } : o);
+  saveLocalOrders(updated);
+
+  // 2. Cloud Firestore sync
   try {
     const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-    await updateDoc(orderRef, { ...cleanFields });
+    await updateDoc(orderRef, {
+      ...cleanFields,
+      updatedAt: serverTimestamp(),
+    });
   } catch (error) {
     console.warn('[Firestore] updateOrder fallback:', error);
   }
 }
 
 /**
- * Delete an order.
+ * Delete an order immediately in real-time.
  */
 export async function deleteOrder(orderId: string): Promise<void> {
+  // 1. Instant local update
+  const list = getLocalOrders();
+  const filtered = list.filter(o => o.id !== orderId);
+  saveLocalOrders(filtered);
+
+  // 2. Cloud Firestore sync
   try {
     await deleteDoc(doc(db, ORDERS_COLLECTION, orderId));
   } catch (error) {
     console.warn('[Firestore] deleteOrder fallback:', error);
-    try {
-      const existing = localStorage.getItem(LOCAL_ORDERS_KEY);
-      if (existing) {
-        const list: CRMOrder[] = JSON.parse(existing);
-        const updated = list.filter(o => o.id !== orderId);
-        localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(updated));
-      }
-    } catch {}
   }
+}
+
+/**
+ * Add SPK document with unified order & SPK sync
+ */
+export async function addSPK(spkData: any): Promise<string> {
+  const clean = sanitizeData(spkData);
+  const tempId = spkData.spkNumber || ('SPK-' + Math.random().toString(36).substring(2, 9).toUpperCase());
+  const now = new Date().toISOString();
+
+  const newOrder: CRMOrder = {
+    id: tempId,
+    createdAt: spkData.createdAt || now,
+    status: spkData.status === 'draft' ? 'process' : (spkData.status === 'selesai' ? 'completed' : 'process'),
+    totalPrice: spkData.grandTotal || spkData.totalPrice || 0,
+    customerName: spkData.customerName || 'Pelanggan',
+    phone: spkData.phone || '',
+    serviceType: spkData.jasaList?.[0]?.nama || 'Servis & Perbaikan SPK',
+    carBrand: spkData.carBrand || 'Toyota',
+    carModel: spkData.carModel || '',
+    carYear: spkData.carYear || '2022',
+    licensePlate: spkData.licensePlate || '',
+    locationAddress: spkData.address || '',
+    isEmergency: false,
+    notes: spkData.keluhan || spkData.saCatatanUmum || '',
+    saName: spkData.saName || '',
+    saId: spkData.saId || '',
+    faName: spkData.faName || '',
+    faId: spkData.faId || '',
+    mekanikName: spkData.mekanikName || '',
+    mekanikId: spkData.mekanikId || '',
+    kasirName: spkData.kasirName || '',
+    kasirId: spkData.kasirId || '',
+    kilometer: spkData.kilometer || '',
+    noRangka: spkData.noRangka || '',
+    noMesin: spkData.noMesin || '',
+    fuelType: spkData.fuelType || 'Bensin',
+    spareparts: spkData.spareparts || [],
+    jasaList: spkData.jasaList || [],
+    saCheckEksterior: spkData.saCheckEksterior || [],
+    saCheckInterior: spkData.saCheckInterior || [],
+    saCheckMesin: spkData.saCheckMesin || [],
+    saCheckKakiKaki: spkData.saCheckKakiKaki || [],
+    lpaChecklist: spkData.lpaChecklist || [],
+    saCatatanUmum: spkData.saCatatanUmum || '',
+    lpaCatatan: spkData.lpaCatatan || '',
+    diskon: spkData.diskon || 0,
+    pajakPersen: spkData.pajakPersen || 0,
+    metodePembayaran: spkData.metodePembayaran || 'cash',
+    dibayar: spkData.dibayar || 0,
+    kembalian: spkData.kembalian || 0,
+    customerType: spkData.customerType || 'BARU',
+    spkNumber: spkData.spkNumber || tempId,
+  };
+
+  const list = getLocalOrders();
+  list.unshift(newOrder);
+  saveLocalOrders(list);
+
+  try {
+    const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
+      ...clean,
+      ...newOrder,
+      createdAt: serverTimestamp(),
+    });
+    const updated = list.map(o => o.id === tempId ? { ...o, id: docRef.id } : o);
+    saveLocalOrders(updated);
+    return docRef.id;
+  } catch (error) {
+    console.warn('[Firestore] addSPK cloud save failed, saved locally:', error);
+    return tempId;
+  }
+}
+
+/**
+ * Update SPK document with unified order & SPK sync
+ */
+export async function updateSPK(spkId: string, spkData: any): Promise<void> {
+  const clean = sanitizeData(spkData);
+  const now = new Date().toISOString();
+
+  const list = getLocalOrders();
+  const updated = list.map(o => {
+    if (o.id === spkId) {
+      return {
+        ...o,
+        ...clean,
+        status: spkData.status === 'draft' ? 'process' : (spkData.status === 'selesai' ? 'completed' : o.status),
+        totalPrice: spkData.grandTotal || spkData.totalPrice || o.totalPrice,
+        customerName: spkData.customerName || o.customerName,
+        phone: spkData.phone || o.phone,
+        carBrand: spkData.carBrand || o.carBrand,
+        carModel: spkData.carModel || o.carModel,
+        carYear: spkData.carYear || o.carYear,
+        licensePlate: spkData.licensePlate || o.licensePlate,
+        locationAddress: spkData.address || o.locationAddress,
+        notes: spkData.keluhan || spkData.saCatatanUmum || o.notes,
+        saName: spkData.saName || o.saName,
+        saId: spkData.saId || o.saId,
+        faName: spkData.faName || o.faName,
+        faId: spkData.faId || o.faId,
+        mekanikName: spkData.mekanikName || o.mekanikName,
+        mekanikId: spkData.mekanikId || o.mekanikId,
+        kasirName: spkData.kasirName || o.kasirName,
+        kasirId: spkData.kasirId || o.kasirId,
+        kilometer: spkData.kilometer !== undefined ? spkData.kilometer : o.kilometer,
+        noRangka: spkData.noRangka !== undefined ? spkData.noRangka : o.noRangka,
+        noMesin: spkData.noMesin !== undefined ? spkData.noMesin : o.noMesin,
+        fuelType: spkData.fuelType || o.fuelType,
+        spareparts: spkData.spareparts || o.spareparts,
+        jasaList: spkData.jasaList || o.jasaList,
+        saCheckEksterior: spkData.saCheckEksterior || o.saCheckEksterior,
+        saCheckInterior: spkData.saCheckInterior || o.saCheckInterior,
+        saCheckMesin: spkData.saCheckMesin || o.saCheckMesin,
+        saCheckKakiKaki: spkData.saCheckKakiKaki || o.saCheckKakiKaki,
+        lpaChecklist: spkData.lpaChecklist || o.lpaChecklist,
+        saCatatanUmum: spkData.saCatatanUmum || o.saCatatanUmum,
+        lpaCatatan: spkData.lpaCatatan || o.lpaCatatan,
+        diskon: spkData.diskon !== undefined ? spkData.diskon : o.diskon,
+        pajakPersen: spkData.pajakPersen !== undefined ? spkData.pajakPersen : o.pajakPersen,
+        metodePembayaran: spkData.metodePembayaran || o.metodePembayaran,
+        dibayar: spkData.dibayar !== undefined ? spkData.dibayar : o.dibayar,
+        kembalian: spkData.kembalian !== undefined ? spkData.kembalian : o.kembalian,
+        updatedAt: now,
+      };
+    }
+    return o;
+  });
+  saveLocalOrders(updated);
+
+  try {
+    const docRef = doc(db, ORDERS_COLLECTION, spkId);
+    await updateDoc(docRef, {
+      ...clean,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.warn('[Firestore] updateSPK cloud update fallback:', error);
+  }
+}
+
+/**
+ * Delete SPK document
+ */
+export async function deleteSPK(spkId: string): Promise<void> {
+  await deleteOrder(spkId);
 }
 
 /**

@@ -4,7 +4,7 @@ import {
   AlertCircle, Clock, ChevronDown, MapPin, User, Car, 
   Calendar, MessageSquare, RefreshCw, Plus, Wrench, PlayCircle,
   TrendingUp, DollarSign, Zap, Download, ArrowUpRight, ShieldCheck,
-  CalendarRange, CheckSquare, Edit, Award, UserCheck
+  CalendarRange, CheckSquare, Edit, Award, UserCheck, Trash2
 } from 'lucide-react';
 import { CRMOrder, OrderStatus, CustomerItem } from '../../types';
 
@@ -12,6 +12,7 @@ interface CRMServiceOrderProps {
   orders: CRMOrder[];
   customers?: CustomerItem[];
   onUpdateStatus: (orderId: string, newStatus: OrderStatus) => void;
+  onDeleteOrder?: (orderId: string) => void;
   onNavigate?: (page: any) => void;
   onEditSPK?: (order: CRMOrder) => void;
   compact?: boolean;
@@ -44,6 +45,7 @@ export function CRMServiceOrder({
   orders,
   customers = [],
   onUpdateStatus,
+  onDeleteOrder,
   onNavigate,
   onEditSPK,
   compact = false
@@ -172,6 +174,18 @@ export function CRMServiceOrder({
       onEditSPK(o);
     } else if (onNavigate) {
       onNavigate('crm-spk-create');
+    }
+  };
+
+  const handleDeleteOrder = (o: CRMOrder) => {
+    const label = o.spkNumber || ('#' + o.id?.slice(0, 8));
+    if (window.confirm(`Yakin ingin menghapus data SPK ${label} untuk pelanggan "${o.customerName}"? Tindakan ini tidak dapat dibatalkan.`)) {
+      if (onDeleteOrder) {
+        onDeleteOrder(o.id);
+      }
+      if (detailOrder?.id === o.id) {
+        setDetailOrder(null);
+      }
     }
   };
 
@@ -695,14 +709,22 @@ export function CRMServiceOrder({
                         </span>
                       </td>
 
-                      {/* Status */}
+                      {/* Status Selector Real-Time */}
                       <td className="px-3 py-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                          {cfg.label}
-                        </span>
+                        <select
+                          value={o.status}
+                          onChange={(e) => onUpdateStatus(o.id, e.target.value as OrderStatus)}
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black border transition-all cursor-pointer outline-none ${cfg.bg} ${cfg.text} ${cfg.border} hover:shadow-xs`}
+                          title="Klik untuk mengubah status pengerjaan secara langsung"
+                        >
+                          <option value="pending">Tahap Inspeksi</option>
+                          <option value="process">Dalam Pengerjaan</option>
+                          <option value="completed">Selesai</option>
+                          <option value="cancelled">Dibatalkan</option>
+                        </select>
                       </td>
 
-                      {/* Actions (Edit SPK, Detail, WA, Status) */}
+                      {/* Actions (Edit SPK, Detail, WA, Hapus) */}
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           
@@ -738,21 +760,13 @@ export function CRMServiceOrder({
                             </a>
                           )}
 
-                          {/* Status Next Toggle */}
+                          {/* 🗑️ Hapus SPK Button */}
                           <button
-                            onClick={() => {
-                              const next: Record<OrderStatus, OrderStatus> = {
-                                pending: 'process',
-                                process: 'completed',
-                                completed: 'pending',
-                                cancelled: 'pending'
-                              };
-                              onUpdateStatus(o.id, next[o.status]);
-                            }}
-                            title="Ubah Status SPK"
-                            className="p-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                            onClick={() => handleDeleteOrder(o)}
+                            title="Hapus Data SPK Ini"
+                            className="p-1.5 rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-colors shadow-2xs"
                           >
-                            <RefreshCw size={13} />
+                            <Trash2 size={13} />
                           </button>
                         </div>
                       </td>
@@ -890,7 +904,7 @@ export function CRMServiceOrder({
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+            <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => {
@@ -902,6 +916,14 @@ export function CRMServiceOrder({
                 >
                   <Edit size={13} />
                   <span>Buka Form Edit SPK Lengkap</span>
+                </button>
+
+                <button
+                  onClick={() => handleDeleteOrder(detailOrder)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                >
+                  <Trash2 size={13} />
+                  <span>Hapus SPK</span>
                 </button>
               </div>
 
