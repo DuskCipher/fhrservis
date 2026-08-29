@@ -144,7 +144,7 @@ export function Hero({ onOpenBooking }: HeroProps) {
                 {/* Mechanic Team & Service Image */}
                 <div className="relative h-[290px] xs:h-[340px] sm:h-[480px] rounded-xl sm:rounded-2xl overflow-hidden group">
                   <img
-                    src="https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=1000&q=80"
+                    src="https://i.ibb.co.com/5xFhbvNq/34dcf4d9-b420-431e-a394-48b0773371b2.jpg"
                     alt="Mekanik Profesional FHRCAR Auto Services Siaga 24 Jam"
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700"
                     loading="eager"
