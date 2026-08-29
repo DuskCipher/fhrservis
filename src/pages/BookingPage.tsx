@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { CAR_BRANDS, SERVICES_DATA, WHATSAPP_PHONE, EMERGENCY_HOTLINE, COVERAGE_AREAS } from '../data/mockData';
 import { BookingData, PageType } from '../types';
+import { addOrder } from '../lib/firestoreService';
 
 interface BookingPageProps {
   initialService?: string;
@@ -73,6 +74,13 @@ export function BookingPage({ initialService = '', initialNotes = '', onNavigate
     setBookingTicket(ticketId);
     setIsSubmitted(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Save automatically to Firestore so it reflects immediately in CRM Booking Area
+    addOrder({
+      ...formData,
+      status: 'pending',
+      spkNumber: ticketId,
+    });
 
     // WhatsApp Message
     const waText = `*FORM BOOKING SERVIS - FHRCAR AUTO SERVICES PURWOKERTO*

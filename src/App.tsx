@@ -38,6 +38,7 @@ import { ARTICLES_DATA } from './data/mockData';
 import { LoginPage } from './pages/crm/LoginPage';
 import { CRMLayout } from './pages/crm/CRMLayout';
 import { CRMDashboard } from './pages/crm/CRMDashboard';
+import { CRMBookingArea } from './pages/crm/CRMBookingArea';
 import { CRMOrders } from './pages/crm/CRMOrders';
 import { CRMCustomers } from './pages/crm/CRMCustomers';
 import { CRMCustomerDetail } from './pages/crm/CRMCustomerDetail';
@@ -110,6 +111,7 @@ export default function App() {
     const cleanPath = path.endsWith('/') && path.length > 1 ? path.slice(0, -1) : path;
     if (cleanPath === '/login') return 'crm-login';
     if (cleanPath === '/crm') return 'crm-dashboard';
+    if (cleanPath === '/crm/booking' || cleanPath === '/crm/reservasi') return 'crm-booking';
     if (cleanPath === '/crm/orders') return 'crm-orders';
     if (cleanPath === '/crm/customers') return 'crm-customers';
     if (cleanPath === '/crm/customers/create' || cleanPath === '/crm/customers/tambah') return 'crm-customer-create';
@@ -125,6 +127,7 @@ export default function App() {
   const pageToPath = (page: PageType): string => {
     if (page === 'crm-login') return '/login';
     if (page === 'crm-dashboard') return '/crm';
+    if (page === 'crm-booking') return '/crm/booking';
     if (page === 'crm-orders') return '/crm/orders';
     if (page === 'crm-customers') return '/crm/customers';
     if (page === 'crm-customer-create') return '/crm/customers/create';
@@ -238,6 +241,17 @@ export default function App() {
             onNavigate={handleNavigate}
             onBuatSPK={() => {
               setEditingSPKOrder(null);
+              handleNavigate('crm-spk-create');
+            }}
+          />
+        )}
+        {activePage === 'crm-booking' && (
+          <CRMBookingArea
+            orders={crmOrders}
+            customers={crmCustomers}
+            onNavigate={handleNavigate}
+            onBuatSPK={(order) => {
+              setEditingSPKOrder(order || null);
               handleNavigate('crm-spk-create');
             }}
           />

@@ -4,7 +4,7 @@ export type PageType =
   // CRM Auth
   | 'crm-login'
   // CRM Core
-  | 'crm-dashboard' | 'crm-orders' | 'crm-spk-create' | 'crm-lpa'
+  | 'crm-dashboard' | 'crm-booking' | 'crm-orders' | 'crm-spk-create' | 'crm-lpa'
   // Customers
   | 'crm-customers' | 'crm-customer-detail' | 'crm-customer-create' | 'crm-customer-edit'
   | 'crm-customer-register' | 'crm-customer-profile' | 'crm-customer-mutation'
