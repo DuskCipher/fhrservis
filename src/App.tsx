@@ -244,6 +244,7 @@ export default function App() {
         {activePage === 'crm-dashboard' && (
           <CRMDashboard
             orders={crmOrders}
+            customers={crmCustomers}
             onUpdateStatus={(id, status) => updateOrderStatus(id, status)}
             onNavigate={handleNavigate}
             onBuatSPK={() => handleNavigate('crm-spk-create')}

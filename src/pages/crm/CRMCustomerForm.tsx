@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft, Users, Car, Phone, Mail, MapPin, CheckCircle,
-  Save, Sparkles, Shield, Award, Zap, Fuel, Settings,
-  Hash, Calendar, FileText, AlertCircle
+  Save, Shield, Award, Zap, Fuel, Settings,
+  Hash, Calendar, FileText, AlertCircle, Share2
 } from 'lucide-react';
 import { CustomerItem, CustomerSource, CustomerType } from '../../types';
 import { addCustomer, updateCustomer } from '../../lib/firestoreService';
@@ -24,17 +24,6 @@ const ALL_SOURCES: CustomerSource[] = [
   'Walk-in Langsung', 'Rekomendasi Teman/Keluarga', 'Google Maps',
   'Instagram', 'TikTok', 'WhatsApp', 'Facebook', 'Lainnya'
 ];
-
-const SOURCE_EMOJI: Record<string, string> = {
-  'Walk-in Langsung': '🚶',
-  'Rekomendasi Teman/Keluarga': '🤝',
-  'Google Maps': '🗺️',
-  'Instagram': '📸',
-  'TikTok': '🎵',
-  'WhatsApp': '💬',
-  'Facebook': '📘',
-  'Lainnya': '📣',
-};
 
 export function CRMCustomerForm({ customer, onBack, onNavigate, onSaveSuccess }: CRMCustomerFormProps) {
   const isEdit = !!customer;
@@ -388,7 +377,7 @@ export function CRMCustomerForm({ customer, onBack, onNavigate, onSaveSuccess }:
                   >
                     {ALL_SOURCES.map(s => (
                       <option key={s} value={s}>
-                        {SOURCE_EMOJI[s]} {s}
+                        {s}
                       </option>
                     ))}
                   </select>

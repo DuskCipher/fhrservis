@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import {
   ArrowLeft, User, Phone, Mail, MapPin, Car, Wrench,
   Calendar, DollarSign, MessageSquare, FileText, Edit,
-  Trash2, CheckCircle, Star, Clock, TrendingUp, Shield,
-  Hash, Fuel, Settings, BarChart2, Activity, Zap,
-  Award, Target, ChevronRight, Share2
+  Trash2, CheckCircle, Clock, TrendingUp, Shield,
+  Settings, BarChart2, Activity, Zap,
+  Award, ChevronRight, Share2, AlertTriangle
 } from 'lucide-react';
 import { CustomerItem, CRMOrder, CustomerSource, CustomerType } from '../../types';
 import { deleteCustomer } from '../../lib/firestoreService';
@@ -125,7 +125,7 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
-        {/* ─── Hero Profile Header (CLEAN WHITE & RED ACCENT, NO BLACK) ─── */}
+        {/* ─── Hero Profile Header (CLEAN WHITE & RED ACCENT, NO BLACK, NO EMOJI) ─── */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-7">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             
@@ -143,19 +143,20 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
                   </h1>
 
                   {/* Kategori LAMA / BARU Badge */}
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black border ${
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border ${
                     isLama
-                      ? 'bg-amber-50 text-amber-700 border-amber-200 shadow-xs'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-xs'
+                      ? 'bg-amber-50 text-amber-800 border-amber-200 shadow-xs'
+                      : 'bg-emerald-50 text-emerald-800 border-emerald-200 shadow-xs'
                   }`}>
-                    {isLama ? <Award size={13} /> : <Zap size={13} />}
+                    {isLama ? <Award size={13} className="text-amber-600" /> : <Zap size={13} className="text-emerald-600" />}
                     {isLama ? 'PELANGGAN LAMA' : 'PELANGGAN BARU'}
                   </span>
 
                   {/* Sumber Badge */}
                   {customer.source && (
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${srcConf.bg} ${srcConf.color} ${srcConf.border}`}>
-                      <span>📣 {customer.source}</span>
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${srcConf.bg} ${srcConf.color} ${srcConf.border}`}>
+                      <Share2 size={12} />
+                      <span>{customer.source}</span>
                     </span>
                   )}
                 </div>
@@ -303,7 +304,8 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sumber Pelanggan</p>
                   {customer.source ? (
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border ${srcConf.bg} ${srcConf.color} ${srcConf.border}`}>
-                      <span>📣 {customer.source}</span>
+                      <Share2 size={12} />
+                      <span>{customer.source}</span>
                     </span>
                   ) : (
                     <span className="text-xs text-slate-400 italic">Belum ditentukan</span>
@@ -388,7 +390,7 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
                 </button>
               </div>
             ) : (
-              customerOrders.map((order, idx) => {
+              customerOrders.map((order) => {
                 const st = STATUS_LABEL[order.status] || STATUS_LABEL.pending;
                 return (
                   <div key={order.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden hover:border-slate-300 transition-colors">
@@ -410,8 +412,9 @@ export function CRMCustomerDetail({ customer, orders, onBack, onNavigate, onEdit
                               {st.label}
                             </span>
                             {order.isEmergency && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-50 text-red-600 border border-red-200">
-                                🚨 Roadside SOS
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-red-50 text-red-600 border border-red-200 flex items-center gap-1">
+                                <AlertTriangle size={11} />
+                                <span>Roadside SOS 24 Jam</span>
                               </span>
                             )}
                           </div>

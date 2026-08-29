@@ -583,12 +583,12 @@ export function SPKWizard({ customers, onClose, onSaved }: SPKWizardProps) {
             <div className="space-y-4">
               <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-center gap-3">
                 <Sparkles size={16} className="text-amber-500 shrink-0" />
-                <p className="text-xs text-amber-700 font-semibold">Tandai setiap komponen sesuai kondisi aktual kendaraan. Item bertanda ⚠️ / 🔴 akan muncul di rekomendasi nota.</p>
+                <p className="text-xs text-amber-700 font-semibold">Tandai setiap komponen sesuai kondisi aktual kendaraan. Item bertanda Perhatian atau Segera akan muncul di rekomendasi nota.</p>
               </div>
-              <SATable title="🚗 Tahap 1 — Kondisi Eksterior" items={eksterior} onChange={setEksterior} />
-              <SATable title="💺 Tahap 2 — Kondisi Interior" items={interior} onChange={setInterior} />
-              <SATable title="⚙️ Tahap 3 — Mesin & Kelistrikan" items={mesin} onChange={setMesin} />
-              <SATable title="🔩 Tahap 4 — Kaki-kaki & Rem" items={kakiKaki} onChange={setKakiKaki} />
+              <SATable title="Tahap 1 — Kondisi Eksterior" items={eksterior} onChange={setEksterior} />
+              <SATable title="Tahap 2 — Kondisi Interior" items={interior} onChange={setInterior} />
+              <SATable title="Tahap 3 — Mesin & Kelistrikan" items={mesin} onChange={setMesin} />
+              <SATable title="Tahap 4 — Kaki-kaki & Rem" items={kakiKaki} onChange={setKakiKaki} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-black text-slate-700 mb-1.5">Nama Service Advisor</label>
@@ -608,7 +608,7 @@ export function SPKWizard({ customers, onClose, onSaved }: SPKWizardProps) {
               {/* Sparepart */}
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-100">
-                  <h4 className="text-sm font-black text-slate-800">🔧 Daftar Sparepart</h4>
+                  <h4 className="text-sm font-black text-slate-800">Daftar Sparepart</h4>
                   <button type="button" onClick={addSparepart} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all">
                     <Plus size={13} /> Tambah Part
                   </button>
@@ -640,7 +640,7 @@ export function SPKWizard({ customers, onClose, onSaved }: SPKWizardProps) {
               {/* Jasa */}
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                 <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-100">
-                  <h4 className="text-sm font-black text-slate-800">💰 Biaya Jasa Pekerjaan</h4>
+                  <h4 className="text-sm font-black text-slate-800">Biaya Jasa Pekerjaan</h4>
                   <button type="button" onClick={addJasa} className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all">
                     <Plus size={13} /> Tambah Jasa
                   </button>
@@ -667,7 +667,7 @@ export function SPKWizard({ customers, onClose, onSaved }: SPKWizardProps) {
 
               {/* Diskon & Pajak */}
               <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3 shadow-sm">
-                <h4 className="text-sm font-black text-slate-800">📊 Diskon & Pajak</h4>
+                <h4 className="text-sm font-black text-slate-800">Diskon & Pajak</h4>
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="text-[11px] font-bold text-slate-500 mb-1 block">Diskon (%)</label>
@@ -697,7 +697,7 @@ export function SPKWizard({ customers, onClose, onSaved }: SPKWizardProps) {
                 <ClipboardList size={16} className="text-blue-500 shrink-0" />
                 <p className="text-xs text-blue-700 font-semibold">Lembar Pemeriksaan Akhir (LPA) — checklist sebelum kendaraan diserahkan kepada pelanggan.</p>
               </div>
-              <SATable title="✅ Checklist Kelengkapan & Kondisi Akhir" items={lpaChecklist} onChange={setLpaChecklist} />
+              <SATable title="Checklist Kelengkapan & Kondisi Akhir" items={lpaChecklist} onChange={setLpaChecklist} />
               <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4 shadow-sm">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -708,10 +708,10 @@ export function SPKWizard({ customers, onClose, onSaved }: SPKWizardProps) {
                     <label className="block text-xs font-black text-slate-700 mb-1.5">Hasil Test Drive</label>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => setLpaTestDrive(true)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all ${lpaTestDrive ? 'bg-emerald-500 text-white border-emerald-500' : 'border-slate-200 text-slate-500 hover:border-emerald-300'}`}>
-                        ✅ Normal & Aman
+                        Normal & Aman
                       </button>
                       <button type="button" onClick={() => setLpaTestDrive(false)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all ${!lpaTestDrive ? 'bg-amber-500 text-white border-amber-500' : 'border-slate-200 text-slate-500 hover:border-amber-300'}`}>
-                        ⚠️ Ada Catatan
+                        Ada Catatan
                       </button>
                     </div>
                   </div>
@@ -742,7 +742,7 @@ export function SPKWizard({ customers, onClose, onSaved }: SPKWizardProps) {
                 <>
                   {/* Ringkasan */}
                   <div className="bg-slate-50 rounded-2xl p-4 space-y-2 border border-slate-200">
-                    <h4 className="font-black text-slate-800 text-sm mb-3">📋 Ringkasan SPK</h4>
+                    <h4 className="font-black text-slate-800 text-sm mb-3">Ringkasan SPK</h4>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                       <div className="text-slate-400">Pelanggan</div><div className="font-semibold text-slate-800">{selectedCustomer?.name}</div>
                       <div className="text-slate-400">Kendaraan</div><div className="font-semibold">{selectedCustomer?.carBrand} {selectedCustomer?.carModel}</div>
@@ -758,11 +758,11 @@ export function SPKWizard({ customers, onClose, onSaved }: SPKWizardProps) {
 
                   {/* Pembayaran */}
                   <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-4 shadow-sm">
-                    <h4 className="font-black text-slate-800 text-sm">💳 Pembayaran</h4>
+                    <h4 className="font-black text-slate-800 text-sm">Metode Pembayaran</h4>
                     <div className="flex gap-2">
                       {(['cash', 'transfer', 'kredit'] as const).map(m => (
                         <button key={m} type="button" onClick={() => setMetodeBayar(m)} className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-all capitalize ${metodeBayar === m ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-500 hover:border-slate-400'}`}>
-                          {m === 'cash' ? '💵 Cash' : m === 'transfer' ? '🏦 Transfer' : '💳 Kredit'}
+                          {m === 'cash' ? 'Cash' : m === 'transfer' ? 'Transfer' : 'Kredit'}
                         </button>
                       ))}
                     </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Users, Search, Plus, Phone, MessageSquare, Car, MapPin,
   Calendar, Edit, Trash2, CheckCircle, FileText,
-  Filter, Eye, DollarSign, Award, Zap, ChevronRight
+  Filter, Eye, DollarSign, Award, Zap, ChevronRight, Share2
 } from 'lucide-react';
 import { CustomerItem, CustomerSource, CustomerType } from '../../types';
 import { deleteCustomer } from '../../lib/firestoreService';
@@ -21,17 +21,6 @@ const CAR_BRANDS = [
   'Toyota', 'Honda', 'Daihatsu', 'Suzuki', 'Mitsubishi',
   'Nissan', 'Hyundai', 'Wuling', 'Isuzu', 'Mazda'
 ];
-
-const SOURCE_EMOJI: Record<string, string> = {
-  'Walk-in Langsung': '🚶',
-  'Rekomendasi Teman/Keluarga': '🤝',
-  'Google Maps': '🗺️',
-  'Instagram': '📸',
-  'TikTok': '🎵',
-  'WhatsApp': '💬',
-  'Facebook': '📘',
-  'Lainnya': '📣',
-};
 
 export function CRMCustomers({
   customers,
@@ -216,7 +205,7 @@ export function CRMCustomers({
                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                 }`}
               >
-                {t === 'all' ? 'Semua Status' : t === 'BARU' ? '🆕 Pelanggan Baru' : '⭐ Pelanggan Lama'}
+                {t === 'all' ? 'Semua Status' : t === 'BARU' ? 'Pelanggan Baru' : 'Pelanggan Lama'}
               </button>
             ))}
 
@@ -328,12 +317,12 @@ export function CRMCustomers({
                                 ? 'bg-amber-50 text-amber-800 border-amber-200'
                                 : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                             }`}>
-                              {isLama ? '⭐ LAMA' : '🆕 BARU'}
+                              {isLama ? 'LAMA' : 'BARU'}
                             </span>
                           </div>
                           {c.source && (
                             <div className="text-[11px] text-slate-500 font-medium flex items-center gap-1">
-                              <span>{SOURCE_EMOJI[c.source] || '📣'}</span>
+                              <Share2 size={10} className="text-slate-400" />
                               <span className="truncate max-w-[120px]">{c.source}</span>
                             </div>
                           )}
