@@ -15,9 +15,7 @@ import { CRMOrder, OrderStatus, CustomerItem, SPKDocument, EmployeeItem, Employe
 
 const ORDERS_COLLECTION = 'orders';
 const CUSTOMERS_COLLECTION = 'customers';
-const SPK_COLLECTION = 'spk_documents';
 const EMPLOYEES_COLLECTION = 'employees';
-const LOCAL_SPK_KEY = 'fhrcar_spk_store';
 const LOCAL_CUSTOMERS_KEY = 'fhrcar_customers_store';
 const LOCAL_ORDERS_KEY = 'fhrcar_orders_store';
 const LOCAL_EMPLOYEES_KEY = 'fhrcar_employees_store';
@@ -580,68 +578,6 @@ export async function seedInitialCustomers(customers: Omit<CustomerItem, 'id'>[]
   }
 }
 
-/**
- * Add a new SPK document (dual-layer: Firestore + localStorage).
- */
-export async function addSPK(
-  spk: Omit<SPKDocument, 'id'>
-): Promise<string> {
-  const cleanSpk = sanitizeData(spk);
-  const tempId = spk.spkNumber || ('SPK-' + Math.random().toString(36).substring(2, 9).toUpperCase());
-
-  // Always save locally first
-  try {
-    const existing = localStorage.getItem(LOCAL_SPK_KEY);
-    const list: SPKDocument[] = existing ? JSON.parse(existing) : [];
-    list.unshift({ id: tempId, ...cleanSpk });
-    localStorage.setItem(LOCAL_SPK_KEY, JSON.stringify(list));
-  } catch {}
-
-  try {
-    const docRef = await addDoc(collection(db, SPK_COLLECTION), {
-      ...cleanSpk,
-      createdAt: serverTimestamp(),
-    });
-    // Update local with real Firestore ID
-    try {
-      const existing = localStorage.getItem(LOCAL_SPK_KEY);
-      if (existing) {
-        const list: SPKDocument[] = JSON.parse(existing);
-        const updated = list.map(s => s.id === tempId ? { ...s, id: docRef.id } : s);
-        localStorage.setItem(LOCAL_SPK_KEY, JSON.stringify(updated));
-      }
-    } catch {}
-    return docRef.id;
-  } catch (error) {
-    console.warn('[Firestore] addSPK cloud save failed, kept locally:', error);
-    return tempId;
-  }
-}
-
-/**
- * Update an existing SPK document.
- */
-export async function updateSPK(
-  spkId: string,
-  fields: Partial<SPKDocument>
-): Promise<void> {
-  const cleanFields = sanitizeData(fields);
-  try {
-    const existing = localStorage.getItem(LOCAL_SPK_KEY);
-    if (existing) {
-      const list: SPKDocument[] = JSON.parse(existing);
-      const updated = list.map(s => (s.id === spkId || s.spkNumber === spkId) ? { ...s, ...cleanFields } : s);
-      localStorage.setItem(LOCAL_SPK_KEY, JSON.stringify(updated));
-    }
-  } catch {}
-
-  try {
-    const docRef = doc(db, SPK_COLLECTION, spkId);
-    await updateDoc(docRef, { ...cleanFields, updatedAt: serverTimestamp() });
-  } catch (error) {
-    console.warn('[Firestore] updateSPK fallback:', error);
-  }
-}
 
 // ═══════════════════════════════════════════════════════════════════
 // EMPLOYEES / KARYAWAN SERVICE
