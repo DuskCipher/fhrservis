@@ -174,7 +174,7 @@ function SACheckTable({ title, icon, items, onChange }: {
   );
 }
 
-/* ─── CORPORATE PRINTABLE NOTA / INVOICE ───────────────────────────────── */
+/* --- CORPORATE PRINTABLE NOTA / INVOICE (A4 OPTIMIZED) --- */
 function NotaCorporatePrint({ spkData }: { spkData: any }) {
   const subParts = spkData.spareparts.reduce((s: number, p: SPKSparepart) => s + p.qty * p.hargaSatuan, 0);
   const subJasa  = spkData.jasaList.reduce((s: number, j: SPKJasa) => s + j.harga, 0);
@@ -184,314 +184,230 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
   const taxAmt   = dpp * (spkData.pajak / 100);
   const grandTotal = Math.round(dpp + taxAmt);
   const kembalian = Math.max(0, (spkData.dibayar || 0) - grandTotal);
+  const now = new Date();
+  const tglCetak = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  const jamCetak = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  const nextKm = (Number((spkData.kilometer || '0').replace(/[^0-9]/g, '')) + 5000).toLocaleString('id-ID') + ' KM';
 
   return (
-    <div id="nota-print-area" className="bg-white text-slate-900 p-8 font-sans text-xs rounded-2xl border border-slate-300 shadow-sm max-w-4xl mx-auto">
-      
-      {/* ── KOP SURAT RESMI ── */}
-      <div className="flex items-start justify-between border-b-2 border-slate-900 pb-5 mb-5">
-        <div className="flex items-center gap-4">
-          <img
-            src="/logo.png"
-            alt="FHR Car Service Logo"
-            className="h-16 w-auto object-contain"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
+    <div id="nota-print-area" style={{
+      background: '#fff', color: '#0f172a', fontFamily: '"Segoe UI", Arial, sans-serif',
+      fontSize: '11px', width: '100%', maxWidth: '794px', margin: '0 auto', padding: '0',
+    }}>
+      {/* KOP SURAT */}
+      <div style={{ borderBottom: '3px solid #0f172a', paddingBottom: '12px', marginBottom: '12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <img src="/logo.png" alt="FHR" style={{ height: '56px', width: 'auto', objectFit: 'contain' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">FHR CAR SERVICE</h1>
-            <p className="text-xs font-bold text-red-600 uppercase tracking-wider">Bengkel Mobil Resmi & Layanan Emergency 24 Jam</p>
-            <p className="text-[11px] text-slate-600 mt-1">
-              Jl. Raya Sokaraja - Banyumas, Jawa Tengah • Hotline: 0812-3456-7890 • Web: fhrcar.xyz
-            </p>
-            <p className="text-[10px] text-slate-400">
-              Spesialis: Tune Up, Overhaul, Transmisi Matic/Manual, Kaki-kaki, Kelistrikan & AC Mobil
-            </p>
+            <div style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '-0.5px', color: '#0f172a', lineHeight: '1' }}>FHR CAR SERVICE</div>
+            <div style={{ fontSize: '9px', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '2px' }}>Bengkel Mobil Resmi &middot; Layanan Emergency 24 Jam</div>
+            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px', lineHeight: '1.5' }}>
+              Jl. Raya Sokaraja - Banyumas, Jawa Tengah &nbsp;&bull;&nbsp; ☎ 0812-3456-7890 &nbsp;&bull;&nbsp; fhrcar.xyz
+            </div>
           </div>
         </div>
-
-        <div className="text-right flex-shrink-0 bg-slate-50 border border-slate-200 p-3 rounded-xl min-w-[200px]">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">FAKTUR / SURAT PERINTAH KERJA</p>
-          <p className="text-base font-black font-mono text-red-600 mt-0.5">{spkData.spkNumber}</p>
-          <div className="mt-2 text-[10px] text-slate-500 space-y-0.5">
-            <p>Tgl: <strong className="text-slate-800">{new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</strong></p>
-            <p>Waktu: <strong className="text-slate-800">{new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</strong></p>
+        <div style={{ textAlign: 'right', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', minWidth: '190px' }}>
+          <div style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px' }}>FAKTUR / NOTA SERVIS</div>
+          <div style={{ fontSize: '13px', fontWeight: 900, color: '#dc2626', fontFamily: 'monospace', marginTop: '3px' }}>{spkData.spkNumber}</div>
+          <div style={{ fontSize: '10px', color: '#475569', marginTop: '6px', lineHeight: '1.6' }}>
+            <div>Tanggal: <strong style={{ color: '#0f172a' }}>{tglCetak}</strong></div>
+            <div>Pukul: <strong style={{ color: '#0f172a' }}>{jamCetak} WIB</strong></div>
           </div>
         </div>
       </div>
 
-      {/* ── 2 COLUMN: DATA PELANGGAN & DATA KENDARAAN ── */}
-      <div className="grid grid-cols-2 gap-4 mb-5">
-        {/* Box 1: Data Pelanggan */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-1.5">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-1 flex items-center gap-1.5">
-            <User size={12} className="text-red-600" /> IDENTITAS PELANGGAN
-          </p>
-          <div className="grid grid-cols-3 gap-1 pt-1">
-            <span className="text-slate-400 font-semibold">Nama Pemilik</span>
-            <span className="col-span-2 font-black text-slate-900 text-sm">: {spkData.customerName || '—'}</span>
-            
-            <span className="text-slate-400 font-semibold">No. Telepon / WA</span>
-            <span className="col-span-2 font-bold text-slate-800">: {spkData.phone || '—'}</span>
-            
-            <span className="text-slate-400 font-semibold">Alamat Lengkap</span>
-            <span className="col-span-2 text-slate-700 leading-tight">: {spkData.address || '—'}</span>
+      {/* STATUS STRIP */}
+      <div style={{ background: '#0f172a', color: '#fff', padding: '5px 12px', borderRadius: '6px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px' }}>
+        <span style={{ fontWeight: 700 }}>SURAT PERINTAH KERJA (SPK) &amp; NOTA RESMI BENGKEL</span>
+        <span style={{ background: '#dc2626', padding: '2px 10px', borderRadius: '4px', fontWeight: 900, fontSize: '9px', letterSpacing: '1px' }}>ORIGINAL</span>
+      </div>
 
-            <span className="text-slate-400 font-semibold">Keluhan Awal</span>
-            <span className="col-span-2 text-red-600 font-semibold leading-tight">: {spkData.keluhan || 'General Service & Check-up'}</span>
+      {/* DATA PELANGGAN + KENDARAAN */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+          <div style={{ background: '#1e293b', color: '#fff', padding: '5px 10px', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>DATA PELANGGAN</div>
+          <div style={{ padding: '8px 10px' }}>
+            {([['Nama Pemilik', spkData.customerName || '—'], ['No. HP / WA', spkData.phone || '—'], ['Alamat', spkData.address || '—'], ['Keluhan Awal', spkData.keluhan || 'General Service']] as [string,string][]).map(([l, v]) => (
+              <div key={l} style={{ display: 'flex', gap: '6px', marginBottom: '4px', fontSize: '10.5px' }}>
+                <span style={{ color: '#64748b', minWidth: '90px', flexShrink: 0 }}>{l}</span>
+                <span style={{ color: '#0f172a', fontWeight: l === 'Nama Pemilik' ? 700 : 500, flex: 1 }}>: {v}</span>
+              </div>
+            ))}
           </div>
         </div>
-
-        {/* Box 2: Data Kendaraan */}
-        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-1.5">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider border-b border-slate-200 pb-1 flex items-center gap-1.5">
-            <Car size={12} className="text-red-600" /> SPESIFIKASI KENDARAAN
-          </p>
-          <div className="grid grid-cols-3 gap-1 pt-1">
-            <span className="text-slate-400 font-semibold">No. Polisi / Plat</span>
-            <span className="col-span-2 font-black font-mono text-red-600 text-sm">: {spkData.licensePlate || '—'}</span>
-            
-            <span className="text-slate-400 font-semibold">Merk & Model Unit</span>
-            <span className="col-span-2 font-bold text-slate-800">: {spkData.carBrand} {spkData.carModel}</span>
-            
-            <span className="text-slate-400 font-semibold">Tahun / Transmisi</span>
-            <span className="col-span-2 text-slate-700">: {spkData.carYear} • {spkData.transmission}</span>
-
-            <span className="text-slate-400 font-semibold">Warna / Bahan Bakar</span>
-            <span className="col-span-2 text-slate-700">: {spkData.carColor || '—'} • {spkData.fuelType || 'Bensin'}</span>
-
-            <span className="text-slate-400 font-semibold">Kilometer Odometer</span>
-            <span className="col-span-2 font-bold text-slate-800">: {spkData.kilometer || '—'}</span>
-
-            <span className="text-slate-400 font-semibold">No. Rangka / Mesin</span>
-            <span className="col-span-2 font-mono text-[10px] text-slate-600">: {spkData.noRangka || '—'} / {spkData.noMesin || '—'}</span>
+        <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+          <div style={{ background: '#1e293b', color: '#fff', padding: '5px 10px', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px' }}>SPESIFIKASI KENDARAAN</div>
+          <div style={{ padding: '8px 10px' }}>
+            {([['No. Polisi', spkData.licensePlate || '—'], ['Merk & Model', `${spkData.carBrand || ''} ${spkData.carModel || ''}`], ['Tahun / Trans.', `${spkData.carYear || '—'} / ${spkData.transmission || '—'}`], ['Warna / BBM', `${spkData.carColor || '—'} / ${spkData.fuelType || 'Bensin'}`], ['Odometer', spkData.kilometer || '—'], ['No. Rangka', spkData.noRangka || '—']] as [string,string][]).map(([l, v]) => (
+              <div key={l} style={{ display: 'flex', gap: '6px', marginBottom: '4px', fontSize: '10.5px' }}>
+                <span style={{ color: '#64748b', minWidth: '90px', flexShrink: 0 }}>{l}</span>
+                <span style={{ color: l === 'No. Polisi' ? '#dc2626' : '#0f172a', fontWeight: l === 'No. Polisi' ? 900 : 500, fontFamily: l === 'No. Polisi' ? 'monospace' : 'inherit', flex: 1 }}>: {v}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* ── STAF PENANGGUNG JAWAB ── */}
-      <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3 mb-5 flex items-center justify-between text-[11px]">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-semibold">Service Advisor (SA):</span>
-          <span className="font-black text-slate-900">{spkData.saName || '—'}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-semibold">Front Advisor (FA):</span>
-          <span className="font-bold text-slate-800">{spkData.faName || 'Admin'}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-semibold">Mekanik Pelaksana:</span>
-          <span className="font-black text-blue-700">{spkData.mekanikName || '—'}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 font-semibold">Kasir / Keuangan:</span>
-          <span className="font-bold text-slate-800">{spkData.kasirName || 'Kasir 1'}</span>
-        </div>
+      {/* STAF PENUGASAN */}
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '7px 12px', marginBottom: '12px', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', fontSize: '10px' }}>
+        {([['Service Advisor (SA)', spkData.saName], ['Front Advisor (FA)', spkData.faName], ['Mekanik Pelaksana', spkData.mekanikName], ['Kasir / Keuangan', spkData.kasirName]] as [string,string][]).map(([r, n]) => (
+          <div key={r} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span style={{ color: '#94a3b8', fontWeight: 600, fontSize: '9px', textTransform: 'uppercase' }}>{r}</span>
+            <span style={{ color: '#0f172a', fontWeight: 800, fontSize: '11px' }}>{n || '—'}</span>
+          </div>
+        ))}
       </div>
 
-      {/* ── TABEL 1: SUKU CADANG / SPAREPART ── */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between bg-slate-800 text-white px-3 py-1.5 rounded-t-lg">
-          <span className="font-black text-[11px] uppercase tracking-wider">A. SUKU CADANG & MATERIAL (SPAREPARTS)</span>
-          <span className="text-[10px] text-slate-300">{spkData.spareparts.length} Item</span>
+      {/* TABEL SPAREPART */}
+      <div style={{ marginBottom: '10px' }}>
+        <div style={{ background: '#1e293b', color: '#fff', padding: '5px 10px', borderRadius: '6px 6px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>A. SUKU CADANG &amp; MATERIAL</span>
+          <span style={{ fontSize: '9px', color: '#94a3b8' }}>{spkData.spareparts.length} item</span>
         </div>
-        <table className="w-full border-x border-b border-slate-200 text-xs">
+        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0', borderTop: 'none' }}>
           <thead>
-            <tr className="bg-slate-100 text-slate-600 border-b border-slate-200 text-[10px] uppercase font-bold">
-              <th className="py-2 px-3 text-center w-10">No.</th>
-              <th className="py-2 px-3 text-left">Nama Part / Kode Barang</th>
-              <th className="py-2 px-3 text-center w-16">Qty</th>
-              <th className="py-2 px-3 text-center w-20">Satuan</th>
-              <th className="py-2 px-3 text-right w-28">Harga Satuan</th>
-              <th className="py-2 px-3 text-right w-28">Subtotal</th>
+            <tr style={{ background: '#f1f5f9', fontSize: '9px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
+              {['No.', 'Nama Part / Kode Barang', 'Qty', 'Satuan', 'Harga Satuan', 'Subtotal'].map((h, i) => (
+                <th key={h} style={{ padding: '5px 8px', textAlign: i === 0 || i === 2 || i === 3 ? 'center' : i >= 4 ? 'right' : 'left', width: i === 0 ? '28px' : i === 2 ? '48px' : i === 3 ? '52px' : i >= 4 ? '100px' : undefined, borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {spkData.spareparts.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center py-2.5 text-slate-400 italic">Tidak ada penggunaan suku cadang baru</td>
+              <tr><td colSpan={6} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic', fontSize: '10px' }}>Tidak ada penggunaan suku cadang</td></tr>
+            ) : spkData.spareparts.map((p: SPKSparepart, idx: number) => (
+              <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                <td style={{ padding: '5px 8px', textAlign: 'center', color: '#94a3b8', fontFamily: 'monospace' }}>{idx + 1}</td>
+                <td style={{ padding: '5px 8px', fontWeight: 600, color: '#0f172a' }}>{p.nama}</td>
+                <td style={{ padding: '5px 8px', textAlign: 'center', fontWeight: 700 }}>{p.qty}</td>
+                <td style={{ padding: '5px 8px', textAlign: 'center', color: '#64748b' }}>{p.satuan}</td>
+                <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'monospace', color: '#475569' }}>{formatRp(p.hargaSatuan)}</td>
+                <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{formatRp(p.qty * p.hargaSatuan)}</td>
               </tr>
-            ) : (
-              spkData.spareparts.map((p: SPKSparepart, idx: number) => (
-                <tr key={p.id}>
-                  <td className="py-2 px-3 text-center text-slate-400 font-mono">{idx + 1}</td>
-                  <td className="py-2 px-3 font-semibold text-slate-800">{p.nama}</td>
-                  <td className="py-2 px-3 text-center font-bold text-slate-700">{p.qty}</td>
-                  <td className="py-2 px-3 text-center text-slate-500">{p.satuan}</td>
-                  <td className="py-2 px-3 text-right font-mono text-slate-700">{formatRp(p.hargaSatuan)}</td>
-                  <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatRp(p.qty * p.hargaSatuan)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-          <tfoot>
-            <tr className="bg-slate-50 border-t border-slate-200 font-bold text-xs">
-              <td colSpan={5} className="py-2 px-3 text-right text-slate-600">Subtotal Suku Cadang:</td>
-              <td className="py-2 px-3 text-right font-mono text-slate-900">{formatRp(subParts)}</td>
+            ))}
+            <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
+              <td colSpan={5} style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: '#475569', fontSize: '10px' }}>Subtotal Suku Cadang:</td>
+              <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800 }}>{formatRp(subParts)}</td>
             </tr>
-          </tfoot>
+          </tbody>
         </table>
       </div>
 
-      {/* ── TABEL 2: JASA PEKERJAAN & BIAYA ── */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between bg-slate-800 text-white px-3 py-1.5 rounded-t-lg">
-          <span className="font-black text-[11px] uppercase tracking-wider">B. ONGKOS JASA & PEKERJAAN SERVIS</span>
-          <span className="text-[10px] text-slate-300">{spkData.jasaList.length} Item</span>
+      {/* TABEL JASA */}
+      <div style={{ marginBottom: '14px' }}>
+        <div style={{ background: '#1e293b', color: '#fff', padding: '5px 10px', borderRadius: '6px 6px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>B. ONGKOS JASA &amp; PEKERJAAN SERVIS</span>
+          <span style={{ fontSize: '9px', color: '#94a3b8' }}>{spkData.jasaList.length} item</span>
         </div>
-        <table className="w-full border-x border-b border-slate-200 text-xs">
+        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0', borderTop: 'none' }}>
           <thead>
-            <tr className="bg-slate-100 text-slate-600 border-b border-slate-200 text-[10px] uppercase font-bold">
-              <th className="py-2 px-3 text-center w-10">No.</th>
-              <th className="py-2 px-3 text-left">Deskripsi Pekerjaan Servis</th>
-              <th className="py-2 px-3 text-center w-36">Teknisi Pelaksana</th>
-              <th className="py-2 px-3 text-right w-36">Biaya Jasa</th>
+            <tr style={{ background: '#f1f5f9', fontSize: '9px', textTransform: 'uppercase', color: '#64748b', fontWeight: 700 }}>
+              {['No.', 'Deskripsi Pekerjaan', 'Teknisi', 'Biaya Jasa'].map((h, i) => (
+                <th key={h} style={{ padding: '5px 8px', textAlign: i === 0 || i === 2 ? 'center' : i === 3 ? 'right' : 'left', width: i === 0 ? '28px' : i === 2 ? '130px' : i === 3 ? '105px' : undefined, borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {spkData.jasaList.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="text-center py-2.5 text-slate-400 italic">Tidak ada item jasa tambahan</td>
+              <tr><td colSpan={4} style={{ padding: '8px', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic', fontSize: '10px' }}>Tidak ada item jasa</td></tr>
+            ) : spkData.jasaList.map((j: SPKJasa, idx: number) => (
+              <tr key={j.id} style={{ borderBottom: '1px solid #f1f5f9', background: idx % 2 === 0 ? '#fff' : '#fafafa' }}>
+                <td style={{ padding: '5px 8px', textAlign: 'center', color: '#94a3b8', fontFamily: 'monospace' }}>{idx + 1}</td>
+                <td style={{ padding: '5px 8px', fontWeight: 600, color: '#0f172a' }}>{j.nama}</td>
+                <td style={{ padding: '5px 8px', textAlign: 'center', color: '#475569', fontSize: '10px' }}>{spkData.mekanikName || '—'}</td>
+                <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{formatRp(j.harga)}</td>
               </tr>
-            ) : (
-              spkData.jasaList.map((j: SPKJasa, idx: number) => (
-                <tr key={j.id}>
-                  <td className="py-2 px-3 text-center text-slate-400 font-mono">{idx + 1}</td>
-                  <td className="py-2 px-3 font-semibold text-slate-800">{j.nama}</td>
-                  <td className="py-2 px-3 text-center text-slate-600">{spkData.mekanikName || 'Mekanik'}</td>
-                  <td className="py-2 px-3 text-right font-mono font-bold text-slate-900">{formatRp(j.harga)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-          <tfoot>
-            <tr className="bg-slate-50 border-t border-slate-200 font-bold text-xs">
-              <td colSpan={3} className="py-2 px-3 text-right text-slate-600">Subtotal Jasa Servis:</td>
-              <td className="py-2 px-3 text-right font-mono text-slate-900">{formatRp(subJasa)}</td>
+            ))}
+            <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
+              <td colSpan={3} style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 700, color: '#475569', fontSize: '10px' }}>Subtotal Jasa:</td>
+              <td style={{ padding: '5px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800 }}>{formatRp(subJasa)}</td>
             </tr>
-          </tfoot>
+          </tbody>
         </table>
       </div>
 
-      {/* ── FINANCIAL SUMMARY & GARANSI / KETENTUAN ── */}
-      <div className="grid grid-cols-12 gap-5 mb-6">
-        {/* Kiri: Ketentuan, Garansi & Servis Berikutnya */}
-        <div className="col-span-7 space-y-3">
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-[11px] space-y-2">
-            <p className="font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-              <ShieldCheck size={13} className="text-emerald-600" /> KETENTUAN GARANSI & CATATAN SERVIS
-            </p>
-            <ul className="text-slate-600 space-y-1 list-disc pl-4 leading-relaxed text-[10px]">
-              <li>Garansi pekerjaan servis berlaku selama <strong>7 (tujuh) hari</strong> atau <strong>1.000 KM</strong> (mana tercapai lebih dahulu).</li>
+      {/* RINGKASAN PEMBAYARAN + GARANSI */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 210px', gap: '12px', marginBottom: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ border: '1px solid #d1fae5', borderRadius: '8px', padding: '10px 12px', background: '#f0fdf4', fontSize: '10px' }}>
+            <div style={{ fontWeight: 800, color: '#065f46', textTransform: 'uppercase', fontSize: '10px', marginBottom: '6px' }}>KETENTUAN GARANSI SERVIS</div>
+            <ul style={{ margin: 0, paddingLeft: '14px', color: '#047857', lineHeight: '1.8' }}>
+              <li>Garansi pekerjaan servis <strong>7 hari atau 1.000 KM</strong> (mana tercapai lebih dahulu).</li>
               <li>Suku cadang asli bergaransi sesuai ketentuan pabrikan resmi.</li>
-              <li>Garansi gugur apabila segel rusak, terjadi modifikasi non-standar, atau kesalahan pemakaian/kelalaian pengguna.</li>
-              <li>Barang bekas/lama yang diganti telah diserahkan kembali kepada pemilik kendaraan.</li>
+              <li>Garansi gugur jika terdapat modifikasi non-standar atau kelalaian pemakai.</li>
+              <li>Barang lama/bekas sudah diserahkan kepada pemilik kendaraan.</li>
             </ul>
           </div>
-
-          <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 flex items-center justify-between text-xs">
+          <div style={{ border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 12px', background: '#fffbeb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <p className="font-black text-amber-900">REKOMENDASI SERVIS BERIKUTNYA:</p>
-              <p className="text-amber-800 text-[11px]">Lakukan servis berkala berikutnya pada:</p>
+              <div style={{ fontWeight: 800, color: '#92400e', fontSize: '10px' }}>REKOMENDASI SERVIS BERIKUTNYA</div>
+              <div style={{ color: '#b45309', fontSize: '10px', marginTop: '2px' }}>Lakukan servis berkala pada:</div>
             </div>
-            <div className="text-right font-bold text-amber-950">
-              <p>KM: <span className="font-black font-mono text-red-600">{spkData.nextServiceKm || (Number(spkData.kilometer?.replace(/[^0-9]/g, '') || 0) + 5000) + ' KM'}</span></p>
-              <p className="text-[10px] text-slate-500">atau 3 bulan mendatang</p>
+            <div style={{ textAlign: 'right', fontWeight: 900 }}>
+              <div style={{ fontSize: '14px', color: '#dc2626', fontFamily: 'monospace' }}>{spkData.nextServiceKm || nextKm}</div>
+              <div style={{ fontSize: '9px', color: '#78716c' }}>atau 3 bulan mendatang</div>
             </div>
           </div>
         </div>
-
-        {/* Kanan: Kalkulasi Finansial Total */}
-        <div className="col-span-5 bg-slate-50 border border-slate-300 rounded-xl p-4 space-y-2">
-          <div className="flex justify-between text-slate-600">
-            <span>Total Sparepart:</span>
-            <span className="font-mono font-semibold">{formatRp(subParts)}</span>
-          </div>
-          <div className="flex justify-between text-slate-600">
-            <span>Total Jasa Servis:</span>
-            <span className="font-mono font-semibold">{formatRp(subJasa)}</span>
-          </div>
-          <div className="flex justify-between text-slate-700 font-bold border-t border-slate-200 pt-1.5">
-            <span>Jumlah Total Kotor:</span>
-            <span className="font-mono">{formatRp(subTotal)}</span>
+        <div style={{ border: '2px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}>
+          <div style={{ fontWeight: 800, fontSize: '9px', textTransform: 'uppercase', color: '#475569', marginBottom: '8px', letterSpacing: '0.5px' }}>RINCIAN TAGIHAN</div>
+          {([['Total Sparepart', formatRp(subParts)], ['Total Jasa Servis', formatRp(subJasa)]] as [string,string][]).map(([l, v]) => (
+            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '10.5px', color: '#475569' }}>
+              <span>{l}</span><span style={{ fontFamily: 'monospace' }}>{v}</span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '11px', fontWeight: 700, color: '#0f172a', borderTop: '1px solid #e2e8f0', paddingTop: '4px' }}>
+            <span>Jumlah Kotor</span><span style={{ fontFamily: 'monospace' }}>{formatRp(subTotal)}</span>
           </div>
           {spkData.diskon > 0 && (
-            <div className="flex justify-between text-amber-600 font-semibold">
-              <span>Diskon ({spkData.diskon}%):</span>
-              <span className="font-mono">- {formatRp(discAmt)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '10.5px', color: '#d97706' }}>
+              <span>Diskon ({spkData.diskon}%)</span><span style={{ fontFamily: 'monospace' }}>- {formatRp(discAmt)}</span>
             </div>
           )}
           {spkData.pajak > 0 && (
-            <div className="flex justify-between text-slate-600">
-              <span>PPN ({spkData.pajak}%):</span>
-              <span className="font-mono">+ {formatRp(taxAmt)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '10.5px', color: '#475569' }}>
+              <span>PPN ({spkData.pajak}%)</span><span style={{ fontFamily: 'monospace' }}>+ {formatRp(taxAmt)}</span>
             </div>
           )}
-          <div className="border-t-2 border-slate-800 pt-2 flex justify-between items-center text-sm font-black text-slate-900">
-            <span>TOTAL TAGIHAN:</span>
-            <span className="text-base font-mono text-red-600">{formatRp(grandTotal)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #0f172a', paddingTop: '6px', marginTop: '4px', fontSize: '13px', fontWeight: 900 }}>
+            <span>TOTAL</span><span style={{ fontFamily: 'monospace', color: '#dc2626' }}>{formatRp(grandTotal)}</span>
           </div>
-          
-          <div className="border-t border-slate-200 pt-2 space-y-1 text-[11px]">
-            <div className="flex justify-between text-slate-600">
-              <span>Metode Pembayaran:</span>
-              <span className="font-bold uppercase text-slate-900">{spkData.metodeBayar}</span>
+          <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #cbd5e1', fontSize: '10px', color: '#475569' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+              <span>Metode Bayar:</span><span style={{ fontWeight: 700, textTransform: 'uppercase', color: '#0f172a' }}>{spkData.metodeBayar}</span>
             </div>
-            {spkData.dibayar > 0 && (
-              <>
-                <div className="flex justify-between text-slate-600">
-                  <span>Nominal Dibayar:</span>
-                  <span className="font-mono font-semibold">{formatRp(spkData.dibayar)}</span>
-                </div>
-                <div className="flex justify-between text-emerald-700 font-bold">
-                  <span>Kembalian:</span>
-                  <span className="font-mono">{formatRp(kembalian)}</span>
-                </div>
-              </>
-            )}
+            {spkData.dibayar > 0 && (<>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
+                <span>Dibayar:</span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatRp(spkData.dibayar)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, color: '#059669' }}>
+                <span>Kembalian:</span><span style={{ fontFamily: 'monospace' }}>{formatRp(kembalian)}</span>
+              </div>
+            </>)}
           </div>
         </div>
       </div>
 
-      {/* ── 4 KOLOM TANDA TANGAN RESMI ── */}
-      <div className="border-t-2 border-slate-800 pt-4 grid grid-cols-4 gap-4 text-center text-[10px]">
-        <div>
-          <p className="text-slate-400 uppercase font-semibold">Pelanggan / Pemilik</p>
-          <div className="h-16 flex items-end justify-center">
-            <span className="border-b border-slate-400 w-32 inline-block"></span>
+      {/* TANDA TANGAN */}
+      <div style={{ borderTop: '2px solid #0f172a', paddingTop: '14px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px', textAlign: 'center', fontSize: '10px' }}>
+        {([['Pelanggan / Pemilik', spkData.customerName], ['Service Advisor (SA)', spkData.saName], ['Mekanik Pelaksana', spkData.mekanikName], ['Kasir / Keuangan', spkData.kasirName]] as [string,string][]).map(([r, n]) => (
+          <div key={r}>
+            <div style={{ color: '#64748b', fontWeight: 600, textTransform: 'uppercase', fontSize: '9px', letterSpacing: '0.5px', marginBottom: '8px' }}>{r}</div>
+            <div style={{ height: '52px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+              <div style={{ width: '120px', borderBottom: '1.5px solid #94a3b8' }}></div>
+            </div>
+            <div style={{ fontWeight: 800, color: '#0f172a', marginTop: '4px', fontSize: '10px' }}>{n || '( ........................ )'}</div>
           </div>
-          <p className="font-bold text-slate-800 mt-1">{spkData.customerName || '( .............................. )'}</p>
-        </div>
-
-        <div>
-          <p className="text-slate-400 uppercase font-semibold">Service Advisor (SA)</p>
-          <div className="h-16 flex items-end justify-center">
-            <span className="border-b border-slate-400 w-32 inline-block"></span>
-          </div>
-          <p className="font-bold text-slate-800 mt-1">{spkData.saName || '( .............................. )'}</p>
-        </div>
-
-        <div>
-          <p className="text-slate-400 uppercase font-semibold">Mekanik Pelaksana</p>
-          <div className="h-16 flex items-end justify-center">
-            <span className="border-b border-slate-400 w-32 inline-block"></span>
-          </div>
-          <p className="font-bold text-slate-800 mt-1">{spkData.mekanikName || '( .............................. )'}</p>
-        </div>
-
-        <div>
-          <p className="text-slate-400 uppercase font-semibold">Kasir / Keuangan</p>
-          <div className="h-16 flex items-end justify-center">
-            <span className="border-b border-slate-400 w-32 inline-block"></span>
-          </div>
-          <p className="font-bold text-slate-800 mt-1">{spkData.kasirName || '( .............................. )'}</p>
-        </div>
+        ))}
       </div>
 
-      <div className="text-center text-[9px] text-slate-400 mt-5 pt-3 border-t border-dashed border-slate-200">
-        Dokumen ini sah dicetak oleh Sistem Manajemen Bengkel FHR Car Service • fhrcar.xyz
+      {/* FOOTER */}
+      <div style={{ textAlign: 'center', fontSize: '9px', color: '#94a3b8', marginTop: '14px', paddingTop: '8px', borderTop: '1px dashed #e2e8f0' }}>
+        Dokumen ini sah dicetak oleh Sistem Manajemen Bengkel FHR Car Service &nbsp;|&nbsp; fhrcar.xyz &nbsp;|&nbsp; Dicetak: {tglCetak} {jamCetak} WIB
       </div>
     </div>
   );
+}
 }
 
 /* ═══════════════════════════════════════════════════════════════════════ */
@@ -875,55 +791,38 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     }
   };
 
-  /* ── Print Handler with A4 Optimization ── */
+  /* ── Print Handler (A4 Optimized) ── */
   const handlePrint = () => {
     const el = document.getElementById('nota-print-area');
     if (!el) return;
     const w = window.open('', '_blank');
     if (!w) return;
     w.document.write(`<!DOCTYPE html>
-      <html>
+      <html lang="id">
         <head>
           <title>Nota SPK - ${spkNumber}</title>
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
           <style>
-            @page { size: A4; margin: 12mm 15mm; }
-            * { box-sizing: border-box; }
-            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; color: #0f172a; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { padding: 5px 8px; font-size: 11px; }
-            .text-right { text-align: right; }
-            .text-center { text-align: center; }
-            .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-            .font-bold { font-weight: 700; }
-            .font-black { font-weight: 900; }
-            .border-b { border-bottom: 1px solid #e2e8f0; }
-            .bg-slate-50 { background-color: #f8fafc; }
-            .bg-slate-100 { background-color: #f1f5f9; }
-            .bg-slate-800 { background-color: #1e293b; color: #fff; }
-            .bg-slate-900 { background-color: #0f172a; color: #fff; }
-            .text-red-600 { color: #dc2626; }
-            .text-emerald-700 { color: #047857; }
-            .grid { display: grid; }
-            .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-            .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-            .gap-4 { gap: 1rem; }
-            .gap-5 { gap: 1.25rem; }
-            .col-span-7 { grid-column: span 7 / span 7; }
-            .col-span-5 { grid-column: span 5 / span 5; }
-            .col-span-2 { grid-column: span 2 / span 2; }
-            .rounded-xl { border-radius: 0.75rem; }
-            .rounded-lg { border-radius: 0.5rem; }
-            .p-3 { padding: 0.75rem; }
-            .p-4 { padding: 1rem; }
-            .mb-5 { margin-bottom: 1.25rem; }
-            .mb-6 { margin-bottom: 1.5rem; }
-            .border { border: 1px solid #e2e8f0; }
+            @page {
+              size: A4 portrait;
+              margin: 14mm 16mm 14mm 16mm;
+            }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+              font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+              font-size: 11px;
+              color: #0f172a;
+              background: #fff;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              color-adjust: exact;
+            }
+            table { border-collapse: collapse; width: 100%; }
+            ul { padding-left: 14px; }
             @media print {
-              .no-print { display: none !important; }
-              body { padding: 0; }
+              body { margin: 0; padding: 0; }
+              @page { size: A4 portrait; margin: 14mm 16mm; }
             }
           </style>
         </head>
@@ -933,9 +832,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
       </html>`);
     w.document.close();
     w.focus();
-    setTimeout(() => {
-      w.print();
-    }, 250);
+    setTimeout(() => { w.print(); }, 400);
   };
 
   const spkData = {
