@@ -248,10 +248,11 @@ export default function App() {
             }}
           />
         )}
-        {activePage === 'crm-customers' && (
+        {(activePage === 'crm-customers' || activePage === 'crm-customer-register' || activePage === 'crm-customer-profile' || activePage === 'crm-customer-mutation' || activePage === 'crm-customer-analysis' || activePage === 'crm-customer-rfm' || activePage === 'crm-customer-retention') && (
           <CRMCustomers
             customers={crmCustomers}
             orders={crmOrders}
+            activePage={activePage}
             onNavigate={handleNavigate}
             onBuatSPK={() => {
               setEditingSPKOrder(null);

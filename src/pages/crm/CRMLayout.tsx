@@ -41,7 +41,13 @@ const navItems: NavItem[] = [
     label: 'Pelanggan',
     icon: Users,
     children: [
-      { id: 'crm-customers', label: 'Data Pelanggan & Mobil' },
+      { id: 'crm-customers', label: 'Daftar Pelanggan' },
+      { id: 'crm-customer-register', label: 'Registrasi Pelanggan' },
+      { id: 'crm-customer-profile', label: 'Profil Customer' },
+      { id: 'crm-customer-mutation', label: 'Mutasi Kepemilikan' },
+      { id: 'crm-customer-analysis', label: 'Analisa Pelanggan' },
+      { id: 'crm-customer-rfm', label: 'Segmentasi RFM' },
+      { id: 'crm-customer-retention', label: 'Retensi & Churn Pelanggan' },
     ]
   },
   {

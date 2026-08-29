@@ -1,4 +1,4 @@
-export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-customer-detail' | 'crm-customer-create' | 'crm-customer-edit' | 'crm-lpa' | 'crm-spk-create' | 'crm-employees';
+export type PageType = 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'crm-login' | 'crm-dashboard' | 'crm-orders' | 'crm-customers' | 'crm-customer-detail' | 'crm-customer-create' | 'crm-customer-edit' | 'crm-lpa' | 'crm-spk-create' | 'crm-employees' | 'crm-customer-register' | 'crm-customer-profile' | 'crm-customer-mutation' | 'crm-customer-analysis' | 'crm-customer-rfm' | 'crm-customer-retention';
 
 export type OrderStatus = 'pending' | 'process' | 'completed' | 'cancelled';
 
