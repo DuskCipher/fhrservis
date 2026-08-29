@@ -408,7 +408,6 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
     </div>
   );
 }
-}
 
 /* ═══════════════════════════════════════════════════════════════════════ */
 /*  MAIN PAGE COMPONENT                                                    */
