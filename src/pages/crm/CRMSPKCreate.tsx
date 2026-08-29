@@ -14,7 +14,7 @@ import {
 } from '../../types';
 import { addSPK, updateSPK, updateOrder, DEFAULT_EMPLOYEES } from '../../lib/firestoreService';
 
-/* ??? PROPS ???????????????????????????????????????????????????????????? */
+/* ─── PROPS ──────────────────────────────────────────────────────────── */
 interface CRMSPKCreateProps {
   customers?: CustomerItem[];
   employees?: EmployeeItem[];
@@ -23,7 +23,7 @@ interface CRMSPKCreateProps {
   onSaveSuccess?: () => void;
 }
 
-/* ??? HELPERS ?????????????????????????????????????????????????????????? */
+/* ─── HELPERS ────────────────────────────────────────────────────────── */
 const uid = () => Math.random().toString(36).substring(2, 9);
 const formatRp = (n: number) =>
   'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
@@ -32,7 +32,7 @@ function makeCheck(label: string): SACheckItem {
   return { id: uid(), label, result: '', catatan: '' };
 }
 
-/* ??? CHECKLIST DATA ??????????????????????????????????????????????????? */
+/* ─── CHECKLIST DATA ─────────────────────────────────────────────────── */
 const EKSTERIOR_ITEMS = [
   'Body & Panel Pintu', 'Cat & Poles Bodi', 'Kaca Depan & Belakang',
   'Lampu Depan (Headlamp)', 'Lampu Belakang (Tailamp)',
@@ -74,7 +74,7 @@ const LPA_ITEMS = [
   'Tekanan Semua Ban Sesuai Standar', 'Tidak Ada Kebocoran Oli / Air / Minyak Rem',
 ].map(makeCheck);
 
-/* ??? STEP CONFIG ?????????????????????????????????????????????????????? */
+/* ─── STEP CONFIG ────────────────────────────────────────────────────── */
 const STEPS = [
   { id: 1, label: 'Informasi Kendaraan & Staf', short: 'Kendaraan & Staf', icon: Car,           desc: 'Data mobil, pelanggan & penugasan staf' },
   { id: 2, label: 'Pengecekan SA (4 Tahap)',   short: 'Inspeksi SA',       icon: ClipboardList, desc: 'Pemeriksaan 44 titik komponen' },
@@ -83,7 +83,7 @@ const STEPS = [
   { id: 5, label: 'Nota Resmi & Pembayaran',    short: 'Nota & Selesai',    icon: Receipt,       desc: 'Pembayaran, simpan & cetak nota' },
 ];
 
-/* ??? RESULT BUTTON GROUP ?????????????????????????????????????????????? */
+/* ─── RESULT BUTTON GROUP ────────────────────────────────────────────── */
 function ResultBtnGroup({ value, onChange }: { value: SACheckResult; onChange: (v: SACheckResult) => void }) {
   return (
     <div className="flex gap-1">
@@ -105,7 +105,7 @@ function ResultBtnGroup({ value, onChange }: { value: SACheckResult; onChange: (
   );
 }
 
-/* ??? SA CHECK TABLE ??????????????????????????????????????????????????? */
+/* ─── SA CHECK TABLE ─────────────────────────────────────────────────── */
 function SACheckTable({ title, icon, items, onChange }: {
   title: string; icon: React.ReactNode;
   items: SACheckItem[]; onChange: (u: SACheckItem[]) => void;
@@ -174,7 +174,7 @@ function SACheckTable({ title, icon, items, onChange }: {
   );
 }
 
-/* ??? CORPORATE PRINTABLE NOTA / INVOICE ????????????????????????????????? */
+/* ─── CORPORATE PRINTABLE NOTA / INVOICE ───────────────────────────────── */
 function NotaCorporatePrint({ spkData }: { spkData: any }) {
   const subParts = spkData.spareparts.reduce((s: number, p: SPKSparepart) => s + p.qty * p.hargaSatuan, 0);
   const subJasa  = spkData.jasaList.reduce((s: number, j: SPKJasa) => s + j.harga, 0);
@@ -188,7 +188,7 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
   return (
     <div id="nota-print-area" className="bg-white text-slate-900 p-8 font-sans text-xs rounded-2xl border border-slate-300 shadow-sm max-w-4xl mx-auto">
       
-      {/* ?? KOP SURAT RESMI ?? */}
+      {/* ── KOP SURAT RESMI ── */}
       <div className="flex items-start justify-between border-b-2 border-slate-900 pb-5 mb-5">
         <div className="flex items-center gap-4">
           <img
@@ -201,7 +201,7 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
             <h1 className="text-2xl font-black tracking-tight text-slate-900">FHR CAR SERVICE</h1>
             <p className="text-xs font-bold text-red-600 uppercase tracking-wider">Bengkel Mobil Resmi & Layanan Emergency 24 Jam</p>
             <p className="text-[11px] text-slate-600 mt-1">
-              Jl. Raya Sokaraja - Banyumas, Jawa Tengah . Hotline: 0812-3456-7890 . Web: fhrcar.xyz
+              Jl. Raya Sokaraja - Banyumas, Jawa Tengah • Hotline: 0812-3456-7890 • Web: fhrcar.xyz
             </p>
             <p className="text-[10px] text-slate-400">
               Spesialis: Tune Up, Overhaul, Transmisi Matic/Manual, Kaki-kaki, Kelistrikan & AC Mobil
@@ -219,7 +219,7 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
         </div>
       </div>
 
-      {/* ?? 2 COLUMN: DATA PELANGGAN & DATA KENDARAAN ?? */}
+      {/* ── 2 COLUMN: DATA PELANGGAN & DATA KENDARAAN ── */}
       <div className="grid grid-cols-2 gap-4 mb-5">
         {/* Box 1: Data Pelanggan */}
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-1.5">
@@ -228,13 +228,13 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
           </p>
           <div className="grid grid-cols-3 gap-1 pt-1">
             <span className="text-slate-400 font-semibold">Nama Pemilik</span>
-            <span className="col-span-2 font-black text-slate-900 text-sm">: {spkData.customerName || '-'}</span>
+            <span className="col-span-2 font-black text-slate-900 text-sm">: {spkData.customerName || '—'}</span>
             
             <span className="text-slate-400 font-semibold">No. Telepon / WA</span>
-            <span className="col-span-2 font-bold text-slate-800">: {spkData.phone || '-'}</span>
+            <span className="col-span-2 font-bold text-slate-800">: {spkData.phone || '—'}</span>
             
             <span className="text-slate-400 font-semibold">Alamat Lengkap</span>
-            <span className="col-span-2 text-slate-700 leading-tight">: {spkData.address || '-'}</span>
+            <span className="col-span-2 text-slate-700 leading-tight">: {spkData.address || '—'}</span>
 
             <span className="text-slate-400 font-semibold">Keluhan Awal</span>
             <span className="col-span-2 text-red-600 font-semibold leading-tight">: {spkData.keluhan || 'General Service & Check-up'}</span>
@@ -248,31 +248,31 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
           </p>
           <div className="grid grid-cols-3 gap-1 pt-1">
             <span className="text-slate-400 font-semibold">No. Polisi / Plat</span>
-            <span className="col-span-2 font-black font-mono text-red-600 text-sm">: {spkData.licensePlate || '-'}</span>
+            <span className="col-span-2 font-black font-mono text-red-600 text-sm">: {spkData.licensePlate || '—'}</span>
             
             <span className="text-slate-400 font-semibold">Merk & Model Unit</span>
             <span className="col-span-2 font-bold text-slate-800">: {spkData.carBrand} {spkData.carModel}</span>
             
             <span className="text-slate-400 font-semibold">Tahun / Transmisi</span>
-            <span className="col-span-2 text-slate-700">: {spkData.carYear} . {spkData.transmission}</span>
+            <span className="col-span-2 text-slate-700">: {spkData.carYear} • {spkData.transmission}</span>
 
             <span className="text-slate-400 font-semibold">Warna / Bahan Bakar</span>
-            <span className="col-span-2 text-slate-700">: {spkData.carColor || '-'} . {spkData.fuelType || 'Bensin'}</span>
+            <span className="col-span-2 text-slate-700">: {spkData.carColor || '—'} • {spkData.fuelType || 'Bensin'}</span>
 
             <span className="text-slate-400 font-semibold">Kilometer Odometer</span>
-            <span className="col-span-2 font-bold text-slate-800">: {spkData.kilometer || '-'}</span>
+            <span className="col-span-2 font-bold text-slate-800">: {spkData.kilometer || '—'}</span>
 
             <span className="text-slate-400 font-semibold">No. Rangka / Mesin</span>
-            <span className="col-span-2 font-mono text-[10px] text-slate-600">: {spkData.noRangka || '-'} / {spkData.noMesin || '-'}</span>
+            <span className="col-span-2 font-mono text-[10px] text-slate-600">: {spkData.noRangka || '—'} / {spkData.noMesin || '—'}</span>
           </div>
         </div>
       </div>
 
-      {/* ?? STAF PENANGGUNG JAWAB ?? */}
+      {/* ── STAF PENANGGUNG JAWAB ── */}
       <div className="bg-slate-100/70 border border-slate-200 rounded-xl p-3 mb-5 flex items-center justify-between text-[11px]">
         <div className="flex items-center gap-2">
           <span className="text-slate-400 font-semibold">Service Advisor (SA):</span>
-          <span className="font-black text-slate-900">{spkData.saName || '-'}</span>
+          <span className="font-black text-slate-900">{spkData.saName || '—'}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-slate-400 font-semibold">Front Advisor (FA):</span>
@@ -280,7 +280,7 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-slate-400 font-semibold">Mekanik Pelaksana:</span>
-          <span className="font-black text-blue-700">{spkData.mekanikName || '-'}</span>
+          <span className="font-black text-blue-700">{spkData.mekanikName || '—'}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-slate-400 font-semibold">Kasir / Keuangan:</span>
@@ -288,7 +288,7 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
         </div>
       </div>
 
-      {/* ?? TABEL 1: SUKU CADANG / SPAREPART ?? */}
+      {/* ── TABEL 1: SUKU CADANG / SPAREPART ── */}
       <div className="mb-5">
         <div className="flex items-center justify-between bg-slate-800 text-white px-3 py-1.5 rounded-t-lg">
           <span className="font-black text-[11px] uppercase tracking-wider">A. SUKU CADANG & MATERIAL (SPAREPARTS)</span>
@@ -332,7 +332,7 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
         </table>
       </div>
 
-      {/* ?? TABEL 2: JASA PEKERJAAN & BIAYA ?? */}
+      {/* ── TABEL 2: JASA PEKERJAAN & BIAYA ── */}
       <div className="mb-5">
         <div className="flex items-center justify-between bg-slate-800 text-white px-3 py-1.5 rounded-t-lg">
           <span className="font-black text-[11px] uppercase tracking-wider">B. ONGKOS JASA & PEKERJAAN SERVIS</span>
@@ -372,7 +372,7 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
         </table>
       </div>
 
-      {/* ?? FINANCIAL SUMMARY & GARANSI / KETENTUAN ?? */}
+      {/* ── FINANCIAL SUMMARY & GARANSI / KETENTUAN ── */}
       <div className="grid grid-cols-12 gap-5 mb-6">
         {/* Kiri: Ketentuan, Garansi & Servis Berikutnya */}
         <div className="col-span-7 space-y-3">
@@ -452,7 +452,7 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
         </div>
       </div>
 
-      {/* ?? 4 KOLOM TANDA TANGAN RESMI ?? */}
+      {/* ── 4 KOLOM TANDA TANGAN RESMI ── */}
       <div className="border-t-2 border-slate-800 pt-4 grid grid-cols-4 gap-4 text-center text-[10px]">
         <div>
           <p className="text-slate-400 uppercase font-semibold">Pelanggan / Pemilik</p>
@@ -488,15 +488,15 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
       </div>
 
       <div className="text-center text-[9px] text-slate-400 mt-5 pt-3 border-t border-dashed border-slate-200">
-        Dokumen ini sah dicetak oleh Sistem Manajemen Bengkel FHR Car Service . fhrcar.xyz
+        Dokumen ini sah dicetak oleh Sistem Manajemen Bengkel FHR Car Service • fhrcar.xyz
       </div>
     </div>
   );
 }
 
-/* ??????????????????????????????????????????????????????????????????????? */
+/* ═══════════════════════════════════════════════════════════════════════ */
 /*  MAIN PAGE COMPONENT                                                    */
-/* ??????????????????????????????????????????????????????????????????????? */
+/* ═══════════════════════════════════════════════════════════════════════ */
 export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editingOrder, onSaveSuccess }: CRMSPKCreateProps) {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -504,7 +504,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
   const [activeCheckTab, setActiveCheckTab] = useState(0);
   const [draftToast, setDraftToast] = useState(false);
 
-  /* ?? Step 1: Data Pelanggan & Kendaraan & Staf ?? */
+  /* ── Step 1: Data Pelanggan & Kendaraan & Staf ── */
   const [platSearch, setPlatSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerItem | null>(null);
   const [kilometer, setKilometer] = useState('');
@@ -523,25 +523,25 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
   const [selectedKasirId, setSelectedKasirId] = useState('');
   const [kasirCustomName, setKasirCustomName] = useState('');
 
-  /* ?? Step 2: SA Check ?? */
+  /* ── Step 2: SA Check ── */
   const [eksterior, setEksterior]   = useState<SACheckItem[]>(EKSTERIOR_ITEMS.map(i => ({ ...i, id: uid() })));
   const [interior, setInterior]     = useState<SACheckItem[]>(INTERIOR_ITEMS.map(i => ({ ...i, id: uid() })));
   const [mesin, setMesin]           = useState<SACheckItem[]>(MESIN_ITEMS.map(i => ({ ...i, id: uid() })));
   const [kakiKaki, setKakiKaki]     = useState<SACheckItem[]>(KAKI_ITEMS.map(i => ({ ...i, id: uid() })));
   const [saCatatan, setSaCatatan]   = useState('');
 
-  /* ?? Step 3: Sparepart & Jasa ?? */
+  /* ── Step 3: Sparepart & Jasa ── */
   const [spareparts, setSpareparts] = useState<SPKSparepart[]>([]);
   const [jasaList, setJasaList]     = useState<SPKJasa[]>([{ id: uid(), nama: 'Biaya Jasa Servis Rutin', harga: 75000 }]);
   const [diskon, setDiskon]         = useState(0);
   const [pajak, setPajak]           = useState(0);
 
-  /* ?? Step 4: LPA ?? */
+  /* ── Step 4: LPA ── */
   const [lpaChecklist, setLpaChecklist] = useState<SACheckItem[]>(LPA_ITEMS.map(i => ({ ...i, id: uid() })));
   const [lpaTestDrive, setLpaTestDrive] = useState(true);
   const [lpaCatatan, setLpaCatatan]     = useState('');
 
-  /* ?? Step 5: Pembayaran & Nota Akhir ?? */
+  /* ── Step 5: Pembayaran & Nota Akhir ── */
   const [metodeBayar, setMetodeBayar] = useState<'cash' | 'transfer' | 'kredit'>('cash');
   const [dibayar, setDibayar]         = useState(0);
 
@@ -652,7 +652,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     }
   }, [editingOrder, safeCustomers, safeEmployees]);
 
-  /* ?? Filter Staff by Role ?? */
+  /* ── Filter Staff by Role ── */
   const saList = useMemo(() => {
     const list = safeEmployees.filter(e => (e.role === 'SA' || e.role === 'Manager') && e.status === 'active');
     return list.length > 0 ? list : [{ id: 'sa-default', name: 'Budi Santoso', role: 'SA', nik: 'SA-01' } as any];
@@ -673,7 +673,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     return list.length > 0 ? list : [{ id: 'ks-default', name: 'Siti Rahma', role: 'Kasir', nik: 'KS-01' } as any];
   }, [safeEmployees]);
 
-  // Derive active names - returns null when nothing has been selected yet
+  // Derive active names — returns null when nothing has been selected yet
   const effectiveSaName = useMemo(() => {
     if (!selectedSaId) return null;
     if (selectedSaId === 'custom') return saCustomName || null;
@@ -702,7 +702,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     return found ? found.name : (kasirCustomName || null);
   }, [selectedKasirId, kasirCustomName, safeEmployees, kasirList]);
 
-  /* ?? SPK Number ?? */
+  /* ── SPK Number ── */
   const spkNumber = useMemo(() => {
     if (editingOrder?.spkNumber) return editingOrder.spkNumber;
     if (editingOrder?.id) return editingOrder.id;
@@ -711,7 +711,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     return `SPK/${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}/${uid().toUpperCase()}`;
   }, [editingOrder]);
 
-  /* ?? Financials ?? */
+  /* ── Financials ── */
   const subParts  = spareparts.reduce((s, p) => s + (p.qty || 0) * (p.hargaSatuan || 0), 0);
   const subJasa   = jasaList.reduce((s, j) => s + (j.harga || 0), 0);
   const subtotal  = subParts + subJasa;
@@ -720,7 +720,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
   const grand     = Math.round(subtotal - discAmt + taxAmt);
   const kembalian = Math.max(0, dibayar - grand);
 
-  /* ?? Autocomplete ?? */
+  /* ── Autocomplete ── */
   const platSuggestions = useMemo(() => {
     const q = platSearch.toLowerCase().replace(/\s/g, '');
     if (!q) return safeCustomers.slice(0, 10);
@@ -731,7 +731,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     ).slice(0, 10);
   }, [platSearch, safeCustomers]);
 
-  /* ?? Select Customer Callback ?? */
+  /* ── Select Customer Callback ── */
   const handleSelectCustomer = (c: CustomerItem) => {
     setSelectedCustomer(c);
     setPlatSearch(c.licensePlate);
@@ -740,7 +740,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     if (c.fuelType) setFuelType(c.fuelType);
   };
 
-  /* ?? Sparepart CRUD ?? */
+  /* ── Sparepart CRUD ── */
   const addPart   = () => setSpareparts(p => [...p, { id: uid(), nama: '', qty: 1, satuan: 'pcs', hargaSatuan: 0 }]);
   const updPart   = (id: string, patch: Partial<SPKSparepart>) => setSpareparts(p => p.map(x => x.id === id ? { ...x, ...patch } : x));
   const delPart   = (id: string) => setSpareparts(p => p.filter(x => x.id !== id));
@@ -748,21 +748,21 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
   const updJasa   = (id: string, patch: Partial<SPKJasa>) => setJasaList(j => j.map(x => x.id === id ? { ...x, ...patch } : x));
   const delJasa   = (id: string) => setJasaList(j => j.filter(x => x.id !== id));
 
-  /* ?? Navigation validation ?? */
+  /* ── Navigation validation ── */
   const canGoNext = () => {
     if (step === 1) return !!selectedCustomer;
     if (step === 3) return spareparts.length > 0 || jasaList.length > 0;
     return true;
   };
 
-  /* ?? SA summary counts ?? */
+  /* ── SA summary counts ── */
   const allChecks = [...eksterior, ...interior, ...mesin, ...kakiKaki];
   const allOk     = allChecks.filter(x => x.result === 'ok').length;
   const allWarn   = allChecks.filter(x => x.result === 'perhatian').length;
   const allBad    = allChecks.filter(x => x.result === 'segera').length;
   const allTotal  = allChecks.length;
 
-  /* ?? Save SPK (Draft or Final) ?? */
+  /* ── Save SPK (Draft or Final) ── */
   const handleSave = async (isDraft = false) => {
     if (!selectedCustomer) {
       alert('Pilih pelanggan dan unit kendaraan terlebih dahulu pada Langkah 1.');
@@ -876,7 +876,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     }
   };
 
-  /* ?? Print Handler with A4 Optimization ?? */
+  /* ── Print Handler with A4 Optimization ── */
   const handlePrint = () => {
     const el = document.getElementById('nota-print-area');
     if (!el) return;
@@ -949,7 +949,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     spareparts, jasaList, diskon, pajak, metodeBayar, dibayar,
   };
 
-  /* ?? CHECK TAB CONFIG ?? */
+  /* ── CHECK TAB CONFIG ── */
   const checkTabs = [
     { label: 'Eksterior',   icon: <Car size={14} />,        count: EKSTERIOR_ITEMS.length, items: eksterior, set: setEksterior },
     { label: 'Interior',    icon: <Settings2 size={14} />,  count: INTERIOR_ITEMS.length,  items: interior,  set: setInterior },
@@ -957,7 +957,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
     { label: 'Kaki-kaki & Rem',     icon: <Gauge size={14} />,  count: KAKI_ITEMS.length,  items: kakiKaki, set: setKakiKaki },
   ];
 
-  /* ???????????????????????????????????? RENDER ???????????????????????? */
+  /* ════════════════════════════════════ RENDER ════════════════════════ */
   return (
     <div className="min-h-screen bg-[#f4f6fb] font-sans pb-12">
 
@@ -969,7 +969,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
         </div>
       )}
 
-      {/* ?? Top Header ??????????????????????????????????????????????? */}
+      {/* ── Top Header ─────────────────────────────────────────────── */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-20 print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
           <button onClick={() => onNavigate('crm-orders')}
@@ -1008,7 +1008,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
           </div>
         </div>
 
-        {/* ?? Step Bar ?? */}
+        {/* ── Step Bar ── */}
         <div className="border-t border-slate-100 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="flex items-stretch overflow-x-auto">
@@ -1038,11 +1038,11 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
         </div>
       </div>
 
-      {/* ?? Content Area ??????????????????????????????????????????????? */}
+      {/* ── Content Area ─────────────────────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex gap-6">
 
-          {/* ?? LEFT: Step Sidebar (desktop) ?? */}
+          {/* ── LEFT: Step Sidebar (desktop) ── */}
           <div className="hidden xl:flex flex-col gap-3 w-60 flex-shrink-0 print:hidden">
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
               <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
@@ -1078,7 +1078,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                   <span className="font-mono font-black text-xs bg-red-600 text-white px-2 py-0.5 rounded-md">{selectedCustomer.licensePlate}</span>
                 </div>
                 <p className="font-black text-sm text-white">{selectedCustomer.name}</p>
-                <p className="text-xs text-slate-300 mt-0.5">{selectedCustomer.carBrand} {selectedCustomer.carModel} . {selectedCustomer.carYear}</p>
+                <p className="text-xs text-slate-300 mt-0.5">{selectedCustomer.carBrand} {selectedCustomer.carModel} • {selectedCustomer.carYear}</p>
                 
                 <div className="mt-3 pt-3 border-t border-white/10 space-y-1 text-xs text-slate-300">
                   <div className="flex justify-between">
@@ -1120,10 +1120,10 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
             )}
           </div>
 
-          {/* ?? RIGHT: Step Content ?? */}
+          {/* ── RIGHT: Step Content ── */}
           <div className="flex-1 min-w-0 space-y-5">
 
-            {/* ?? STEP 1: Kendaraan, Pelanggan & Staf In Charge ???????????? */}
+            {/* ══ STEP 1: Kendaraan, Pelanggan & Staf In Charge ════════════ */}
             {step === 1 && (
               <>
                 <div className="flex items-center justify-between">
@@ -1190,7 +1190,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-black text-slate-900 text-xs truncate">{c.name}</p>
-                                  <p className="text-[11px] text-slate-500 truncate">{c.carBrand} {c.carModel} . {c.carYear}</p>
+                                  <p className="text-[11px] text-slate-500 truncate">{c.carBrand} {c.carModel} • {c.carYear}</p>
                                   <span className="inline-block mt-1 font-mono text-xs font-black text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md">{c.licensePlate}</span>
                                 </div>
                               </div>
@@ -1212,7 +1212,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                         </div>
                         <div>
                           <p className="font-black text-white text-sm">{selectedCustomer.name}</p>
-                          <p className="text-slate-300 text-xs">{selectedCustomer.phone} . {selectedCustomer.address || 'Alamat tidak terdata'}</p>
+                          <p className="text-slate-300 text-xs">{selectedCustomer.phone} • {selectedCustomer.address || 'Alamat tidak terdata'}</p>
                         </div>
                       </div>
                       <button onClick={() => { setSelectedCustomer(null); setPlatSearch(''); }} className="text-slate-400 hover:text-white transition-colors text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg">
@@ -1227,7 +1227,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                           { icon: Car,      label: 'Kendaraan',  value: `${selectedCustomer.carBrand} ${selectedCustomer.carModel}` },
                           { icon: Hash,     label: 'Plat Nomor', value: selectedCustomer.licensePlate, red: true },
                           { icon: Calendar, label: 'Tahun / Transmisi', value: `${selectedCustomer.carYear} / ${selectedCustomer.transmission || 'Matic'}` },
-                          { icon: Palette,  label: 'Warna Unit', value: selectedCustomer.carColor || '-' },
+                          { icon: Palette,  label: 'Warna Unit', value: selectedCustomer.carColor || '—' },
                         ].map((f, i) => (
                           <div key={i} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{f.label}</p>
@@ -1285,7 +1285,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                   </div>
                 )}
 
-                {/* ?? PENUGASAN STAF (SA, FA, MEKANIK, KASIR) ?? */}
+                {/* ── PENUGASAN STAF (SA, FA, MEKANIK, KASIR) ── */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
@@ -1424,7 +1424,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
               </>
             )}
 
-            {/* ?? STEP 2: Pengecekan SA (4 Tahap) ??????????????????????? */}
+            {/* ══ STEP 2: Pengecekan SA (4 Tahap) ═══════════════════════ */}
             {step === 2 && (
               <>
                 <div className="flex items-center justify-between">
@@ -1434,7 +1434,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                     </div>
                     <div>
                       <h2 className="text-lg font-black text-slate-900">Pengecekan Service Advisor (SA)</h2>
-                      <p className="text-sm text-slate-400">Inspeksi komprehensif 4 kategori . SA In Charge: <strong className="text-slate-700">{effectiveSaName || '-'}</strong></p>
+                      <p className="text-sm text-slate-400">Inspeksi komprehensif 4 kategori • SA In Charge: <strong className="text-slate-700">{effectiveSaName || '—'}</strong></p>
                     </div>
                   </div>
 
@@ -1474,7 +1474,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                     {checkTabs.map((tab, i) => i === activeCheckTab && (
                       <SACheckTable
                         key={i}
-                        title={`Tahap ${i+1} - ${tab.label}`}
+                        title={`Tahap ${i+1} — ${tab.label}`}
                         icon={tab.icon}
                         items={tab.items}
                         onChange={tab.set}
@@ -1491,7 +1491,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
               </>
             )}
 
-            {/* ?? STEP 3: Nota Sparepart & Jasa ???????????????????????? */}
+            {/* ══ STEP 3: Nota Sparepart & Jasa ════════════════════════ */}
             {step === 3 && (
               <>
                 <div className="flex items-center gap-3">
@@ -1519,7 +1519,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                     <div>
                       <h3 className="text-sm font-black text-slate-800">Daftar Suku Cadang / Material</h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">{spareparts.length} item . Total: {formatRp(subParts)}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">{spareparts.length} item • Total: {formatRp(subParts)}</p>
                     </div>
                     <button onClick={addPart}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-red-600/20 active:scale-95">
@@ -1571,7 +1571,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
                   <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                     <div>
                       <h3 className="text-sm font-black text-slate-800">Biaya Jasa Servis</h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Mekanik Pelaksana: <strong>{effectiveMekanikName || '-'}</strong> . Total: {formatRp(subJasa)}</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Mekanik Pelaksana: <strong>{effectiveMekanikName || '—'}</strong> • Total: {formatRp(subJasa)}</p>
                     </div>
                     <button onClick={addJasa_}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all active:scale-95">
@@ -1635,7 +1635,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
               </>
             )}
 
-            {/* ?? STEP 4: Lembar LPA Akhir ?????????????????????????????? */}
+            {/* ══ STEP 4: Lembar LPA Akhir ══════════════════════════════ */}
             {step === 4 && (
               <>
                 <div className="flex items-center gap-3">
@@ -1679,7 +1679,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
               </>
             )}
 
-            {/* ?? STEP 5: Nota Resmi & Pembayaran ???????????????????????? */}
+            {/* ══ STEP 5: Nota Resmi & Pembayaran ════════════════════════ */}
             {step === 5 && (
               <>
                 <div className="flex items-center justify-between">
@@ -1770,7 +1770,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
               </>
             )}
 
-            {/* ?? BOTTOM NAVIGATION ??????????????????????????????????? */}
+            {/* ── BOTTOM NAVIGATION ─────────────────────────────────── */}
             {!savedId && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm px-5 py-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
                 <button onClick={() => step === 1 ? onNavigate('crm-orders') : setStep(s => s - 1)}
