@@ -53,6 +53,7 @@ import { CRMDiskusi } from './pages/crm/CRMDiskusi';
 import { CRMCustomerAnalysis } from './pages/crm/CRMCustomerAnalysis';
 import { CRMCustomerRFM } from './pages/crm/CRMCustomerRFM';
 import { CRMCustomerRetention } from './pages/crm/CRMCustomerRetention';
+import { CRMCustomerMutation } from './pages/crm/CRMCustomerMutation';
 
 export default function App() {
   const [activePage, setActivePage] = useState<PageType>('beranda');
@@ -259,7 +260,7 @@ export default function App() {
             }}
           />
         )}
-        {(activePage === 'crm-customers' || activePage === 'crm-customer-register' || activePage === 'crm-customer-profile' || activePage === 'crm-customer-mutation' || activePage === 'crm-customer-analysis' || activePage === 'crm-customer-rfm' || activePage === 'crm-customer-retention') && (
+        {(activePage === 'crm-customers' || activePage === 'crm-customer-profile') && (
           <CRMCustomers
             customers={crmCustomers}
             orders={crmOrders}
@@ -279,6 +280,9 @@ export default function App() {
               handleNavigate('crm-customer-edit');
             }}
           />
+        )}
+        {activePage === 'crm-customer-mutation' && (
+          <CRMCustomerMutation customers={crmCustomers} onNavigate={handleNavigate} />
         )}
         {activePage === 'crm-customer-detail' && selectedCustomer && (
           <CRMCustomerDetail
@@ -300,7 +304,7 @@ export default function App() {
             }}
           />
         )}
-        {activePage === 'crm-customer-create' && (
+        {(activePage === 'crm-customer-create' || activePage === 'crm-customer-register') && (
           <CRMCustomerForm
             customer={null}
             onBack={() => handleNavigate('crm-customers')}
