@@ -75,36 +75,12 @@ export default function App() {
 
     setOrdersLoading(true);
     const unsubOrders = subscribeToOrders((orders) => {
-      // If Firestore is empty, seed with initial data
-      if (orders.length === 0) {
-        const initialOrders: Omit<CRMOrder, 'id'>[] = [
-          { createdAt: new Date().toISOString(), status: 'pending', totalPrice: 0, customerName: 'Budi Santoso', phone: '081234567890', serviceType: 'Ganti Oli & Filter', carBrand: 'Toyota', carModel: 'Avanza', carYear: '2019', licensePlate: 'B 1234 ABC', locationAddress: 'Jl. Sudirman No. 1, Jakarta Selatan', isEmergency: false, notes: 'Oli bawa sendiri, filter juga', serviceDate: '22 Agustus 2026', serviceTime: '10:00' },
-          { createdAt: new Date().toISOString(), status: 'process', totalPrice: 0, customerName: 'Siti Aminah', phone: '081298765432', serviceType: 'Emergency 24 Jam', carBrand: 'Honda', carModel: 'Brio', carYear: '2021', licensePlate: 'D 5678 DEF', locationAddress: 'Tol Dalam Kota KM 10, Jakarta', isEmergency: true, notes: 'Mobil mogok, indikator aki menyala', serviceDate: 'Hari Ini', serviceTime: 'Segera' },
-          { createdAt: new Date().toISOString(), status: 'completed', totalPrice: 265000, customerName: 'Cholili', phone: '081223456789', serviceType: 'Servis AC Mobil', carBrand: 'Daihatsu', carModel: 'Gran Max', carYear: '2020', licensePlate: 'R 1927 SR', locationAddress: 'Jl. Merdeka No. 5, Purwokerto', isEmergency: false, notes: 'AC tidak dingin sama sekali', serviceDate: '22 Agustus 2026', serviceTime: '14:20' },
-          { createdAt: new Date().toISOString(), status: 'process', totalPrice: 1008000, customerName: 'Galim', phone: '082112345678', serviceType: 'Tune Up & Servis Mesin', carBrand: 'Mitsubishi', carModel: 'L300', carYear: '2018', licensePlate: 'R 1785 GT', locationAddress: 'Jl. Raya Sokaraja, Banyumas', isEmergency: false, notes: 'Mesin terasa berat dan boros bahan bakar', serviceDate: '22 Agustus 2026', serviceTime: '14:26' },
-          { createdAt: new Date().toISOString(), status: 'completed', totalPrice: 1638000, customerName: 'Amir', phone: '087612345678', serviceType: 'Ganti Rem & Kampas', carBrand: 'Suzuki', carModel: 'Carry', carYear: '2017', licensePlate: 'B 2374 BT', locationAddress: 'Jl. Setia Budi No. 12, Jakarta Selatan', isEmergency: true, notes: 'Rem blong, sangat berbahaya', serviceDate: '22 Agustus 2026', serviceTime: '13:40' },
-          { createdAt: new Date().toISOString(), status: 'pending', totalPrice: 0, customerName: 'Rizky Hidayat', phone: '081987654321', serviceType: 'Ganti Aki & Alternator', carBrand: 'Toyota', carModel: 'Innova', carYear: '2022', licensePlate: 'AB 1122 CD', locationAddress: 'Jl. Veteran No. 8, Yogyakarta', isEmergency: false, notes: 'Aki lemah, mesin susah dinyalakan pagi hari', serviceDate: '23 Agustus 2026', serviceTime: '09:00' },
-        ];
-        seedInitialOrders(initialOrders);
-      } else {
-        setCrmOrders(orders);
-        setOrdersLoading(false);
-      }
+      setCrmOrders(orders);
+      setOrdersLoading(false);
     });
 
     const unsubCustomers = subscribeToCustomers((customers) => {
-      if (customers.length === 0) {
-        const initialCustomers: Omit<CustomerItem, 'id'>[] = [
-          { name: 'Budi Santoso', phone: '081234567890', email: 'budi.santoso@gmail.com', address: 'Jl. Sudirman No. 1, Jakarta Selatan', carBrand: 'Toyota', carModel: 'Avanza 1.3 G', carYear: '2019', licensePlate: 'B 1234 ABC', transmission: 'Matic', carColor: 'Silver Metallic', notes: 'Rutin ganti oli mesin tiap 5.000 KM', totalOrdersCount: 2, totalSpent: 850000, createdAt: new Date().toISOString() },
-          { name: 'Siti Aminah', phone: '081298765432', email: 'siti.aminah@yahoo.com', address: 'Tol Dalam Kota KM 10, Jakarta', carBrand: 'Honda', carModel: 'Brio Satya E', carYear: '2021', licensePlate: 'D 5678 DEF', transmission: 'Matic', carColor: 'Putih', notes: 'Pernah minta emergency aki drop di tol', totalOrdersCount: 1, totalSpent: 450000, createdAt: new Date().toISOString() },
-          { name: 'Cholili', phone: '081223456789', email: 'cholili.trans@gmail.com', address: 'Jl. Merdeka No. 5, Purwokerto', carBrand: 'Daihatsu', carModel: 'Gran Max 1.5', carYear: '2020', licensePlate: 'R 1927 SR', transmission: 'Manual', carColor: 'Hitam', notes: 'Mobil niaga, rutin cek AC dan kampas rem', totalOrdersCount: 3, totalSpent: 1250000, createdAt: new Date().toISOString() },
-          { name: 'Galim', phone: '082112345678', email: 'galim.jaya@gmail.com', address: 'Jl. Raya Sokaraja, Banyumas', carBrand: 'Mitsubishi', carModel: 'L300', carYear: '2018', licensePlate: 'R 1785 GT', transmission: 'Manual', carColor: 'Coklat Tua', notes: 'Mesin bertenaga, perawatan rutin berkala', totalOrdersCount: 2, totalSpent: 1008000, createdAt: new Date().toISOString() },
-          { name: 'Rizky Hidayat', phone: '081987654321', email: 'rizky.hidayat@gmail.com', address: 'Jl. Veteran No. 8, Yogyakarta', carBrand: 'Toyota', carModel: 'Innova Reborn V', carYear: '2022', licensePlate: 'AB 1122 CD', transmission: 'Matic', carColor: 'Hitam Metalik', notes: 'Mobil keluarga, sparepart selalu original', totalOrdersCount: 1, totalSpent: 650000, createdAt: new Date().toISOString() }
-        ];
-        seedInitialCustomers(initialCustomers);
-      } else {
-        setCrmCustomers(customers);
-      }
+      setCrmCustomers(customers);
     });
 
     const unsubEmployees = subscribeToEmployees((employees) => {
