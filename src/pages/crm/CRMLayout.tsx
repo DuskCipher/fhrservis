@@ -3,7 +3,8 @@ import {
   LayoutDashboard, Wrench, Package, ShoppingCart, Users, BarChart2,
   UserSquare2, ClipboardList, MessageSquare, HelpCircle, ChevronDown,
   ChevronRight, LogOut, Menu, X, Bell, Settings, Search, ChevronLeft,
-  UserCircle, Building2, FileText, BarChart3, TrendingDown, Star, GitMerge, BookOpen
+  UserCircle, Building2, FileText, BarChart3, TrendingDown, Star, GitMerge, BookOpen,
+  Receipt
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { PageType } from '../../types';
@@ -50,6 +51,7 @@ const navItems: NavItem[] = [
   { id: 'employees',   label: 'Staf & HRD',                icon: UserSquare2,   page: 'crm-employees' },
   { id: 'inventory',   label: 'Kelola Produk & Jasa',      icon: Package,       page: 'crm-inventory' },
   { id: 'purchasing',  label: 'Pembelian & PO',            icon: ShoppingCart,  page: 'crm-purchasing' },
+  { id: 'jurnal',      label: 'Jurnal Transaksi',          icon: Receipt,       page: 'crm-jurnal' },
   { id: 'monitoring',  label: 'Monitoring & Laporan',      icon: BarChart2,     page: 'crm-monitoring' },
   { id: 'dap',         label: 'Rencana Harian (DAP)',      icon: ClipboardList, page: 'crm-activity-plan' },
   { id: 'lpa',     label: 'Lembar Pemeriksaan (LPA)',  icon: FileText,      page: 'crm-lpa' },

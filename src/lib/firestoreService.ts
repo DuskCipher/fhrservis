@@ -1568,3 +1568,180 @@ export async function deleteArticle(id: string): Promise<void> {
     console.warn('deleteArticle cloud failed, saved local:', e);
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// 10. JOURNAL ENTRIES SERVICE
+// ═══════════════════════════════════════════════════════════════════
+const LOCAL_JOURNAL_KEY = 'fhrcar_jurnal_manual';
+
+export interface JournalEntryModel {
+  id: string;
+  tanggal: string;
+  ref: string;
+  keterangan: string;
+  noAkunDebet: string;
+  namaAkunDebet: string;
+  debet: number;
+  noAkunKredit: string;
+  namaAkunKredit: string;
+  kredit: number;
+  type: string;
+  sumberDana?: 'kas_tangan' | 'bank_mandiri1' | 'bank_mandiri2';
+  spkId?: string;
+  spkNumber?: string;
+  isManual?: boolean;
+  isHPP?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export function getLocalJournalEntries(): JournalEntryModel[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_JOURNAL_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalJournalEntries(items: JournalEntryModel[]) {
+  try {
+    localStorage.setItem(LOCAL_JOURNAL_KEY, JSON.stringify(items));
+    window.dispatchEvent(new CustomEvent('fhrcar_journal_updated', { detail: items }));
+  } catch (e) {
+    console.warn('saveLocalJournalEntries:', e);
+  }
+}
+
+function mapJournalFromRow(row: any): JournalEntryModel {
+  const raw = row.raw_data || {};
+  return {
+    ...raw,
+    id: row.id || raw.id,
+    tanggal: row.tanggal || raw.tanggal || new Date().toISOString().split('T')[0],
+    ref: row.ref || raw.ref || '',
+    keterangan: row.keterangan || raw.keterangan || '',
+    noAkunDebet: row.no_akun_debet || raw.noAkunDebet || '',
+    namaAkunDebet: row.nama_akun_debet || raw.namaAkunDebet || '',
+    debet: Number(row.debet ?? raw.debet ?? 0),
+    noAkunKredit: row.no_akun_kredit || raw.noAkunKredit || '',
+    namaAkunKredit: row.nama_akun_kredit || raw.namaAkunKredit || '',
+    kredit: Number(row.kredit ?? raw.kredit ?? 0),
+    type: row.type || raw.type || 'manual_pengeluaran',
+    sumberDana: row.sumber_dana || raw.sumberDana || 'kas_tangan',
+    spkId: row.spk_id || raw.spkId,
+    spkNumber: row.spk_number || raw.spkNumber,
+    isManual: Boolean(row.is_manual ?? raw.isManual ?? true),
+    isHPP: Boolean(row.is_hpp ?? raw.isHPP ?? false),
+    createdAt: row.created_at || raw.createdAt,
+    updatedAt: row.updated_at || raw.updatedAt,
+  };
+}
+
+function mapJournalToRow(entry: Partial<JournalEntryModel>) {
+  return {
+    id: entry.id,
+    tanggal: entry.tanggal,
+    ref: entry.ref,
+    keterangan: entry.keterangan,
+    no_akun_debet: entry.noAkunDebet,
+    nama_akun_debet: entry.namaAkunDebet,
+    debet: entry.debet,
+    no_akun_kredit: entry.noAkunKredit,
+    nama_akun_kredit: entry.namaAkunKredit,
+    kredit: entry.kredit,
+    type: entry.type,
+    sumber_dana: entry.sumberDana,
+    spk_id: entry.spkId,
+    spk_number: entry.spkNumber,
+    is_manual: entry.isManual,
+    is_hpp: entry.isHPP,
+    raw_data: entry,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export function subscribeToJournalEntries(callback: (entries: JournalEntryModel[]) => void): () => void {
+  const local = getLocalJournalEntries();
+  callback(local);
+
+  const handleLocal = (e: any) => { if (e.detail) callback(e.detail); };
+  window.addEventListener('fhrcar_journal_updated', handleLocal);
+
+  const fetchJournal = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .select('*')
+        .order('tanggal', { ascending: false });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const mapped = data.map(mapJournalFromRow);
+        saveLocalJournalEntries(mapped);
+        callback(mapped);
+      } else {
+        callback(getLocalJournalEntries());
+      }
+    } catch {
+      callback(getLocalJournalEntries());
+    }
+  };
+
+  fetchJournal();
+
+  return () => {
+    window.removeEventListener('fhrcar_journal_updated', handleLocal);
+  };
+}
+
+export async function addJournalEntry(entry: Omit<JournalEntryModel, 'id'> & { id?: string }): Promise<string> {
+  const clean = sanitizeData(entry);
+  const entryId = entry.id || 'ju-' + Math.random().toString(36).substring(2, 9);
+  const now = new Date().toISOString();
+  const newEntry: JournalEntryModel = {
+    ...clean,
+    id: entryId,
+    createdAt: now,
+  } as JournalEntryModel;
+
+  const list = getLocalJournalEntries();
+  const updated = [newEntry, ...list.filter(e => e.id !== entryId)];
+  saveLocalJournalEntries(updated);
+
+  try {
+    const row = mapJournalToRow(newEntry);
+    await supabase.from('journal_entries').insert([{ ...row, created_at: now }]);
+    return entryId;
+  } catch (e) {
+    console.warn('addJournalEntry cloud failed, saved local:', e);
+    return entryId;
+  }
+}
+
+export async function updateJournalEntry(id: string, updates: Partial<JournalEntryModel>): Promise<void> {
+  const list = getLocalJournalEntries();
+  const existing = list.find(e => e.id === id) || {} as JournalEntryModel;
+  const merged = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+  const updated = list.map(e => e.id === id ? merged : e);
+  saveLocalJournalEntries(updated);
+
+  try {
+    const row = mapJournalToRow(merged);
+    await supabase.from('journal_entries').update(row).eq('id', id);
+  } catch (e) {
+    console.warn('updateJournalEntry cloud failed, saved local:', e);
+  }
+}
+
+export async function deleteJournalEntry(id: string): Promise<void> {
+  const list = getLocalJournalEntries();
+  const updated = list.filter(e => e.id !== id);
+  saveLocalJournalEntries(updated);
+
+  try {
+    await supabase.from('journal_entries').delete().eq('id', id);
+  } catch (e) {
+    console.warn('deleteJournalEntry cloud failed, saved local:', e);
+  }
+}

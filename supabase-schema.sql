@@ -198,6 +198,29 @@ create table if not exists public.lpa (
   raw_data jsonb default '{}'::jsonb
 );
 
+-- 10. JOURNAL ENTRIES TABLE (Jurnal Transaksi & Kas Keuangan)
+create table if not exists public.journal_entries (
+  id text primary key,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  tanggal text not null,
+  ref text,
+  keterangan text not null,
+  no_akun_debet text not null,
+  nama_akun_debet text not null,
+  debet numeric default 0,
+  no_akun_kredit text not null,
+  nama_akun_kredit text not null,
+  kredit numeric default 0,
+  type text default 'manual_pengeluaran',
+  sumber_dana text default 'kas_tangan',
+  spk_id text,
+  spk_number text,
+  is_manual boolean default true,
+  is_hpp boolean default false,
+  raw_data jsonb default '{}'::jsonb
+);
+
 -- ==============================================================================
 -- ENABLE ROW LEVEL SECURITY (RLS) & POLICIES (Full Access for Anon Key)
 -- ==============================================================================
@@ -210,6 +233,7 @@ alter table public.activity_plans enable row level security;
 alter table public.discussions enable row level security;
 alter table public.articles enable row level security;
 alter table public.lpa enable row level security;
+alter table public.journal_entries enable row level security;
 
 create policy "Anon full access orders" on public.orders for all using (true) with check (true);
 create policy "Anon full access customers" on public.customers for all using (true) with check (true);
@@ -220,13 +244,14 @@ create policy "Anon full access activity_plans" on public.activity_plans for all
 create policy "Anon full access discussions" on public.discussions for all using (true) with check (true);
 create policy "Anon full access articles" on public.articles for all using (true) with check (true);
 create policy "Anon full access lpa" on public.lpa for all using (true) with check (true);
+create policy "Anon full access journal_entries" on public.journal_entries for all using (true) with check (true);
 
 -- ==============================================================================
 -- ENABLE REALTIME PUBLICATION
 -- ==============================================================================
 do $$
 begin
-  alter publication supabase_realtime add table public.orders, public.customers, public.employees, public.inventory, public.purchase_orders, public.activity_plans, public.discussions, public.articles, public.lpa;
+  alter publication supabase_realtime add table public.orders, public.customers, public.employees, public.inventory, public.purchase_orders, public.activity_plans, public.discussions, public.articles, public.lpa, public.journal_entries;
 exception when others then
   null; -- Abaikan jika sudah terdaftar
 end $$;

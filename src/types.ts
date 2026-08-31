@@ -21,7 +21,9 @@ export type PageType =
   // Activity Plan
   | 'crm-activity-plan'
   // Discussion
-  | 'crm-discussion';
+  | 'crm-discussion'
+  // Jurnal Transaksi / Keuangan
+  | 'crm-jurnal';
 
 // ─── Inventory / Kelola Produk & Jasa ───────────────────────────────────────
 export type ProductCategory = 
