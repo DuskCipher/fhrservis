@@ -17,25 +17,29 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    try {
-      const cleanEmail = email.trim();
-      const cleanPass = password.trim();
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    // 1. Direct Master Admin bypass
+    if (
+      (cleanEmail === 'admin@fhrcar.xyz' || cleanEmail === 'admin' || cleanEmail === 'admin@fhr.com') &&
+      (cleanPass === 'fhr12345' || cleanPass === 'admin123' || cleanPass === 'admin')
+    ) {
+      localStorage.setItem('fhrcar_local_auth', 'true');
+      setLoading(false);
+      onLoginSuccess();
+      return;
+    }
+
+    // 2. Try Supabase Auth for custom registered users
+    try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password: cleanPass,
       });
 
       if (authError) {
-        // Fallback for default demo / offline admin
-        if (
-          (cleanEmail.toLowerCase() === 'admin@fhrcar.xyz' || cleanEmail.toLowerCase() === 'admin') &&
-          cleanPass === 'fhr12345'
-        ) {
-          localStorage.setItem('fhrcar_local_auth', 'true');
-          onLoginSuccess();
-          return;
-        }
         setError(authError.message || 'Email atau password tidak valid. Silakan periksa kembali.');
         return;
       }
@@ -45,14 +49,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
         onLoginSuccess();
       }
     } catch (err: any) {
-      if (
-        (email.trim().toLowerCase() === 'admin@fhrcar.xyz' || email.trim().toLowerCase() === 'admin') &&
-        password.trim() === 'fhr12345'
-      ) {
-        localStorage.setItem('fhrcar_local_auth', 'true');
-        onLoginSuccess();
-        return;
-      }
       setError('Terjadi kesalahan saat masuk. Silakan coba lagi.');
     } finally {
       setLoading(false);
