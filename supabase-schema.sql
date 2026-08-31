@@ -214,6 +214,7 @@ create table if not exists public.journal_entries (
   kredit numeric default 0,
   type text default 'manual_pengeluaran',
   sumber_dana text default 'kas_tangan',
+  kategori_jurnal text default 'toko',
   spk_id text,
   spk_number text,
   is_manual boolean default true,
