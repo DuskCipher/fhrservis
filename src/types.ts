@@ -23,7 +23,7 @@ export type PageType =
   // Discussion
   | 'crm-discussion'
   // Jurnal Transaksi / Keuangan
-  | 'crm-jurnal';
+  | 'crm-jurnal' | 'crm-jurnal-toko' | 'crm-jurnal-bengkel';
 
 // ─── Inventory / Kelola Produk & Jasa ───────────────────────────────────────
 export type ProductCategory = 

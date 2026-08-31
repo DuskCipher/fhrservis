@@ -51,7 +51,15 @@ const navItems: NavItem[] = [
   { id: 'employees',   label: 'Staf & HRD',                icon: UserSquare2,   page: 'crm-employees' },
   { id: 'inventory',   label: 'Kelola Produk & Jasa',      icon: Package,       page: 'crm-inventory' },
   { id: 'purchasing',  label: 'Pembelian & PO',            icon: ShoppingCart,  page: 'crm-purchasing' },
-  { id: 'jurnal',      label: 'Jurnal Transaksi',          icon: Receipt,       page: 'crm-jurnal' },
+  {
+    id: 'jurnal-group',
+    label: 'Jurnal Keuangan',
+    icon: Receipt,
+    children: [
+      { id: 'crm-jurnal-toko', label: 'Jurnal Toko (Sparepart)' },
+      { id: 'crm-jurnal-bengkel', label: 'Jurnal Bengkel (Jasa)' },
+    ]
+  },
   { id: 'monitoring',  label: 'Monitoring & Laporan',      icon: BarChart2,     page: 'crm-monitoring' },
   { id: 'dap',         label: 'Rencana Harian (DAP)',      icon: ClipboardList, page: 'crm-activity-plan' },
   { id: 'lpa',     label: 'Lembar Pemeriksaan (LPA)',  icon: FileText,      page: 'crm-lpa' },

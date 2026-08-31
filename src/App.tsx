@@ -239,7 +239,8 @@ export default function App() {
     if (cleanPath === '/crm/articles' || cleanPath === '/crm/artikel') return 'crm-articles';
     if (cleanPath === '/crm/inventory') return 'crm-inventory';
     if (cleanPath === '/crm/purchasing') return 'crm-purchasing';
-    if (cleanPath === '/crm/jurnal' || cleanPath === '/crm/journal') return 'crm-jurnal';
+    if (cleanPath === '/crm/jurnal/bengkel' || cleanPath === '/crm/jurnal-bengkel') return 'crm-jurnal-bengkel';
+    if (cleanPath === '/crm/jurnal' || cleanPath === '/crm/jurnal/toko' || cleanPath === '/crm/jurnal-toko' || cleanPath === '/crm/journal') return 'crm-jurnal-toko';
     if (cleanPath === '/crm/monitoring') return 'crm-monitoring';
     if (cleanPath === '/crm/dap' || cleanPath === '/crm/activity-plan') return 'crm-activity-plan';
     if (cleanPath === '/crm/diskusi' || cleanPath === '/crm/discussion') return 'crm-discussion';
@@ -275,7 +276,8 @@ export default function App() {
     if (page === 'crm-articles') return '/crm/articles';
     if (page === 'crm-inventory') return '/crm/inventory';
     if (page === 'crm-purchasing') return '/crm/purchasing';
-    if (page === 'crm-jurnal') return '/crm/jurnal';
+    if (page === 'crm-jurnal' || page === 'crm-jurnal-toko') return '/crm/jurnal/toko';
+    if (page === 'crm-jurnal-bengkel') return '/crm/jurnal/bengkel';
     if (page === 'crm-monitoring') return '/crm/monitoring';
     if (page === 'crm-activity-plan') return '/crm/dap';
     if (page === 'crm-discussion') return '/crm/diskusi';
@@ -524,8 +526,11 @@ export default function App() {
         )}
         {activePage === 'crm-inventory' && <CRMInventory />}
         {activePage === 'crm-purchasing' && <CRMPurchasing />}
-        {activePage === 'crm-jurnal' && (
-          <CRMJurnal orders={crmOrders} onNavigate={handleNavigate} />
+        {(activePage === 'crm-jurnal' || activePage === 'crm-jurnal-toko') && (
+          <CRMJurnal activeTab="toko" orders={crmOrders} onNavigate={handleNavigate} />
+        )}
+        {activePage === 'crm-jurnal-bengkel' && (
+          <CRMJurnal activeTab="bengkel" orders={crmOrders} onNavigate={handleNavigate} />
         )}
         {activePage === 'crm-monitoring' && (
           <CRMMonitoring orders={crmOrders} customers={crmCustomers} />

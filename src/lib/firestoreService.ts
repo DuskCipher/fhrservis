@@ -1587,6 +1587,7 @@ export interface JournalEntryModel {
   kredit: number;
   type: string;
   sumberDana?: 'kas_tangan' | 'bank_mandiri1' | 'bank_mandiri2';
+  kategoriJurnal?: 'toko' | 'bengkel';
   spkId?: string;
   spkNumber?: string;
   isManual?: boolean;
@@ -1629,6 +1630,7 @@ function mapJournalFromRow(row: any): JournalEntryModel {
     kredit: Number(row.kredit ?? raw.kredit ?? 0),
     type: row.type || raw.type || 'manual_pengeluaran',
     sumberDana: row.sumber_dana || raw.sumberDana || 'kas_tangan',
+    kategoriJurnal: row.kategori_jurnal || raw.kategoriJurnal || 'toko',
     spkId: row.spk_id || raw.spkId,
     spkNumber: row.spk_number || raw.spkNumber,
     isManual: Boolean(row.is_manual ?? raw.isManual ?? true),
@@ -1652,6 +1654,7 @@ function mapJournalToRow(entry: Partial<JournalEntryModel>) {
     kredit: entry.kredit,
     type: entry.type,
     sumber_dana: entry.sumberDana,
+    kategori_jurnal: entry.kategoriJurnal || 'toko',
     spk_id: entry.spkId,
     spk_number: entry.spkNumber,
     is_manual: entry.isManual,
