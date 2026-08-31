@@ -29,6 +29,7 @@ import { BookingPage } from './pages/BookingPage';
 import { Footer } from './components/Footer';
 import { ServiceDetailModal } from './components/ServiceDetailModal';
 import { FloatingEmergencyBar } from './components/FloatingEmergencyBar';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { ServiceItem, ArticleItem, PageType, CRMOrder, CustomerItem, EmployeeItem, InventoryItem } from './types';
 import { ARTICLES_DATA } from './data/mockData';
 
