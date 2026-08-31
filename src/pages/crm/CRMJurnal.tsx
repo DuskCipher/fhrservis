@@ -385,6 +385,55 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
     };
   }, [orders, filterDateFrom, filterDateTo, filterType, inventoryList]);
 
+  // ─── KALKULASI DETAIL PENDAPATAN JASA BENGKEL (PER JENIS JASA) ───
+  const profitDetailsBengkel = useMemo(() => {
+    const periodOrders = orders.filter(o => {
+      if (o.status === 'cancelled') return false;
+      const tgl = (o.createdAt ? o.createdAt.split('T')[0] : (o.serviceDate || isoToday()));
+      if (tgl < filterDateFrom || tgl > filterDateTo) return false;
+      if (filterType === 'cash' && o.metodePembayaran !== 'cash') return false;
+      if (filterType === 'tf' && o.metodePembayaran === 'cash') return false;
+      return true;
+    });
+
+    const jasaMap: Record<string, {
+      nama: string;
+      count: number;
+      tarif: number;
+      total: number;
+    }> = {};
+
+    for (const ord of periodOrders) {
+      const jasaList = ord.jasaList || [];
+      for (const j of jasaList) {
+        if (!j.nama || j.harga <= 0) continue;
+        const key = j.nama.trim().toLowerCase();
+
+        if (!jasaMap[key]) {
+          jasaMap[key] = {
+            nama: j.nama,
+            count: 0,
+            tarif: j.harga,
+            total: 0,
+          };
+        }
+
+        jasaMap[key].count += 1;
+        jasaMap[key].total += j.harga;
+      }
+    }
+
+    const items = Object.values(jasaMap).sort((a, b) => b.total - a.total);
+    const totalJasa = items.reduce((s, i) => s + i.total, 0);
+    const totalCount = items.reduce((s, i) => s + i.count, 0);
+
+    return {
+      items,
+      totalJasa,
+      totalCount
+    };
+  }, [orders, filterDateFrom, filterDateTo, filterType]);
+
   const summary = useMemo(() => {
     let totalCash = 0, totalTF = 0, totalPKas = 0, totalPBank = 0;
     for (const e of filtered) {
@@ -993,7 +1042,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
             </div>
           </div>
         ) : (
-          /* Tab Bengkel - Laporan Keuntungan Jasa */
+          /* Tab Bengkel - Laporan Keuntungan & Rincian Jasa */
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-6">
             <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-4 text-white flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3">
@@ -1001,14 +1050,17 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                   <Wrench className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-base font-black tracking-tight">Laporan Pendapatan Jasa Bengkel</h2>
                     <span className="bg-teal-500/20 border border-teal-400/40 text-teal-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
                       JASA SERVIS
                     </span>
+                    <span className="bg-white/10 text-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      Periode: {formatDate(filterDateFrom)} — {formatDate(filterDateTo)}
+                    </span>
                   </div>
                   <p className="text-xs text-slate-300">
-                    Total pendapatan dari pengerjaan jasa servis dikurangi operasional bengkel
+                    Total pendapatan pengerjaan jasa servis dikurangi operasional bengkel pada periode terpilih
                   </p>
                 </div>
               </div>
@@ -1021,26 +1073,101 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* 4 KPI Summary Cards */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-[11px] font-bold text-slate-500 block mb-1">Total Pendapatan Jasa</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-slate-500">Total Pendapatan Jasa</span>
+                  <Wrench className="w-4 h-4 text-teal-500" />
+                </div>
                 <div className="text-base font-black text-teal-700">{formatRp(summary.totalCash + summary.totalTF)}</div>
-                <span className="text-[10px] text-slate-400">Cash + Transfer Masuk</span>
+                <span className="text-[10px] text-slate-400">Cash + TF Jasa</span>
               </div>
 
               <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-[11px] font-bold text-slate-500 block mb-1">Total Biaya Operasional Bengkel</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-slate-500">Biaya Operasional Bengkel</span>
+                  <ArrowDownRight className="w-4 h-4 text-red-500" />
+                </div>
                 <div className="text-base font-black text-red-600">{formatRp(summary.totalPKas + summary.totalPBank)}</div>
                 <span className="text-[10px] text-slate-400">Pengeluaran Kas & Bank</span>
               </div>
 
               <div className="bg-white p-3.5 rounded-xl border border-teal-200 bg-teal-50/40 shadow-xs">
-                <span className="text-[11px] font-black text-teal-800 block mb-1">Laba Bersih Bengkel Periode Ini</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-black text-teal-800">Laba Bersih Bengkel</span>
+                  <Coins className="w-4 h-4 text-teal-600" />
+                </div>
                 <div className="text-base font-black text-teal-600">
                   {formatRp(summary.totalCash + summary.totalTF - (summary.totalPKas + summary.totalPBank))}
                 </div>
-                <span className="text-[10px] text-teal-700 font-semibold">Pendapatan Jasa - Pengeluaran Bengkel</span>
+                <span className="text-[10px] text-teal-700 font-semibold">Pendapatan - Beban Bengkel</span>
               </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-black text-blue-800">Pekerjaan Jasa</span>
+                  <CheckCircle className="w-4 h-4 text-blue-600" />
+                </div>
+                <div className="text-base font-black text-blue-700">
+                  {profitDetailsBengkel.totalCount} <span className="text-xs font-semibold text-slate-500">Tindakan</span>
+                </div>
+                <span className="text-[10px] text-blue-600 font-semibold">Total pengerjaan servis</span>
+              </div>
+            </div>
+
+            {/* Rincian Jenis Jasa Servis yang Dikerjakan */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
+                    <th className="px-3 py-2.5 text-center font-bold w-12">NO</th>
+                    <th className="px-3 py-2.5 text-left font-bold min-w-[220px]">NAMA JASA SERVIS</th>
+                    <th className="px-3 py-2.5 text-center font-bold w-28">JUMLAH SPK/TINDAKAN</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[140px] text-teal-800">RATA-RATA TARIF</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[160px] text-teal-800">TOTAL PENDAPATAN JASA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profitDetailsBengkel.items.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="text-center py-8 text-slate-400">
+                        Belum ada data pengerjaan jasa servis pada periode ini.
+                      </td>
+                    </tr>
+                  ) : (
+                    profitDetailsBengkel.items.map((item, idx) => (
+                      <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
+                        <td className="px-3 py-2.5 text-center font-bold text-slate-400">{idx + 1}</td>
+                        <td className="px-3 py-2.5 font-bold text-slate-800">{item.nama}</td>
+                        <td className="px-3 py-2.5 text-center font-bold">
+                          <span className="px-2.5 py-0.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg">{item.count}x</span>
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-medium text-slate-600">
+                          {formatRp(Math.round(item.total / item.count))}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-black text-teal-700 bg-teal-50/30">
+                          {formatRp(item.total)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+                {profitDetailsBengkel.items.length > 0 && (
+                  <tfoot>
+                    <tr className="bg-slate-800 text-white font-black">
+                      <td colSpan={2} className="px-3 py-3 text-right text-xs">TOTAL KESELURUHAN JASA</td>
+                      <td className="px-3 py-3 text-center text-xs">
+                        {profitDetailsBengkel.totalCount} Tindakan
+                      </td>
+                      <td className="px-3 py-3 text-right text-xs text-slate-300">-</td>
+                      <td className="px-3 py-3 text-right text-sm text-teal-300 whitespace-nowrap bg-slate-900">
+                        {formatRp(profitDetailsBengkel.totalJasa)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
             </div>
           </div>
         )}
