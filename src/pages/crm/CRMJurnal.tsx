@@ -61,14 +61,14 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
 
   const sortedDates = Array.from(dateSet).sort();
   const entries: JurnalEntry[] = [];
-  let refCounter = 1;
 
   for (const tgl of sortedDates) {
     const dayOrders = dateMap[tgl] || [];
 
     if (kategori === 'toko') {
       let totalSparepartCash = 0;
-      let totalSparepartTF = 0;
+      let totalSparepartTF1 = 0;
+      let totalSparepartTF2 = 0;
 
       for (const ord of dayOrders) {
         const spareparts = ord.spareparts || [];
@@ -76,15 +76,18 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
         if (subTotal <= 0) continue;
 
         const metode = ord.metodePembayaran || 'cash';
-        if (metode === 'cash') totalSparepartCash += subTotal;
-        else totalSparepartTF += subTotal;
+        if (metode === 'cash') {
+          totalSparepartCash += subTotal;
+        } else {
+          totalSparepartTF1 += subTotal;
+        }
       }
 
       // 1. Baris Paten: Pendapatan Cash
       entries.push({
         id: 'auto-toko-cash-' + tgl,
         tanggal: tgl,
-        ref: 'JU-' + String(refCounter++).padStart(3, '0'),
+        ref: '',
         keterangan: 'Pendapatan Cash',
         noAkunDebet: '1-1120',
         namaAkunDebet: 'Kas di Tangan',
@@ -97,30 +100,47 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
         isManual: false,
       });
 
-      // 2. Baris Paten: Pendapatan TF/Qris/EDC
+      // 2. Baris Paten: Pendapatan TF/Qris/EDC (Bank Mandiri 1)
       entries.push({
-        id: 'auto-toko-tf-' + tgl,
+        id: 'auto-toko-tf1-' + tgl,
         tanggal: tgl,
-        ref: 'JU-' + String(refCounter++).padStart(3, '0'),
+        ref: '',
         keterangan: 'Pendapatan TF/Qris/EDC',
         noAkunDebet: '1-1210',
         namaAkunDebet: 'Bank - Mandiri 1',
-        debet: totalSparepartTF,
+        debet: totalSparepartTF1,
         noAkunKredit: '4-1001',
         namaAkunKredit: 'Penjualan Sparepart',
-        kredit: totalSparepartTF,
+        kredit: totalSparepartTF1,
         type: 'pendapatan_tf',
         kategoriJurnal: 'toko',
         isManual: false,
       });
 
-      // 3. Baris HPP (jika ada penjualan)
-      const totalHPP = Math.round((totalSparepartCash + totalSparepartTF) * 0.7);
+      // 3. Baris Paten: Pendapatan TF/Qris/EDC (Bank Mandiri 2)
+      entries.push({
+        id: 'auto-toko-tf2-' + tgl,
+        tanggal: tgl,
+        ref: '',
+        keterangan: 'Pendapatan TF/Qris/EDC',
+        noAkunDebet: '1-1220',
+        namaAkunDebet: 'Bank - Mandiri 2',
+        debet: totalSparepartTF2,
+        noAkunKredit: '4-1001',
+        namaAkunKredit: 'Penjualan Sparepart',
+        kredit: totalSparepartTF2,
+        type: 'pendapatan_tf',
+        kategoriJurnal: 'toko',
+        isManual: false,
+      });
+
+      // 4. Baris HPP (jika ada)
+      const totalHPP = Math.round((totalSparepartCash + totalSparepartTF1 + totalSparepartTF2) * 0.7);
       if (totalHPP > 0) {
         entries.push({
           id: 'auto-toko-hpp-' + tgl,
           tanggal: tgl,
-          ref: 'JU-' + String(refCounter++).padStart(3, '0'),
+          ref: '',
           keterangan: 'Pengambilan sparepart ke arsa motor',
           noAkunDebet: '5-1000',
           namaAkunDebet: 'Harga Pokok Penjualan (HPP)',
@@ -136,7 +156,8 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
       }
     } else {
       let totalJasaCash = 0;
-      let totalJasaTF = 0;
+      let totalJasaTF1 = 0;
+      let totalJasaTF2 = 0;
 
       for (const ord of dayOrders) {
         const jasaList = ord.jasaList || [];
@@ -144,15 +165,18 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
         if (subTotal <= 0) continue;
 
         const metode = ord.metodePembayaran || 'cash';
-        if (metode === 'cash') totalJasaCash += subTotal;
-        else totalJasaTF += subTotal;
+        if (metode === 'cash') {
+          totalJasaCash += subTotal;
+        } else {
+          totalJasaTF1 += subTotal;
+        }
       }
 
       // 1. Baris Paten: Pendapatan Cash
       entries.push({
         id: 'auto-bengkel-cash-' + tgl,
         tanggal: tgl,
-        ref: 'JB-' + String(refCounter++).padStart(3, '0'),
+        ref: '',
         keterangan: 'Pendapatan Cash',
         noAkunDebet: '1-1120',
         namaAkunDebet: 'Kas di Tangan',
@@ -165,18 +189,35 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
         isManual: false,
       });
 
-      // 2. Baris Paten: Pendapatan TF/Qris/EDC
+      // 2. Baris Paten: Pendapatan TF/Qris/EDC (Mandiri 1)
       entries.push({
-        id: 'auto-bengkel-tf-' + tgl,
+        id: 'auto-bengkel-tf1-' + tgl,
         tanggal: tgl,
-        ref: 'JB-' + String(refCounter++).padStart(3, '0'),
+        ref: '',
         keterangan: 'Pendapatan TF/Qris/EDC',
         noAkunDebet: '1-1210',
         namaAkunDebet: 'Bank - Mandiri 1',
-        debet: totalJasaTF,
+        debet: totalJasaTF1,
         noAkunKredit: '4-1002',
         namaAkunKredit: 'Penjualan Jasa',
-        kredit: totalJasaTF,
+        kredit: totalJasaTF1,
+        type: 'pendapatan_tf',
+        kategoriJurnal: 'bengkel',
+        isManual: false,
+      });
+
+      // 3. Baris Paten: Pendapatan TF/Qris/EDC (Mandiri 2)
+      entries.push({
+        id: 'auto-bengkel-tf2-' + tgl,
+        tanggal: tgl,
+        ref: '',
+        keterangan: 'Pendapatan TF/Qris/EDC',
+        noAkunDebet: '1-1220',
+        namaAkunDebet: 'Bank - Mandiri 2',
+        debet: totalJasaTF2,
+        noAkunKredit: '4-1002',
+        namaAkunKredit: 'Penjualan Jasa',
+        kredit: totalJasaTF2,
         type: 'pendapatan_tf',
         kategoriJurnal: 'bengkel',
         isManual: false,
@@ -201,15 +242,37 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
   }, [propTab]);
 
   const today = isoToday();
-  const firstDayMonth = today.substring(0, 8) + '01';
-  const [filterDateFrom, setFilterDateFrom] = useState<string>(firstDayMonth);
-  const [filterDateTo, setFilterDateTo] = useState<string>(today);
+  const currentYear = new Date().getFullYear();
+  const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+  const [selectedMonth, setSelectedMonth] = useState<string>(`${currentYear}-${currentMonth}`);
+
+  const getMonthDateRange = (yearMonth: string) => {
+    const [y, m] = yearMonth.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    return {
+      from: `${yearMonth}-01`,
+      to: `${yearMonth}-${String(lastDay).padStart(2, '0')}`
+    };
+  };
+
+  const initialRange = getMonthDateRange(`${currentYear}-${currentMonth}`);
+  const [filterDateFrom, setFilterDateFrom] = useState<string>(initialRange.from);
+  const [filterDateTo, setFilterDateTo] = useState<string>(initialRange.to);
   const [filterType, setFilterType] = useState<string>('semua');
   const [showHPP, setShowHPP] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingManual, setEditingManual] = useState<JurnalEntry | null>(null);
   const [manualEntries, setManualEntries] = useState<JurnalEntry[]>(getLocalJournalEntries);
   const [showSummary, setShowSummary] = useState(true);
+
+  const handleMonthChange = (ym: string) => {
+    setSelectedMonth(ym);
+    if (ym) {
+      const range = getMonthDateRange(ym);
+      setFilterDateFrom(range.from);
+      setFilterDateTo(range.to);
+    }
+  };
 
   const [form, setForm] = useState<ManualExpenseForm>({
     tanggal: today,
@@ -244,34 +307,38 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       if (dt !== 0) return dt;
       const getPriority = (e: JurnalEntry) => {
         if (e.type === 'pendapatan_cash') return 1;
-        if (e.type === 'pendapatan_tf') return 2;
-        if (e.isHPP) return 3;
-        return 4;
+        if (e.type === 'pendapatan_tf' && e.noAkunDebet === '1-1210') return 2;
+        if (e.type === 'pendapatan_tf' && e.noAkunDebet === '1-1220') return 3;
+        if (e.isHPP) return 4;
+        return 5;
       };
       const pA = getPriority(a);
       const pB = getPriority(b);
       if (pA !== pB) return pA - pB;
-      return (a.ref || '').localeCompare(b.ref || '');
+      return (a.id || '').localeCompare(b.id || '');
     });
   }, [autoEntries, tabManualEntries]);
 
   const prefixRef = currentTab === 'toko' ? 'JU-' : 'JB-';
-  const entriesWithRef = useMemo(() => {
-    let c = 1;
-    return combinedEntries.map(e => ({
-      ...e,
-      ref: prefixRef + String(c++).padStart(3, '0')
-    }));
-  }, [combinedEntries, prefixRef]);
 
-  const filtered = useMemo(() => entriesWithRef.filter(e => {
+  // Filter berdasarkan periode tanggal terpilih
+  const rawFiltered = useMemo(() => combinedEntries.filter(e => {
     if (e.tanggal < filterDateFrom || e.tanggal > filterDateTo) return false;
     if (!showHPP && e.isHPP) return false;
     if (filterType === 'cash' && e.type !== 'pendapatan_cash') return false;
     if (filterType === 'tf' && e.type !== 'pendapatan_tf') return false;
     if (filterType === 'pengeluaran' && e.type !== 'manual_pengeluaran') return false;
     return true;
-  }), [entriesWithRef, filterDateFrom, filterDateTo, filterType, showHPP]);
+  }), [combinedEntries, filterDateFrom, filterDateTo, filterType, showHPP]);
+
+  // Beri nomor Ref berurutan mulai dari 001 untuk periode ini
+  const filtered = useMemo(() => {
+    let c = 1;
+    return rawFiltered.map(e => ({
+      ...e,
+      ref: prefixRef + String(c++).padStart(3, '0')
+    }));
+  }, [rawFiltered, prefixRef]);
 
   const summary = useMemo(() => {
     let totalCash = 0, totalTF = 0, totalPKas = 0, totalPBank = 0;
@@ -350,19 +417,19 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
   const totalKredit = filtered.reduce((s, e) => s + e.kredit, 0);
   const isBalanced = Math.abs(totalDebet - totalKredit) < 1;
 
+  // Background persis Excel user: Pendapatan Cash & TF berarsir merah muda/rose lembut
   const typeColor = (e: JurnalEntry) => {
     if (e.isHPP) return 'bg-slate-50';
-    if (e.type === 'pendapatan_cash') return 'bg-emerald-50/70';
-    if (e.type === 'pendapatan_tf') return 'bg-blue-50/70';
-    if (e.type === 'manual_pengeluaran') return 'bg-red-50/60';
+    if (e.type === 'pendapatan_cash' || e.type === 'pendapatan_tf') return 'bg-rose-50/75 hover:bg-rose-100/70 border-b border-rose-100';
+    if (e.type === 'manual_pengeluaran') return 'bg-white hover:bg-slate-50/80';
     return '';
   };
 
   const typeBadge = (e: JurnalEntry) => {
     if (e.isHPP) return <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600">HPP</span>;
-    if (e.type === 'pendapatan_cash') return <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700">CASH</span>;
-    if (e.type === 'pendapatan_tf') return <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">TF</span>;
-    if (e.type === 'manual_pengeluaran') return <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">KELUAR</span>;
+    if (e.type === 'pendapatan_cash') return <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-200/80 text-rose-800">CASH</span>;
+    if (e.type === 'pendapatan_tf') return <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-200/80 text-rose-800">TF</span>;
+    if (e.type === 'manual_pengeluaran') return <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">KELUAR</span>;
     return null;
   };
 
@@ -456,12 +523,21 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
         {/* ── FILTER BAR ── */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-3.5 flex flex-wrap gap-3 items-end">
           <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide">Pilih Periode Bulan</label>
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={e => handleMonthChange(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 bg-blue-50/50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+          </div>
+          <div>
             <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide">Dari Tanggal</label>
-            <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            <input type="date" value={filterDateFrom} onChange={e => { setFilterDateFrom(e.target.value); setSelectedMonth(''); }} className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300" />
           </div>
           <div>
             <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide">Sampai Tanggal</label>
-            <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            <input type="date" value={filterDateTo} onChange={e => { setFilterDateTo(e.target.value); setSelectedMonth(''); }} className="px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-300" />
           </div>
           <div>
             <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wide">Tipe Transaksi</label>
@@ -484,7 +560,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
 
           <div className="ml-auto self-end pb-1">
             <span className="text-xs text-slate-400 font-medium">
-              <span className="font-black text-slate-700">{filtered.length}</span> baris transaksi
+              Periode: <span className="font-bold text-slate-700">{formatDate(filterDateFrom)} — {formatDate(filterDateTo)}</span> ({filtered.length} baris)
             </span>
           </div>
         </div>
@@ -613,48 +689,65 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                     </span>
                   </td></tr>
                 )}
-                {filtered.map((entry) => (
-                  <tr key={entry.id} className={'border-b border-slate-100 hover:brightness-95 transition-all ' + typeColor(entry)}>
-                    <td className="px-3 py-2.5 font-semibold text-slate-600 whitespace-nowrap">{formatDate(entry.tanggal)}</td>
-                    <td className="px-3 py-2.5 font-mono font-bold text-indigo-700 whitespace-nowrap">{entry.ref}</td>
-                    <td className="px-3 py-2.5 text-slate-800 font-medium max-w-[280px]">
-                      <div>{entry.keterangan}</div>
-                    </td>
-                    <td className="px-3 py-2.5 text-center">{typeBadge(entry)}</td>
-                    <td className="px-3 py-2.5 font-mono text-[11px] text-slate-400 whitespace-nowrap">{entry.noAkunDebet}</td>
-                    <td className="px-3 py-2.5 text-slate-700 font-medium">{entry.namaAkunDebet}</td>
-                    <td className="px-3 py-2.5 text-right font-bold text-emerald-700 whitespace-nowrap">{entry.debet > 0 ? formatRp(entry.debet) : '–'}</td>
-                    <td className="px-3 py-2.5 font-mono text-[11px] text-slate-400 whitespace-nowrap">{entry.noAkunKredit}</td>
-                    <td className="px-3 py-2.5 text-slate-700 font-medium">{entry.namaAkunKredit}</td>
-                    <td className="px-3 py-2.5 text-right font-bold text-red-600 whitespace-nowrap">{entry.kredit > 0 ? formatRp(entry.kredit) : '–'}</td>
-                    <td className="px-3 py-2.5 text-center">
-                      {entry.isManual ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <button onClick={() => editManual(entry)} className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 hover:bg-indigo-200 flex items-center justify-center transition-all" title="Edit"><Edit3 className="w-3 h-3" /></button>
-                          <button onClick={() => delManual(entry.id)} className="w-6 h-6 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center transition-all" title="Hapus"><Trash2 className="w-3 h-3" /></button>
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-slate-300 font-medium px-2 py-0.5 bg-slate-100 rounded">Otomatis</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map((entry, idx) => {
+                  const isNewDate = idx === 0 || entry.tanggal !== filtered[idx - 1].tanggal;
+                  return (
+                    <tr
+                      key={entry.id}
+                      className={'hover:brightness-95 transition-all ' + typeColor(entry) + (isNewDate && idx > 0 ? ' border-t-2 border-slate-300' : ' border-b border-slate-100')}
+                    >
+                      <td className={'px-3 py-2.5 font-semibold whitespace-nowrap ' + (isNewDate ? 'text-slate-900 font-bold' : 'text-slate-500')}>
+                        {formatDate(entry.tanggal)}
+                      </td>
+                      <td className="px-3 py-2.5 font-mono font-bold text-indigo-700 whitespace-nowrap">{entry.ref}</td>
+                      <td className="px-3 py-2.5 text-slate-800 font-medium max-w-[280px]">
+                        <div>{entry.keterangan}</div>
+                      </td>
+                      <td className="px-3 py-2.5 text-center">{typeBadge(entry)}</td>
+                      <td className="px-3 py-2.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">{entry.noAkunDebet}</td>
+                      <td className="px-3 py-2.5 text-slate-700 font-medium">{entry.namaAkunDebet}</td>
+                      <td className="px-3 py-2.5 text-right font-bold text-emerald-700 whitespace-nowrap">{entry.debet > 0 ? formatRp(entry.debet) : '–'}</td>
+                      <td className="px-3 py-2.5 font-mono text-[11px] text-slate-500 whitespace-nowrap">{entry.noAkunKredit}</td>
+                      <td className="px-3 py-2.5 text-slate-700 font-medium">{entry.namaAkunKredit}</td>
+                      <td className="px-3 py-2.5 text-right font-bold text-red-600 whitespace-nowrap">{entry.kredit > 0 ? formatRp(entry.kredit) : '–'}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        {entry.isManual ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <button onClick={() => editManual(entry)} className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-600 hover:bg-indigo-200 flex items-center justify-center transition-all" title="Edit"><Edit3 className="w-3 h-3" /></button>
+                            <button onClick={() => delManual(entry.id)} className="w-6 h-6 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 flex items-center justify-center transition-all" title="Hapus"><Trash2 className="w-3 h-3" /></button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-medium px-2 py-0.5 bg-slate-100 rounded">Otomatis</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               {filtered.length > 0 && (
                 <tfoot>
-                  <tr className="bg-slate-800 text-white">
-                    <td colSpan={6} className="px-3 py-3 font-black text-sm text-right">TOTAL</td>
+                  <tr className="bg-slate-800 text-white border-t border-slate-700">
+                    <td colSpan={6} className="px-3 py-3 font-black text-sm text-right">TOTAL MUTASI JURNAL</td>
                     <td className="px-3 py-3 text-right font-black text-emerald-300 text-sm whitespace-nowrap">{formatRp(totalDebet)}</td>
                     <td colSpan={2} className="px-3 py-3" />
                     <td className="px-3 py-3 text-right font-black text-red-300 text-sm whitespace-nowrap">{formatRp(totalKredit)}</td>
                     <td className="px-3 py-3" />
                   </tr>
-                  <tr className="bg-slate-50">
-                    <td colSpan={11} className="px-3 py-2 text-right text-[11px]">
-                      {isBalanced
-                        ? <span className="inline-flex items-center gap-1 text-emerald-600 font-bold"><CheckCircle className="w-3.5 h-3.5" /> Jurnal seimbang (balanced)</span>
-                        : <span className="inline-flex items-center gap-1 text-red-600 font-bold"><AlertCircle className="w-3.5 h-3.5" /> Tidak seimbang — selisih {formatRp(Math.abs(totalDebet - totalKredit))}</span>
-                      }
+                  <tr className="bg-slate-900 text-slate-200 text-xs">
+                    <td colSpan={11} className="px-3 py-2.5">
+                      <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div className="flex items-center gap-4">
+                          <span>💵 Total Cash Masuk: <b className="text-emerald-400">{formatRp(summary.totalCash)}</b></span>
+                          <span>💳 Total TF Masuk: <b className="text-blue-400">{formatRp(summary.totalTF)}</b></span>
+                          <span>🔻 Total Pengeluaran: <b className="text-red-400">{formatRp(summary.totalPKas + summary.totalPBank)}</b></span>
+                        </div>
+                        <div>
+                          {isBalanced
+                            ? <span className="inline-flex items-center gap-1 text-emerald-400 font-bold"><CheckCircle className="w-3.5 h-3.5" /> Jurnal seimbang (balanced)</span>
+                            : <span className="inline-flex items-center gap-1 text-red-400 font-bold"><AlertCircle className="w-3.5 h-3.5" /> Tidak seimbang — selisih {formatRp(Math.abs(totalDebet - totalKredit))}</span>
+                          }
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 </tfoot>
