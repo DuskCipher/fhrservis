@@ -38,8 +38,8 @@ interface ManualExpenseForm {
 }
 
 const SUMBER_OPTIONS: { value: SumberDana; label: string; noAkun: string }[] = [
-  { value: 'kas_tangan',   label: 'Kas di Tangan',   noAkun: '1-1120' },
-  { value: 'bank_mandiri', label: 'Bank (Transfer)', noAkun: '1-1210' },
+  { value: 'kas_tangan',   label: 'Kas di Tangan', noAkun: '1-1120' },
+  { value: 'bank_mandiri', label: 'Bank',          noAkun: '1-1210' },
 ];
 
 function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manualDates: string[] = []): JurnalEntry[] {
@@ -107,7 +107,7 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
         ref: '',
         keterangan: 'Pendapatan TF/Qris/EDC',
         noAkunDebet: '1-1210',
-        namaAkunDebet: 'Bank - Mandiri 1',
+        namaAkunDebet: 'Bank',
         debet: totalSparepartTF,
         noAkunKredit: '4-1001',
         namaAkunKredit: 'Penjualan Sparepart',
@@ -124,7 +124,7 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
           id: 'auto-toko-hpp-' + tgl,
           tanggal: tgl,
           ref: '',
-          keterangan: 'Pengambilan sparepart ke arsa motor',
+          keterangan: 'Pengambilan sparepart TOKO FHRCAR',
           noAkunDebet: '5-1000',
           namaAkunDebet: 'Harga Pokok Penjualan (HPP)',
           debet: totalHPP,
@@ -178,7 +178,7 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
         ref: '',
         keterangan: 'Pendapatan TF/Qris/EDC',
         noAkunDebet: '1-1210',
-        namaAkunDebet: 'Bank - Mandiri 1',
+        namaAkunDebet: 'Bank',
         debet: totalJasaTF,
         noAkunKredit: '4-1002',
         namaAkunKredit: 'Pendapatan Jasa',
@@ -461,7 +461,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
     const si = SUMBER_OPTIONS.find(s => s.value === form.sumber)!;
 
     const noAkunBeban = currentTab === 'toko' ? '2-1210' : '5-9999';
-    const namaAkunBeban = currentTab === 'toko' ? 'Arsa Motor Indonesia / Beban Toko' : 'Beban Operasional Bengkel';
+    const namaAkunBeban = currentTab === 'toko' ? 'TOKO FHRCAR / Beban Toko' : 'Beban Operasional Bengkel';
 
     const entryData = {
       tanggal: form.tanggal,
