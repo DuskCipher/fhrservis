@@ -113,12 +113,18 @@ export function CRMInventory() {
       return;
     }
     setSaving(true);
+    const upperForm = {
+      ...form,
+      name: (form.name || '').toUpperCase().trim(),
+      skuCode: (form.skuCode || '').toUpperCase().trim(),
+      category: (form.category || 'SERVICE AC').toUpperCase().trim(),
+    };
     try {
       if (editingItem) {
-        await updateInventoryItem(editingItem.id, form as Partial<InventoryItem>);
+        await updateInventoryItem(editingItem.id, upperForm as Partial<InventoryItem>);
         showToast('Data berhasil diperbarui!');
       } else {
-        await addInventoryItem(form as Omit<InventoryItem, 'id' | 'createdAt'>);
+        await addInventoryItem(upperForm as Omit<InventoryItem, 'id' | 'createdAt'>);
         showToast('Item berhasil ditambahkan!');
       }
       setShowModal(false);
@@ -316,8 +322,8 @@ export function CRMInventory() {
                         </td>
                         <td className="px-3 py-3.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-800 tracking-normal">
-                              {formatTitleCase(item.name)}
+                            <span className="font-bold text-slate-800 uppercase tracking-wide">
+                              {(item.name || '').toUpperCase()}
                             </span>
                             {isHppWarning && (
                               <AlertTriangle size={12} className="text-orange-500" title="HPP > Harga Jual!" />
@@ -325,8 +331,8 @@ export function CRMInventory() {
                           </div>
                         </td>
                         <td className="px-3 py-3.5">
-                          <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded border border-slate-200">
-                            {formatTitleCase(item.category)}
+                          <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-slate-100 text-slate-600 rounded border border-slate-200">
+                            {(item.category || '').toUpperCase()}
                           </span>
                         </td>
                         {activeTab === 'sparepart' && (
@@ -490,9 +496,9 @@ export function CRMInventory() {
                 <label className="block text-[11px] font-bold text-slate-600 mb-1">Nama Produk / Jasa *</label>
                 <input
                   value={form.name || ''}
-                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Contoh: Las & Ganti Fitting"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400"
+                  onChange={e => setForm(p => ({ ...p, name: e.target.value.toUpperCase() }))}
+                  placeholder="Contoh: TUNE UP MATIC / LAS KONDENSOR"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400 uppercase font-bold"
                 />
               </div>
 
