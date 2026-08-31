@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component, ReactNode, ErrorInfo } from 'react';
 import { supabase } from './lib/supabase';
 import {
   subscribeToOrders,
@@ -55,7 +55,6 @@ import { CRMCustomerRFM } from './pages/crm/CRMCustomerRFM';
 import { CRMCustomerMutation } from './pages/crm/CRMCustomerMutation';
 import { CRMArticles } from './pages/crm/CRMArticles';
 
-import React, { Component, ReactNode, ErrorInfo } from 'react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
