@@ -317,8 +317,11 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
   const profitDetailsToko = useMemo(() => {
     const periodOrders = orders.filter(o => {
       if (o.status === 'cancelled') return false;
-      const tgl = o.createdAt?.split('T')[0] || isoToday();
-      return tgl >= filterDateFrom && tgl <= filterDateTo;
+      const tgl = (o.createdAt ? o.createdAt.split('T')[0] : (o.serviceDate || isoToday()));
+      if (tgl < filterDateFrom || tgl > filterDateTo) return false;
+      if (filterType === 'cash' && o.metodePembayaran !== 'cash') return false;
+      if (filterType === 'tf' && o.metodePembayaran === 'cash') return false;
+      return true;
     });
 
     const itemMap: Record<string, {
@@ -380,7 +383,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       totalKeuntunganKotor,
       marginPersen: totalJual > 0 ? Math.round((totalKeuntunganKotor / totalJual) * 100) : 0
     };
-  }, [orders, filterDateFrom, filterDateTo, inventoryList]);
+  }, [orders, filterDateFrom, filterDateTo, filterType, inventoryList]);
 
   const summary = useMemo(() => {
     let totalCash = 0, totalTF = 0, totalPKas = 0, totalPBank = 0;
@@ -862,14 +865,17 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                   <TrendingUp className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h2 className="text-base font-black tracking-tight">Laporan Keuntungan Toko (Sparepart)</h2>
                     <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
                       Margin: {profitDetailsToko.marginPersen}%
                     </span>
+                    <span className="bg-white/10 text-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      Periode: {formatDate(filterDateFrom)} — {formatDate(filterDateTo)}
+                    </span>
                   </div>
                   <p className="text-xs text-slate-300">
-                    Perhitungan keuntungan per item: (Harga Jual - Harga Beli) × Qty Terjual
+                    Perhitungan keuntungan per item: (Harga Jual - Harga Beli) × Qty Terjual pada periode tanggal terpilih
                   </p>
                 </div>
               </div>
