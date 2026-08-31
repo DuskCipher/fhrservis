@@ -2075,7 +2075,7 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                 {step < 5 ? (
                   <button onClick={() => setStep(s => s + 1)} disabled={!canGoNext()}
                     className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-red-600/20">
-                    Lanjut: {STEPS[step].short} <ChevronRight size={14} />
+                    Lanjut: {STEPS[step]?.short || 'Selanjutnya'} <ChevronRight size={14} />
                   </button>
                 ) : (
                   <button onClick={() => handleSave(false)} disabled={saving}
