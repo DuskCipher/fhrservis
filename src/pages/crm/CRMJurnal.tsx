@@ -41,7 +41,14 @@ const SUMBER_OPTIONS: { value: SumberDana; label: string; noAkun: string }[] = [
   { value: 'bank_mandiri2', label: 'Bank - Mandiri 2', noAkun: '1-1220' },
 ];
 
-function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal): JurnalEntry[] {
+function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manualDates: string[] = []): JurnalEntry[] {
+  const dateSet = new Set<string>();
+  dateSet.add(isoToday());
+
+  for (const d of manualDates) {
+    if (d) dateSet.add(d);
+  }
+
   const dateMap: Record<string, CRMOrder[]> = {};
   for (const order of orders) {
     if (!order.totalPrice || order.totalPrice === 0) continue;
@@ -49,14 +56,15 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal): Jurn
     const tgl = order.createdAt?.split('T')[0] || isoToday();
     if (!dateMap[tgl]) dateMap[tgl] = [];
     dateMap[tgl].push(order);
+    dateSet.add(tgl);
   }
 
-  const sortedDates = Object.keys(dateMap).sort();
+  const sortedDates = Array.from(dateSet).sort();
   const entries: JurnalEntry[] = [];
   let refCounter = 1;
 
   for (const tgl of sortedDates) {
-    const dayOrders = dateMap[tgl];
+    const dayOrders = dateMap[tgl] || [];
 
     if (kategori === 'toko') {
       let totalSparepartCash = 0;
@@ -72,42 +80,41 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal): Jurn
         else totalSparepartTF += subTotal;
       }
 
-      if (totalSparepartCash > 0) {
-        entries.push({
-          id: 'auto-toko-cash-' + tgl,
-          tanggal: tgl,
-          ref: 'JU-' + String(refCounter++).padStart(3, '0'),
-          keterangan: 'Pendapatan Cash',
-          noAkunDebet: '1-1120',
-          namaAkunDebet: 'Kas di Tangan',
-          debet: totalSparepartCash,
-          noAkunKredit: '4-1001',
-          namaAkunKredit: 'Penjualan Sparepart',
-          kredit: totalSparepartCash,
-          type: 'pendapatan_cash',
-          kategoriJurnal: 'toko',
-          isManual: false,
-        });
-      }
+      // 1. Baris Paten: Pendapatan Cash
+      entries.push({
+        id: 'auto-toko-cash-' + tgl,
+        tanggal: tgl,
+        ref: 'JU-' + String(refCounter++).padStart(3, '0'),
+        keterangan: 'Pendapatan Cash',
+        noAkunDebet: '1-1120',
+        namaAkunDebet: 'Kas di Tangan',
+        debet: totalSparepartCash,
+        noAkunKredit: '4-1001',
+        namaAkunKredit: 'Penjualan Sparepart',
+        kredit: totalSparepartCash,
+        type: 'pendapatan_cash',
+        kategoriJurnal: 'toko',
+        isManual: false,
+      });
 
-      if (totalSparepartTF > 0) {
-        entries.push({
-          id: 'auto-toko-tf-' + tgl,
-          tanggal: tgl,
-          ref: 'JU-' + String(refCounter++).padStart(3, '0'),
-          keterangan: 'Pendapatan TF/Qris/EDC',
-          noAkunDebet: '1-1210',
-          namaAkunDebet: 'Bank - Mandiri 1',
-          debet: totalSparepartTF,
-          noAkunKredit: '4-1001',
-          namaAkunKredit: 'Penjualan Sparepart',
-          kredit: totalSparepartTF,
-          type: 'pendapatan_tf',
-          kategoriJurnal: 'toko',
-          isManual: false,
-        });
-      }
+      // 2. Baris Paten: Pendapatan TF/Qris/EDC
+      entries.push({
+        id: 'auto-toko-tf-' + tgl,
+        tanggal: tgl,
+        ref: 'JU-' + String(refCounter++).padStart(3, '0'),
+        keterangan: 'Pendapatan TF/Qris/EDC',
+        noAkunDebet: '1-1210',
+        namaAkunDebet: 'Bank - Mandiri 1',
+        debet: totalSparepartTF,
+        noAkunKredit: '4-1001',
+        namaAkunKredit: 'Penjualan Sparepart',
+        kredit: totalSparepartTF,
+        type: 'pendapatan_tf',
+        kategoriJurnal: 'toko',
+        isManual: false,
+      });
 
+      // 3. Baris HPP (jika ada penjualan)
       const totalHPP = Math.round((totalSparepartCash + totalSparepartTF) * 0.7);
       if (totalHPP > 0) {
         entries.push({
@@ -141,41 +148,39 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal): Jurn
         else totalJasaTF += subTotal;
       }
 
-      if (totalJasaCash > 0) {
-        entries.push({
-          id: 'auto-bengkel-cash-' + tgl,
-          tanggal: tgl,
-          ref: 'JB-' + String(refCounter++).padStart(3, '0'),
-          keterangan: 'Pendapatan Cash',
-          noAkunDebet: '1-1120',
-          namaAkunDebet: 'Kas di Tangan',
-          debet: totalJasaCash,
-          noAkunKredit: '4-1002',
-          namaAkunKredit: 'Penjualan Jasa',
-          kredit: totalJasaCash,
-          type: 'pendapatan_cash',
-          kategoriJurnal: 'bengkel',
-          isManual: false,
-        });
-      }
+      // 1. Baris Paten: Pendapatan Cash
+      entries.push({
+        id: 'auto-bengkel-cash-' + tgl,
+        tanggal: tgl,
+        ref: 'JB-' + String(refCounter++).padStart(3, '0'),
+        keterangan: 'Pendapatan Cash',
+        noAkunDebet: '1-1120',
+        namaAkunDebet: 'Kas di Tangan',
+        debet: totalJasaCash,
+        noAkunKredit: '4-1002',
+        namaAkunKredit: 'Penjualan Jasa',
+        kredit: totalJasaCash,
+        type: 'pendapatan_cash',
+        kategoriJurnal: 'bengkel',
+        isManual: false,
+      });
 
-      if (totalJasaTF > 0) {
-        entries.push({
-          id: 'auto-bengkel-tf-' + tgl,
-          tanggal: tgl,
-          ref: 'JB-' + String(refCounter++).padStart(3, '0'),
-          keterangan: 'Pendapatan TF/Qris/EDC',
-          noAkunDebet: '1-1210',
-          namaAkunDebet: 'Bank - Mandiri 1',
-          debet: totalJasaTF,
-          noAkunKredit: '4-1002',
-          namaAkunKredit: 'Penjualan Jasa',
-          kredit: totalJasaTF,
-          type: 'pendapatan_tf',
-          kategoriJurnal: 'bengkel',
-          isManual: false,
-        });
-      }
+      // 2. Baris Paten: Pendapatan TF/Qris/EDC
+      entries.push({
+        id: 'auto-bengkel-tf-' + tgl,
+        tanggal: tgl,
+        ref: 'JB-' + String(refCounter++).padStart(3, '0'),
+        keterangan: 'Pendapatan TF/Qris/EDC',
+        noAkunDebet: '1-1210',
+        namaAkunDebet: 'Bank - Mandiri 1',
+        debet: totalJasaTF,
+        noAkunKredit: '4-1002',
+        namaAkunKredit: 'Penjualan Jasa',
+        kredit: totalJasaTF,
+        type: 'pendapatan_tf',
+        kategoriJurnal: 'bengkel',
+        isManual: false,
+      });
     }
   }
 
@@ -228,16 +233,25 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
   }, [manualEntries, currentTab]);
 
   const autoEntries = useMemo(() => {
-    return generateDailyJurnal(orders, currentTab);
-  }, [orders, currentTab]);
+    const manualDates = tabManualEntries.map(e => e.tanggal);
+    return generateDailyJurnal(orders, currentTab, manualDates);
+  }, [orders, currentTab, tabManualEntries]);
 
   const combinedEntries = useMemo(() => {
     const all = [...autoEntries, ...tabManualEntries];
     return all.sort((a, b) => {
       const dt = a.tanggal.localeCompare(b.tanggal);
       if (dt !== 0) return dt;
-      if (a.isManual === b.isManual) return (a.ref || '').localeCompare(b.ref || '');
-      return a.isManual ? 1 : -1;
+      const getPriority = (e: JurnalEntry) => {
+        if (e.type === 'pendapatan_cash') return 1;
+        if (e.type === 'pendapatan_tf') return 2;
+        if (e.isHPP) return 3;
+        return 4;
+      };
+      const pA = getPriority(a);
+      const pB = getPriority(b);
+      if (pA !== pB) return pA - pB;
+      return (a.ref || '').localeCompare(b.ref || '');
     });
   }, [autoEntries, tabManualEntries]);
 
