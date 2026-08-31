@@ -67,17 +67,24 @@ export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLay
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setCurrentUser(user || { email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
-    });
+    try {
+      supabase.auth.getUser().then((res) => {
+        const user = res?.data?.user;
+        setCurrentUser(user || { email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
+      }).catch(() => {
+        setCurrentUser({ email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
+      });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setCurrentUser(session?.user || { email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
-    });
+      const authRes = supabase.auth.onAuthStateChange((_event, session) => {
+        setCurrentUser(session?.user || { email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
+      });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+      return () => {
+        authRes?.data?.subscription?.unsubscribe?.();
+      };
+    } catch {
+      setCurrentUser({ email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
+    }
   }, []);
 
   // Sync open group with active page

@@ -139,16 +139,25 @@ export default function App() {
   useEffect(() => {
     const localAuth = localStorage.getItem('fhrcar_local_auth') === 'true';
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session || localAuth);
-    });
+    try {
+      supabase.auth.getSession().then((res) => {
+        const session = res?.data?.session;
+        setIsAuthenticated(!!session || localAuth);
+      }).catch(() => {
+        setIsAuthenticated(localAuth);
+      });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      const isAuth = !!session || localStorage.getItem('fhrcar_local_auth') === 'true';
-      setIsAuthenticated(isAuth);
-    });
+      const authRes = supabase.auth.onAuthStateChange((_event, session) => {
+        const isAuth = !!session || localStorage.getItem('fhrcar_local_auth') === 'true';
+        setIsAuthenticated(isAuth);
+      });
 
-    return () => subscription.unsubscribe();
+      return () => {
+        authRes?.data?.subscription?.unsubscribe?.();
+      };
+    } catch {
+      setIsAuthenticated(localAuth);
+    }
   }, []);
 
   // Subscribe to Firestore orders & customers in real-time (only when on CRM pages)
