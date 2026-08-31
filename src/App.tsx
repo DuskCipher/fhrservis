@@ -126,7 +126,10 @@ export default function App() {
   const [articlesList, setArticlesList] = useState<ArticleItem[]>(ARTICLES_DATA);
 
   // CRM State — Supabase Auth + Database
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = loading
+  // Initialize synchronously from localStorage to avoid blank screen on direct URL load
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(
+    () => localStorage.getItem('fhrcar_local_auth') === 'true' ? true : null
+  );
   const [crmOrders, setCrmOrders] = useState<CRMOrder[]>([]);
   const [crmCustomers, setCrmCustomers] = useState<CustomerItem[]>([]);
   const [crmEmployees, setCrmEmployees] = useState<EmployeeItem[]>([]);
@@ -135,28 +138,39 @@ export default function App() {
   const [editingSPKOrder, setEditingSPKOrder] = useState<CRMOrder | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
-  // Listen to Supabase Auth state
+  // Listen to Supabase Auth state — always resolve quickly using localStorage fallback
   useEffect(() => {
     const localAuth = localStorage.getItem('fhrcar_local_auth') === 'true';
 
+    // Immediately resolve if localStorage says authenticated (no spinner wait)
+    if (localAuth) {
+      setIsAuthenticated(true);
+    }
+
+    let authRes: any;
     try {
       supabase.auth.getSession().then((res) => {
         const session = res?.data?.session;
-        setIsAuthenticated(!!session || localAuth);
+        // Only override if Supabase gives a definitive answer
+        if (session) {
+          setIsAuthenticated(true);
+        } else if (!localAuth) {
+          setIsAuthenticated(false);
+        }
       }).catch(() => {
-        setIsAuthenticated(localAuth);
+        if (!localAuth) setIsAuthenticated(false);
       });
 
-      const authRes = supabase.auth.onAuthStateChange((_event, session) => {
-        const isAuth = !!session || localStorage.getItem('fhrcar_local_auth') === 'true';
-        setIsAuthenticated(isAuth);
+      authRes = supabase.auth.onAuthStateChange((_event, session) => {
+        const isLocal = localStorage.getItem('fhrcar_local_auth') === 'true';
+        setIsAuthenticated(!!session || isLocal);
       });
 
       return () => {
         authRes?.data?.subscription?.unsubscribe?.();
       };
     } catch {
-      setIsAuthenticated(localAuth);
+      if (!localAuth) setIsAuthenticated(false);
     }
   }, []);
 
