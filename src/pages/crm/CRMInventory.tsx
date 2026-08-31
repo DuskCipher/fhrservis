@@ -23,6 +23,21 @@ const TABS = [
   { id: 'panduan', label: 'Panduan', icon: HelpCircle },
 ];
 
+const formatTitleCase = (text?: string) => {
+  if (!text) return '';
+  // Convert ALL CAPS text into clean Title Case
+  return text
+    .toLowerCase()
+    .split(' ')
+    .map(word => {
+      if (['ac', 'spk', 'lpa', 'po', 'hpp', 'sku', 'hho', 'dap'].includes(word.toLowerCase())) {
+        return word.toUpperCase();
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+};
+
 const formatRp = (n?: number | string) =>
   'Rp ' + (Number(n) || 0).toLocaleString('id-ID');
 
@@ -301,8 +316,8 @@ export function CRMInventory() {
                         </td>
                         <td className="px-3 py-3.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-800 uppercase tracking-wide">
-                              {item.name}
+                            <span className="font-bold text-slate-800 tracking-normal">
+                              {formatTitleCase(item.name)}
                             </span>
                             {isHppWarning && (
                               <AlertTriangle size={12} className="text-orange-500" title="HPP > Harga Jual!" />
@@ -310,8 +325,8 @@ export function CRMInventory() {
                           </div>
                         </td>
                         <td className="px-3 py-3.5">
-                          <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-slate-100 text-slate-600 rounded border border-slate-200">
-                            {item.category}
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded border border-slate-200">
+                            {formatTitleCase(item.category)}
                           </span>
                         </td>
                         {activeTab === 'sparepart' && (
@@ -476,8 +491,8 @@ export function CRMInventory() {
                 <input
                   value={form.name || ''}
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Contoh: LAS & GANTI FITTING"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400 uppercase"
+                  placeholder="Contoh: Las & Ganti Fitting"
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400"
                 />
               </div>
 
