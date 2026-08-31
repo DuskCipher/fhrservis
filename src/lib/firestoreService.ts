@@ -920,10 +920,34 @@ export function subscribeToInventory(callback: (items: InventoryItem[]) => void)
         saveLocalInventory(mapped);
         callback(mapped);
       } else {
-        callback(getLocalInventory());
+        const local = getLocalInventory();
+        if (local.length === 0) {
+          const now = new Date().toISOString();
+          const initial = MASTER_JASA_DATA.map((j, idx) => ({
+            ...j,
+            id: `INV-${String(idx + 1).padStart(3, '0')}`,
+            createdAt: now,
+          })) as InventoryItem[];
+          saveLocalInventory(initial);
+          callback(initial);
+        } else {
+          callback(local);
+        }
       }
     } catch {
-      callback(getLocalInventory());
+      const local = getLocalInventory();
+      if (local.length === 0) {
+        const now = new Date().toISOString();
+        const initial = MASTER_JASA_DATA.map((j, idx) => ({
+          ...j,
+          id: `INV-${String(idx + 1).padStart(3, '0')}`,
+          createdAt: now,
+        })) as InventoryItem[];
+        saveLocalInventory(initial);
+        callback(initial);
+      } else {
+        callback(local);
+      }
     }
   };
 

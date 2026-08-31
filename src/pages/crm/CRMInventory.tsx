@@ -23,7 +23,8 @@ const TABS = [
   { id: 'panduan', label: 'Panduan', icon: HelpCircle },
 ];
 
-const formatRp = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
+const formatRp = (n?: number | string) =>
+  'Rp ' + (Number(n) || 0).toLocaleString('id-ID');
 
 const EMPTY_FORM: Partial<InventoryItem> = {
   skuCode: '', name: '', category: 'SERVICE AC', type: 'jasa',
@@ -57,15 +58,19 @@ export function CRMInventory() {
   const currentType = activeTab === 'sparepart' ? 'sparepart' : 'jasa';
 
   const filtered = useMemo(() => {
-    return items.filter(item => {
+    const s = (search || '').toLowerCase().trim();
+    return (items || []).filter(item => {
+      if (!item) return false;
       if (activeTab === 'sparepart' && item.type !== 'sparepart') return false;
       if (activeTab === 'jasa' && item.type !== 'jasa') return false;
-      if (filterCategory !== 'Semua' && item.category !== filterCategory) return false;
-      if (showHppWarning && item.buyPrice <= item.sellPrice) return false;
-      const matchSearch = !search ||
-        item.name.toLowerCase().includes(search.toLowerCase()) ||
-        item.skuCode.toLowerCase().includes(search.toLowerCase()) ||
-        item.category.toLowerCase().includes(search.toLowerCase());
+      if (filterCategory !== 'Semua' && (item.category || '') !== filterCategory) return false;
+      const buy = Number(item.buyPrice) || 0;
+      const sell = Number(item.sellPrice) || 0;
+      if (showHppWarning && buy <= sell) return false;
+      const matchSearch = !s ||
+        (item.name || '').toLowerCase().includes(s) ||
+        (item.skuCode || '').toLowerCase().includes(s) ||
+        (item.category || '').toLowerCase().includes(s);
       return matchSearch;
     });
   }, [items, activeTab, search, filterCategory, showHppWarning]);
@@ -115,8 +120,8 @@ export function CRMInventory() {
   };
 
   const tabCounts = {
-    sparepart: items.filter(i => i.type === 'sparepart').length,
-    jasa: items.filter(i => i.type === 'jasa').length,
+    sparepart: (items || []).filter(i => i && i.type === 'sparepart').length,
+    jasa: (items || []).filter(i => i && i.type === 'jasa').length,
   };
 
   return (
