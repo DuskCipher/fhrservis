@@ -15,9 +15,8 @@ import {
   subscribeToArticles,
   updateOrderStatus,
   deleteOrder,
-  seedInitialOrders,
-  seedInitialCustomers,
 } from './lib/firestoreService';
+
 import { Navbar } from './components/Navbar';
 import { HomePage } from './pages/HomePage';
 import { ServicesPage } from './pages/ServicesPage';
