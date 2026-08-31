@@ -332,12 +332,12 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 210px', gap: '12px', marginBottom: '14px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <div style={{ border: '1px solid #d1fae5', borderRadius: '8px', padding: '10px 12px', background: '#f0fdf4', fontSize: '10px' }}>
-            <div style={{ fontWeight: 800, color: '#065f46', textTransform: 'uppercase', fontSize: '10px', marginBottom: '6px' }}>KETENTUAN GARANSI SERVIS</div>
+            <div style={{ fontWeight: 800, color: '#065f46', textTransform: 'uppercase', fontSize: '10px', marginBottom: '6px' }}>KETENTUAN GARANSI</div>
             <ul style={{ margin: 0, paddingLeft: '14px', color: '#047857', lineHeight: '1.8' }}>
-              <li>Garansi pekerjaan servis <strong>7 hari atau 1.000 KM</strong> (mana tercapai lebih dahulu).</li>
-              <li>Suku cadang asli bergaransi sesuai ketentuan pabrikan resmi.</li>
-              <li>Garansi gugur jika terdapat modifikasi non-standar atau kelalaian pemakai.</li>
-              <li>Barang lama/bekas sudah diserahkan kepada pemilik kendaraan.</li>
+              <li><strong>Garansi Jasa:</strong> 1 Bulan.</li>
+              <li><strong>Garansi Sparepart:</strong> 1 Bulan.</li>
+              <li>Garansi tidak berlaku apabila terdapat modifikasi non-standar atau kelalaian dari pemilik kendaraan.</li>
+              <li>Barang/suku cadang lama yang telah diganti sudah diserahkan kepada pemilik kendaraan.</li>
             </ul>
           </div>
           <div style={{ border: '1px solid #fde68a', borderRadius: '8px', padding: '8px 12px', background: '#fffbeb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

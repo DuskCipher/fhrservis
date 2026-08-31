@@ -250,7 +250,7 @@ function NotaAkhirPrint({ data, customer }: { data: any; customer: CustomerItem 
 
       <div className="mt-5 pt-4 border-t border-dashed border-slate-300 text-center text-[11px] text-slate-400">
         <p>Terima kasih telah mempercayakan kendaraan Anda kepada <strong>FHR Car Service</strong></p>
-        <p>Garansi servis 7 hari · fhrcar.xyz</p>
+        <p>Garansi Jasa & Sparepart 1 Bulan · fhrcar.xyz</p>
       </div>
     </div>
   );
