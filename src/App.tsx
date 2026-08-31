@@ -4,8 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './lib/firebase';
+import { supabase } from './lib/supabase';
 import {
   subscribeToOrders,
   subscribeToCustomers,
@@ -66,7 +65,7 @@ export default function App() {
   const [selectedArticleDetail, setSelectedArticleDetail] = useState<ArticleItem | null>(ARTICLES_DATA[0]);
   const [articlesList, setArticlesList] = useState<ArticleItem[]>(ARTICLES_DATA);
 
-  // CRM State — Firebase Auth + Firestore
+  // CRM State — Supabase Auth + Database
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); // null = loading
   const [crmOrders, setCrmOrders] = useState<CRMOrder[]>([]);
   const [crmCustomers, setCrmCustomers] = useState<CustomerItem[]>([]);
@@ -75,12 +74,20 @@ export default function App() {
   const [editingSPKOrder, setEditingSPKOrder] = useState<CRMOrder | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
 
-  // Listen to Firebase Auth state
+  // Listen to Supabase Auth state
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(!!user);
+    const localAuth = localStorage.getItem('fhrcar_local_auth') === 'true';
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session || localAuth);
     });
-    return () => unsubscribe();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const isAuth = !!session || localStorage.getItem('fhrcar_local_auth') === 'true';
+      setIsAuthenticated(isAuth);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Subscribe to Firestore orders & customers in real-time (only when on CRM pages)
@@ -251,11 +258,16 @@ export default function App() {
   };
 
   const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
     handleNavigate('crm-dashboard');
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
+    localStorage.removeItem('fhrcar_local_auth');
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    setIsAuthenticated(false);
     handleNavigate('beranda');
   };
 

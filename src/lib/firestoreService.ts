@@ -1,29 +1,19 @@
+import { supabase } from './supabase';
 import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp,
-  Timestamp,
-} from 'firebase/firestore';
-import { db } from './firebase';
-import { CRMOrder, OrderStatus, CustomerItem, SPKDocument, EmployeeItem, EmployeeRole, InventoryItem, PurchaseOrder, POItem, ActivityPlan, DiscussionMessage, ArticleItem } from '../types';
+  CRMOrder,
+  OrderStatus,
+  CustomerItem,
+  EmployeeItem,
+  InventoryItem,
+  PurchaseOrder,
+  ActivityPlan,
+  DiscussionMessage,
+  ArticleItem
+} from '../types';
 import { MASTER_JASA_DATA } from '../data/masterJasa';
 import { ARTICLES_DATA } from '../data/mockData';
 
-const ORDERS_COLLECTION = 'orders';
-const CUSTOMERS_COLLECTION = 'customers';
-const EMPLOYEES_COLLECTION = 'employees';
-const INVENTORY_COLLECTION = 'inventory';
-const PURCHASE_ORDERS_COLLECTION = 'purchase_orders';
-const ACTIVITY_PLANS_COLLECTION = 'activity_plans';
-const DISCUSSION_COLLECTION = 'discussions';
-const ARTICLES_COLLECTION = 'articles';
-
+// LocalStorage cache keys
 const LOCAL_CUSTOMERS_KEY = 'fhrcar_customers_store';
 const LOCAL_ORDERS_KEY = 'fhrcar_orders_store';
 const LOCAL_EMPLOYEES_KEY = 'fhrcar_employees_store';
@@ -32,7 +22,7 @@ const LOCAL_PO_KEY = 'fhrcar_po_store';
 const LOCAL_ACTIVITY_KEY = 'fhrcar_activity_store';
 const LOCAL_ARTICLES_KEY = 'fhrcar_articles_store';
 
-// Helper to remove undefined fields which Firestore rejects
+// Helper to remove undefined fields
 function sanitizeData<T extends object>(data: T): any {
   const clean: any = {};
   for (const [key, value] of Object.entries(data)) {
@@ -43,24 +33,9 @@ function sanitizeData<T extends object>(data: T): any {
   return clean;
 }
 
-// LocalStorage helpers for customers
-function getLocalCustomers(): CustomerItem[] {
-  try {
-    const raw = localStorage.getItem(LOCAL_CUSTOMERS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalCustomers(customers: CustomerItem[]) {
-  try {
-    localStorage.setItem(LOCAL_CUSTOMERS_KEY, JSON.stringify(customers));
-    window.dispatchEvent(new CustomEvent('fhrcar-customers-updated'));
-  } catch (e) {
-    console.warn('[Storage] Could not save customers to localStorage:', e);
-  }
-}
+// ═══════════════════════════════════════════════════════════════════
+// 1. ORDERS / SPK SERVICE
+// ═══════════════════════════════════════════════════════════════════
 
 function getLocalOrders(): CRMOrder[] {
   try {
@@ -80,14 +55,115 @@ function saveLocalOrders(orders: CRMOrder[]) {
   }
 }
 
-/**
- * Subscribe to all orders in real-time (with immediate local sync).
- * Returns an unsubscribe function.
- */
-export function subscribeToOrders(
-  callback: (orders: CRMOrder[]) => void
-): () => void {
-  // Emit local cache immediately for instant UI
+// Map Supabase DB row to CRMOrder model
+function mapOrderFromRow(row: any): CRMOrder {
+  const raw = row.raw_data || {};
+  return {
+    ...raw,
+    id: row.id || raw.id,
+    createdAt: row.created_at || raw.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || raw.updatedAt,
+    status: (row.status || raw.status || 'pending') as OrderStatus,
+    totalPrice: Number(row.total_price ?? raw.totalPrice ?? 0),
+    customerName: row.customer_name || raw.customerName || '',
+    phone: row.phone || raw.phone || '',
+    serviceType: row.service_type || raw.serviceType || '',
+    carBrand: row.car_brand || raw.carBrand || '',
+    carModel: row.car_model || raw.carModel || '',
+    carYear: row.car_year || raw.carYear || '',
+    licensePlate: row.license_plate || raw.licensePlate || '',
+    locationAddress: row.location_address || raw.locationAddress || '',
+    isEmergency: Boolean(row.is_emergency ?? raw.isEmergency),
+    notes: row.notes || raw.notes || '',
+    serviceDate: row.service_date || raw.serviceDate,
+    serviceTime: row.service_time || raw.serviceTime,
+    serviceLocation: row.service_location || raw.serviceLocation,
+    saName: row.sa_name || raw.saName,
+    saId: row.sa_id || raw.saId,
+    faName: row.fa_name || raw.faName,
+    faId: row.fa_id || raw.faId,
+    mekanikName: row.mekanik_name || raw.mekanikName,
+    mekanikId: row.mekanik_id || raw.mekanikId,
+    kasirName: row.kasir_name || raw.kasirName,
+    kasirId: row.kasir_id || raw.kasirId,
+    kilometer: row.kilometer || raw.kilometer,
+    noRangka: row.no_rangka || raw.noRangka,
+    noMesin: row.no_mesin || raw.noMesin,
+    fuelType: row.fuel_type || raw.fuelType || 'Bensin',
+    spareparts: row.spareparts || raw.spareparts || [],
+    jasaList: row.jasa_list || raw.jasaList || [],
+    saCheckEksterior: row.sa_check_eksterior || raw.saCheckEksterior || [],
+    saCheckInterior: row.sa_check_interior || raw.saCheckInterior || [],
+    saCheckMesin: row.sa_check_mesin || raw.saCheckMesin || [],
+    saCheckKakiKaki: row.sa_check_kaki_kaki || raw.saCheckKakiKaki || [],
+    lpaChecklist: row.lpa_checklist || raw.lpaChecklist || [],
+    saCatatanUmum: row.sa_catatan_umum || raw.saCatatanUmum || '',
+    lpaCatatan: row.lpa_catatan || raw.lpaCatatan || '',
+    diskon: Number(row.diskon ?? raw.diskon ?? 0),
+    pajakPersen: Number(row.pajak_persen ?? raw.pajakPersen ?? 0),
+    metodePembayaran: row.metode_pembayaran || raw.metodePembayaran || 'cash',
+    dibayar: Number(row.dibayar ?? raw.dibayar ?? 0),
+    kembalian: Number(row.kembalian ?? raw.kembalian ?? 0),
+    customerType: row.customer_type || raw.customerType || 'BARU',
+    customerId: row.customer_id || raw.customerId,
+    spkNumber: row.spk_number || raw.spkNumber || row.id,
+  };
+}
+
+// Map CRMOrder model to Supabase DB row
+function mapOrderToRow(order: Partial<CRMOrder>) {
+  return {
+    id: order.id,
+    spk_number: order.spkNumber || order.id,
+    status: order.status,
+    total_price: order.totalPrice,
+    customer_name: order.customerName,
+    phone: order.phone,
+    service_type: order.serviceType,
+    car_brand: order.carBrand,
+    car_model: order.carModel,
+    car_year: order.carYear,
+    license_plate: order.licensePlate,
+    location_address: order.locationAddress,
+    is_emergency: order.isEmergency,
+    notes: order.notes,
+    service_date: order.serviceDate,
+    service_time: order.serviceTime,
+    service_location: order.serviceLocation,
+    sa_name: order.saName,
+    sa_id: order.saId,
+    fa_name: order.faName,
+    fa_id: order.faId,
+    mekanik_name: order.mekanikName,
+    mekanik_id: order.mekanikId,
+    kasir_name: order.kasirName,
+    kasir_id: order.kasirId,
+    kilometer: order.kilometer,
+    no_rangka: order.noRangka,
+    no_mesin: order.noMesin,
+    fuel_type: order.fuelType,
+    spareparts: order.spareparts || [],
+    jasa_list: order.jasaList || [],
+    sa_check_eksterior: order.saCheckEksterior || [],
+    sa_check_interior: order.saCheckInterior || [],
+    sa_check_mesin: order.saCheckMesin || [],
+    sa_check_kaki_kaki: order.saCheckKakiKaki || [],
+    lpa_checklist: order.lpaChecklist || [],
+    sa_catatan_umum: order.saCatatanUmum,
+    lpa_catatan: order.lpaCatatan,
+    diskon: order.diskon,
+    pajak_persen: order.pajakPersen,
+    metode_pembayaran: order.metodePembayaran,
+    dibayar: order.dibayar,
+    kembalian: order.kembalian,
+    customer_type: order.customerType,
+    customer_id: order.customerId,
+    raw_data: order,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export function subscribeToOrders(callback: (orders: CRMOrder[]) => void): () => void {
   const initialLocal = getLocalOrders();
   if (initialLocal.length > 0) {
     callback(initialLocal);
@@ -98,63 +174,53 @@ export function subscribeToOrders(
   };
   window.addEventListener('fhrcar_orders_updated', handleLocalUpdate);
 
-  try {
-    const q = query(
-      collection(db, ORDERS_COLLECTION),
-      orderBy('createdAt', 'desc')
-    );
+  // Initial fetch from Supabase
+  const fetchOrders = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const orders: CRMOrder[] = snapshot.docs.map((docSnap) => {
-            const data = docSnap.data();
-            return {
-              id: docSnap.id,
-              ...data,
-              createdAt:
-                data.createdAt instanceof Timestamp
-                  ? data.createdAt.toDate().toISOString()
-                  : data.createdAt ?? new Date().toISOString(),
-            } as CRMOrder;
-          });
-          saveLocalOrders(orders);
-          callback(orders);
-        } else {
-          callback(getLocalOrders());
-        }
-      },
-      (error) => {
-        console.warn('[Firestore] Orders subscription error, using local fallback:', error);
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const mapped = data.map(mapOrderFromRow);
+        saveLocalOrders(mapped);
+        callback(mapped);
+      } else {
         callback(getLocalOrders());
       }
-    );
+    } catch (err) {
+      console.warn('[Supabase] Orders fetch fallback to local:', err);
+      callback(getLocalOrders());
+    }
+  };
 
-    return () => {
-      window.removeEventListener('fhrcar_orders_updated', handleLocalUpdate);
-      unsubscribe();
-    };
-  } catch (err) {
-    console.warn('[Firestore] subscribeToOrders failed:', err);
-    return () => {
-      window.removeEventListener('fhrcar_orders_updated', handleLocalUpdate);
-    };
-  }
+  fetchOrders();
+
+  // Realtime subscription via Supabase Channel
+  const channel = supabase
+    .channel('public:orders')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      fetchOrders();
+    })
+    .subscribe();
+
+  return () => {
+    window.removeEventListener('fhrcar_orders_updated', handleLocalUpdate);
+    supabase.removeChannel(channel);
+  };
 }
 
-/**
- * Add a new order to Firestore (with local fallback).
- */
-export async function addOrder(
-  order: Omit<CRMOrder, 'id' | 'createdAt'>
-): Promise<string> {
+export async function addOrder(order: Omit<CRMOrder, 'id' | 'createdAt'>): Promise<string> {
   const cleanOrder = sanitizeData(order);
   const tempId = 'ORD-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+  const now = new Date().toISOString();
   const newOrder: CRMOrder = {
     id: tempId,
     ...cleanOrder,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
   };
 
   const list = getLocalOrders();
@@ -162,90 +228,80 @@ export async function addOrder(
   saveLocalOrders(list);
 
   try {
-    const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
-      ...cleanOrder,
-      createdAt: serverTimestamp(),
-    });
-    const updated = list.map(o => o.id === tempId ? { ...o, id: docRef.id } : o);
-    saveLocalOrders(updated);
-    return docRef.id;
+    const row = mapOrderToRow({ ...newOrder, id: tempId });
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([{ ...row, created_at: now }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (data?.id) {
+      const updated = list.map(o => o.id === tempId ? { ...o, id: data.id } : o);
+      saveLocalOrders(updated);
+      return data.id;
+    }
   } catch (error) {
-    console.warn('[Firestore] addOrder failed in cloud, saved locally:', error);
-    return tempId;
+    console.warn('[Supabase] addOrder cloud sync failed, saved locally:', error);
   }
+  return tempId;
 }
 
-/**
- * Update the status of an existing order immediately in real-time.
- */
-export async function updateOrderStatus(
-  orderId: string,
-  newStatus: OrderStatus
-): Promise<void> {
-  // 1. Instant local update
+export async function updateOrderStatus(orderId: string, newStatus: OrderStatus): Promise<void> {
   const list = getLocalOrders();
-  const updated = list.map(o => o.id === orderId ? { ...o, status: newStatus, updatedAt: new Date().toISOString() } : o);
+  const now = new Date().toISOString();
+  const updated = list.map(o => o.id === orderId ? { ...o, status: newStatus, updatedAt: now } : o);
   saveLocalOrders(updated);
 
-  // 2. Cloud Firestore sync
   try {
-    const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-    await updateDoc(orderRef, {
-      status: newStatus,
-      updatedAt: serverTimestamp(),
-    });
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: newStatus, updated_at: now })
+      .eq('id', orderId);
+    if (error) throw error;
   } catch (error) {
-    console.warn('[Firestore] updateOrderStatus fallback:', error);
+    console.warn('[Supabase] updateOrderStatus cloud fallback:', error);
   }
 }
 
-/**
- * Update any fields of an order immediately in real-time.
- */
-export async function updateOrder(
-  orderId: string,
-  fields: Partial<CRMOrder>
-): Promise<void> {
+export async function updateOrder(orderId: string, fields: Partial<CRMOrder>): Promise<void> {
   const cleanFields = sanitizeData(fields);
   const now = new Date().toISOString();
 
-  // 1. Instant local update
   const list = getLocalOrders();
-  const updated = list.map(o => o.id === orderId ? { ...o, ...cleanFields, updatedAt: now } : o);
+  const existing = list.find(o => o.id === orderId) || {} as CRMOrder;
+  const merged = { ...existing, ...cleanFields, updatedAt: now };
+  const updated = list.map(o => o.id === orderId ? merged : o);
   saveLocalOrders(updated);
 
-  // 2. Cloud Firestore sync
   try {
-    const orderRef = doc(db, ORDERS_COLLECTION, orderId);
-    await updateDoc(orderRef, {
-      ...cleanFields,
-      updatedAt: serverTimestamp(),
-    });
+    const row = mapOrderToRow(merged);
+    const { error } = await supabase
+      .from('orders')
+      .update(row)
+      .eq('id', orderId);
+    if (error) throw error;
   } catch (error) {
-    console.warn('[Firestore] updateOrder fallback:', error);
+    console.warn('[Supabase] updateOrder cloud fallback:', error);
   }
 }
 
-/**
- * Delete an order immediately in real-time.
- */
 export async function deleteOrder(orderId: string): Promise<void> {
-  // 1. Instant local update
   const list = getLocalOrders();
   const filtered = list.filter(o => o.id !== orderId);
   saveLocalOrders(filtered);
 
-  // 2. Cloud Firestore sync
   try {
-    await deleteDoc(doc(db, ORDERS_COLLECTION, orderId));
+    const { error } = await supabase
+      .from('orders')
+      .delete()
+      .eq('id', orderId);
+    if (error) throw error;
   } catch (error) {
-    console.warn('[Firestore] deleteOrder fallback:', error);
+    console.warn('[Supabase] deleteOrder cloud fallback:', error);
   }
 }
 
-/**
- * Add SPK document with unified order & SPK sync
- */
 export async function addSPK(spkData: any): Promise<string> {
   const clean = sanitizeData(spkData);
   const tempId = spkData.spkNumber || ('SPK-' + Math.random().toString(36).substring(2, 9).toUpperCase());
@@ -301,23 +357,25 @@ export async function addSPK(spkData: any): Promise<string> {
   saveLocalOrders(list);
 
   try {
-    const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
-      ...clean,
-      ...newOrder,
-      createdAt: serverTimestamp(),
-    });
-    const updated = list.map(o => o.id === tempId ? { ...o, id: docRef.id } : o);
-    saveLocalOrders(updated);
-    return docRef.id;
+    const row = mapOrderToRow({ ...clean, ...newOrder });
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([{ ...row, created_at: now }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (data?.id) {
+      const updated = list.map(o => o.id === tempId ? { ...o, id: data.id } : o);
+      saveLocalOrders(updated);
+      return data.id;
+    }
   } catch (error) {
-    console.warn('[Firestore] addSPK cloud save failed, saved locally:', error);
-    return tempId;
+    console.warn('[Supabase] addSPK cloud save failed, saved locally:', error);
   }
+  return tempId;
 }
 
-/**
- * Update SPK document with unified order & SPK sync
- */
 export async function updateSPK(spkId: string, spkData: any): Promise<void> {
   const clean = sanitizeData(spkData);
   const now = new Date().toISOString();
@@ -372,227 +430,224 @@ export async function updateSPK(spkId: string, spkData: any): Promise<void> {
   saveLocalOrders(updated);
 
   try {
-    const docRef = doc(db, ORDERS_COLLECTION, spkId);
-    await updateDoc(docRef, {
-      ...clean,
-      updatedAt: serverTimestamp(),
-    });
+    const row = mapOrderToRow({ ...clean, id: spkId, updatedAt: now });
+    const { error } = await supabase
+      .from('orders')
+      .update(row)
+      .eq('id', spkId);
+    if (error) throw error;
   } catch (error) {
-    console.warn('[Firestore] updateSPK cloud update fallback:', error);
+    console.warn('[Supabase] updateSPK cloud update fallback:', error);
   }
 }
 
-/**
- * Delete SPK document
- */
 export async function deleteSPK(spkId: string): Promise<void> {
   await deleteOrder(spkId);
 }
 
-/**
- * Seed initial mock orders into Firestore.
- */
 export async function seedInitialOrders(orders: Omit<CRMOrder, 'id'>[]): Promise<void> {
   for (const order of orders) {
-    const cleanOrder = sanitizeData(order);
-    try {
-      await addDoc(collection(db, ORDERS_COLLECTION), {
-        ...cleanOrder,
-        createdAt: serverTimestamp(),
-      });
-    } catch (e) {
-      console.warn('[Firestore] seedInitialOrders skipped cloud for 1 item:', e);
-    }
+    await addOrder(order);
   }
 }
 
-/**
- * Subscribe to all customers in real-time (with local sync & fallback).
- * Returns an unsubscribe function.
- */
-export function subscribeToCustomers(
-  callback: (customers: CustomerItem[]) => void
-): () => void {
-  // First, emit whatever we have locally for instant UI
+// ═══════════════════════════════════════════════════════════════════
+// 2. CUSTOMERS SERVICE
+// ═══════════════════════════════════════════════════════════════════
+
+function getLocalCustomers(): CustomerItem[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_CUSTOMERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalCustomers(customers: CustomerItem[]) {
+  try {
+    localStorage.setItem(LOCAL_CUSTOMERS_KEY, JSON.stringify(customers));
+    window.dispatchEvent(new CustomEvent('fhrcar-customers-updated'));
+  } catch (e) {
+    console.warn('[Storage] Could not save customers to localStorage:', e);
+  }
+}
+
+function mapCustomerFromRow(row: any): CustomerItem {
+  const raw = row.raw_data || {};
+  return {
+    ...raw,
+    id: row.id || raw.id,
+    name: row.name || raw.name || '',
+    phone: row.phone || raw.phone || '',
+    email: row.email || raw.email || '',
+    address: row.address || raw.address || '',
+    carBrand: row.car_brand || raw.carBrand || '',
+    carModel: row.car_model || raw.carModel || '',
+    carYear: row.car_year || raw.carYear || '',
+    licensePlate: row.license_plate || raw.licensePlate || '',
+    vinNumber: row.vin_number || raw.vinNumber || '',
+    engineNumber: row.engine_number || raw.engineNumber || '',
+    fuelType: row.fuel_type || raw.fuelType || 'Bensin',
+    transmission: row.transmission || raw.transmission || 'Matic',
+    customerType: row.customer_type || raw.customerType || 'BARU',
+    notes: row.notes || raw.notes || '',
+    createdAt: row.created_at || raw.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || raw.updatedAt,
+  };
+}
+
+function mapCustomerToRow(customer: Partial<CustomerItem>) {
+  return {
+    id: customer.id,
+    name: customer.name,
+    phone: customer.phone,
+    email: customer.email,
+    address: customer.address,
+    car_brand: customer.carBrand,
+    car_model: customer.carModel,
+    car_year: customer.carYear,
+    license_plate: customer.licensePlate,
+    vin_number: customer.vinNumber,
+    engine_number: customer.engineNumber,
+    fuel_type: customer.fuelType,
+    transmission: customer.transmission,
+    customer_type: customer.customerType || 'BARU',
+    notes: customer.notes,
+    raw_data: customer,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+export function subscribeToCustomers(callback: (customers: CustomerItem[]) => void): () => void {
   const localList = getLocalCustomers();
   if (localList.length > 0) {
     callback(localList);
   }
 
-  // Listen to local update events
   const handleLocalUpdate = () => {
-    const fresh = getLocalCustomers();
-    callback(fresh);
+    callback(getLocalCustomers());
   };
   window.addEventListener('fhrcar-customers-updated', handleLocalUpdate);
 
-  let unsubscribeFirestore = () => {};
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  try {
-    const q = collection(db, CUSTOMERS_COLLECTION);
-    unsubscribeFirestore = onSnapshot(
-      q,
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const cloudCustomers: CustomerItem[] = snapshot.docs.map((docSnap) => {
-            const data = docSnap.data();
-            return {
-              id: docSnap.id,
-              ...data,
-              createdAt:
-                data.createdAt instanceof Timestamp
-                  ? data.createdAt.toDate().toISOString()
-                  : data.createdAt ?? new Date().toISOString(),
-              updatedAt:
-                data.updatedAt instanceof Timestamp
-                  ? data.updatedAt.toDate().toISOString()
-                  : data.updatedAt,
-            } as CustomerItem;
-          });
+      if (error) throw error;
 
-          // Sort client-side by createdAt desc
-          cloudCustomers.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-          saveLocalCustomers(cloudCustomers);
-          callback(cloudCustomers);
-        } else {
-          // If cloud is empty, check local
-          const currentLocal = getLocalCustomers();
-          callback(currentLocal);
-        }
-      },
-      (error) => {
-        console.warn('[Firestore] Customers snapshot error (using local storage):', error);
+      if (data && data.length > 0) {
+        const mapped = data.map(mapCustomerFromRow);
+        saveLocalCustomers(mapped);
+        callback(mapped);
+      } else {
         callback(getLocalCustomers());
       }
-    );
-  } catch (err) {
-    console.warn('[Firestore] subscribeToCustomers query failed:', err);
-    callback(getLocalCustomers());
-  }
+    } catch (err) {
+      console.warn('[Supabase] Customers fetch fallback:', err);
+      callback(getLocalCustomers());
+    }
+  };
+
+  fetchCustomers();
+
+  const channel = supabase
+    .channel('public:customers')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => {
+      fetchCustomers();
+    })
+    .subscribe();
 
   return () => {
-    unsubscribeFirestore();
     window.removeEventListener('fhrcar-customers-updated', handleLocalUpdate);
+    supabase.removeChannel(channel);
   };
 }
 
-/**
- * Add a new customer (dual sync: Firestore + Local Storage).
- */
-export async function addCustomer(
-  customer: Omit<CustomerItem, 'id' | 'createdAt'>
-): Promise<string> {
+export async function addCustomer(customer: Omit<CustomerItem, 'id' | 'createdAt'>): Promise<string> {
   const cleanCustomer = sanitizeData(customer);
   const tempId = 'CUST-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+  const now = new Date().toISOString();
   const newCustomerObj: CustomerItem = {
     id: tempId,
     ...cleanCustomer,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
   };
 
-  // Always update local immediately so user experiences 0 lag and 100% reliability
   const currentList = getLocalCustomers();
   currentList.unshift(newCustomerObj);
   saveLocalCustomers(currentList);
 
   try {
-    const docRef = await addDoc(collection(db, CUSTOMERS_COLLECTION), {
-      ...cleanCustomer,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    // If Firestore succeeds with new ID, update the local ID
-    if (docRef.id) {
-      newCustomerObj.id = docRef.id;
-      const updatedList = getLocalCustomers().map(c => c.id === tempId ? newCustomerObj : c);
+    const row = mapCustomerToRow(newCustomerObj);
+    const { data, error } = await supabase
+      .from('customers')
+      .insert([{ ...row, created_at: now }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (data?.id) {
+      const updatedList = currentList.map(c => c.id === tempId ? { ...c, id: data.id } : c);
       saveLocalCustomers(updatedList);
-      return docRef.id;
+      return data.id;
     }
   } catch (error) {
-    console.warn('[Firestore] addCustomer could not write to cloud, saved locally:', error);
+    console.warn('[Supabase] addCustomer cloud sync failed, saved locally:', error);
   }
-
   return tempId;
 }
 
-/**
- * Update an existing customer.
- */
-export async function updateCustomer(
-  customerId: string,
-  fields: Partial<CustomerItem>
-): Promise<void> {
+export async function updateCustomer(customerId: string, fields: Partial<CustomerItem>): Promise<void> {
   const cleanFields = sanitizeData(fields);
+  const now = new Date().toISOString();
 
-  // Update local immediately
   const currentList = getLocalCustomers();
-  const updatedList = currentList.map(c =>
-    c.id === customerId ? { ...c, ...cleanFields, updatedAt: new Date().toISOString() } : c
-  );
+  const existing = currentList.find(c => c.id === customerId) || {} as CustomerItem;
+  const merged = { ...existing, ...cleanFields, updatedAt: now };
+  const updatedList = currentList.map(c => c.id === customerId ? merged : c);
   saveLocalCustomers(updatedList);
 
   try {
-    const customerRef = doc(db, CUSTOMERS_COLLECTION, customerId);
-    await updateDoc(customerRef, {
-      ...cleanFields,
-      updatedAt: serverTimestamp(),
-    });
+    const row = mapCustomerToRow(merged);
+    const { error } = await supabase
+      .from('customers')
+      .update(row)
+      .eq('id', customerId);
+    if (error) throw error;
   } catch (error) {
-    console.warn('[Firestore] updateCustomer cloud update fallback:', error);
+    console.warn('[Supabase] updateCustomer cloud update fallback:', error);
   }
 }
 
-/**
- * Delete a customer.
- */
 export async function deleteCustomer(customerId: string): Promise<void> {
-  // Update local immediately
   const currentList = getLocalCustomers();
   const updatedList = currentList.filter(c => c.id !== customerId);
   saveLocalCustomers(updatedList);
 
   try {
-    await deleteDoc(doc(db, CUSTOMERS_COLLECTION, customerId));
+    const { error } = await supabase
+      .from('customers')
+      .delete()
+      .eq('id', customerId);
+    if (error) throw error;
   } catch (error) {
-    console.warn('[Firestore] deleteCustomer cloud delete fallback:', error);
+    console.warn('[Supabase] deleteCustomer cloud delete fallback:', error);
   }
 }
 
-/**
- * Seed initial mock customers.
- */
 export async function seedInitialCustomers(customers: Omit<CustomerItem, 'id'>[]): Promise<void> {
-  const localList = getLocalCustomers();
-  if (localList.length === 0) {
-    const seededList: CustomerItem[] = customers.map((c, i) => ({
-      id: 'CUST-00' + (i + 1),
-      ...sanitizeData(c),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    }));
-    saveLocalCustomers(seededList);
-  }
-
-  // Also try seeding to Firestore in background
-  for (const customer of customers) {
-    const cleanCustomer = sanitizeData(customer);
-    try {
-      await addDoc(collection(db, CUSTOMERS_COLLECTION), {
-        ...cleanCustomer,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-    } catch (e) {
-      // Ignore background cloud seed error
-    }
+  for (const c of customers) {
+    await addCustomer(c);
   }
 }
-
 
 // ═══════════════════════════════════════════════════════════════════
-// EMPLOYEES / KARYAWAN SERVICE
+// 3. EMPLOYEES / KARYAWAN SERVICE
 // ═══════════════════════════════════════════════════════════════════
 
 export const DEFAULT_EMPLOYEES: EmployeeItem[] = [
@@ -629,14 +684,40 @@ function saveLocalEmployees(employees: EmployeeItem[]) {
   }
 }
 
-/**
- * Subscribe to employees list in real-time.
- */
+function mapEmployeeFromRow(row: any): EmployeeItem {
+  const raw = row.raw_data || {};
+  return {
+    ...raw,
+    id: row.id || raw.id,
+    name: row.name || raw.name || '',
+    nik: row.nik || raw.nik || '',
+    role: row.role || raw.role || 'Mekanik',
+    phone: row.phone || raw.phone || '',
+    email: row.email || raw.email || '',
+    status: row.status || raw.status || 'active',
+    createdAt: row.created_at || raw.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || raw.updatedAt,
+  };
+}
+
+function mapEmployeeToRow(emp: Partial<EmployeeItem>) {
+  return {
+    id: emp.id,
+    name: emp.name,
+    nik: emp.nik,
+    role: emp.role,
+    phone: emp.phone,
+    email: emp.email,
+    status: emp.status || 'active',
+    raw_data: emp,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 export function subscribeToEmployees(
   onUpdate: (employees: EmployeeItem[]) => void,
   onError?: (error: Error) => void
 ): () => void {
-  // Emit initial local cache immediately
   const initialLocal = getLocalEmployees();
   onUpdate(initialLocal);
 
@@ -645,63 +726,47 @@ export function subscribeToEmployees(
   };
   window.addEventListener('fhrcar_employees_updated', handleLocalUpdate);
 
-  try {
-    const q = query(collection(db, EMPLOYEES_COLLECTION), orderBy('name', 'asc'));
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        if (!snapshot.empty) {
-          const cloudEmployees: EmployeeItem[] = snapshot.docs.map((docSnap) => {
-            const data = docSnap.data();
-            return {
-              id: docSnap.id,
-              name: data.name || '',
-              nik: data.nik || '',
-              role: data.role || 'Mekanik',
-              phone: data.phone || '',
-              email: data.email || '',
-              status: data.status || 'active',
-              createdAt: data.createdAt instanceof Timestamp
-                ? data.createdAt.toDate().toISOString()
-                : data.createdAt || new Date().toISOString(),
-              updatedAt: data.updatedAt instanceof Timestamp
-                ? data.updatedAt.toDate().toISOString()
-                : data.updatedAt,
-            };
-          });
-          saveLocalEmployees(cloudEmployees);
-          onUpdate(cloudEmployees);
-        } else {
-          // Cloud collection is empty, seed defaults to cloud in background
-          seedDefaultEmployeesToCloud();
-          onUpdate(initialLocal);
-        }
-      },
-      (error) => {
-        console.warn('[Firestore] Employees subscription offline fallback:', error.message);
-        onUpdate(getLocalEmployees());
-        if (onError) onError(error);
-      }
-    );
+  const fetchEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .order('name', { ascending: true });
 
-    return () => {
-      window.removeEventListener('fhrcar_employees_updated', handleLocalUpdate);
-      unsubscribe();
-    };
-  } catch (err: any) {
-    console.warn('[Firestore] Employees subscription init fallback:', err);
-    return () => {
-      window.removeEventListener('fhrcar_employees_updated', handleLocalUpdate);
-    };
-  }
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const mapped = data.map(mapEmployeeFromRow);
+        saveLocalEmployees(mapped);
+        onUpdate(mapped);
+      } else {
+        // Seed default employees to Supabase if empty
+        seedDefaultEmployeesToSupabase();
+        onUpdate(initialLocal);
+      }
+    } catch (err: any) {
+      console.warn('[Supabase] Employees fetch fallback:', err);
+      onUpdate(getLocalEmployees());
+      if (onError) onError(err);
+    }
+  };
+
+  fetchEmployees();
+
+  const channel = supabase
+    .channel('public:employees')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
+      fetchEmployees();
+    })
+    .subscribe();
+
+  return () => {
+    window.removeEventListener('fhrcar_employees_updated', handleLocalUpdate);
+    supabase.removeChannel(channel);
+  };
 }
 
-/**
- * Add a new employee
- */
-export async function addEmployee(
-  employee: Omit<EmployeeItem, 'id' | 'createdAt'>
-): Promise<string> {
+export async function addEmployee(employee: Omit<EmployeeItem, 'id' | 'createdAt'>): Promise<string> {
   const cleanEmp = sanitizeData(employee);
   const now = new Date().toISOString();
   const tempId = 'emp_' + Math.random().toString(36).substring(2, 9);
@@ -712,92 +777,80 @@ export async function addEmployee(
     updatedAt: now,
   };
 
-  // 1. Always save to LocalStorage immediately
   const localList = getLocalEmployees();
   localList.unshift(newEmp);
   saveLocalEmployees(localList);
 
-  // 2. Try Firestore cloud sync
   try {
-    const docRef = await addDoc(collection(db, EMPLOYEES_COLLECTION), {
-      ...cleanEmp,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-    // Update local ID with real Firestore ID
-    const updated = localList.map(e => e.id === tempId ? { ...e, id: docRef.id } : e);
-    saveLocalEmployees(updated);
-    return docRef.id;
+    const row = mapEmployeeToRow(newEmp);
+    const { data, error } = await supabase
+      .from('employees')
+      .insert([{ ...row, created_at: now }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (data?.id) {
+      const updated = localList.map(e => e.id === tempId ? { ...e, id: data.id } : e);
+      saveLocalEmployees(updated);
+      return data.id;
+    }
   } catch (error) {
-    console.warn('[Firestore] Employee cloud add failed, saved locally:', error);
-    return tempId;
+    console.warn('[Supabase] Employee cloud add failed, saved locally:', error);
   }
+  return tempId;
 }
 
-/**
- * Update an existing employee
- */
-export async function updateEmployee(
-  employeeId: string,
-  data: Partial<EmployeeItem>
-): Promise<void> {
+export async function updateEmployee(employeeId: string, data: Partial<EmployeeItem>): Promise<void> {
   const cleanData = sanitizeData(data);
   const now = new Date().toISOString();
 
-  // 1. Update local store immediately
   const localList = getLocalEmployees();
-  const updated = localList.map(e => e.id === employeeId ? { ...e, ...cleanData, updatedAt: now } : e);
+  const existing = localList.find(e => e.id === employeeId) || {} as EmployeeItem;
+  const merged = { ...existing, ...cleanData, updatedAt: now };
+  const updated = localList.map(e => e.id === employeeId ? merged : e);
   saveLocalEmployees(updated);
 
-  // 2. Try Firestore cloud sync
   try {
-    const empRef = doc(db, EMPLOYEES_COLLECTION, employeeId);
-    await updateDoc(empRef, {
-      ...cleanData,
-      updatedAt: serverTimestamp(),
-    });
+    const row = mapEmployeeToRow(merged);
+    const { error } = await supabase
+      .from('employees')
+      .update(row)
+      .eq('id', employeeId);
+    if (error) throw error;
   } catch (error) {
-    console.warn('[Firestore] Employee cloud update failed, updated locally:', error);
+    console.warn('[Supabase] Employee cloud update failed, updated locally:', error);
   }
 }
 
-/**
- * Delete an employee
- */
 export async function deleteEmployee(employeeId: string): Promise<void> {
-  // 1. Delete from local store immediately
   const localList = getLocalEmployees();
   const filtered = localList.filter(e => e.id !== employeeId);
   saveLocalEmployees(filtered);
 
-  // 2. Try Firestore cloud delete
   try {
-    const empRef = doc(db, EMPLOYEES_COLLECTION, employeeId);
-    await deleteDoc(empRef);
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', employeeId);
+    if (error) throw error;
   } catch (error) {
-    console.warn('[Firestore] Employee cloud delete failed, deleted locally:', error);
+    console.warn('[Supabase] Employee cloud delete failed, deleted locally:', error);
   }
 }
 
-/**
- * Seed default employees to cloud
- */
-async function seedDefaultEmployeesToCloud() {
+async function seedDefaultEmployeesToSupabase() {
   for (const emp of DEFAULT_EMPLOYEES) {
     try {
-      const clean = sanitizeData(emp);
-      await addDoc(collection(db, EMPLOYEES_COLLECTION), {
-        ...clean,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      const row = mapEmployeeToRow(emp);
+      await supabase.from('employees').insert([row]);
     } catch {}
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// INVENTORY / KELOLA PRODUK & JASA
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// 4. INVENTORY / KELOLA PRODUK & JASA
+// ═══════════════════════════════════════════════════════════════════
 
 function getLocalInventory(): InventoryItem[] {
   try {
@@ -813,14 +866,62 @@ function getLocalInventory(): InventoryItem[] {
     }));
     saveLocalInventory(seeded);
     return seeded;
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function saveLocalInventory(items: InventoryItem[]) {
   try {
     localStorage.setItem(LOCAL_INVENTORY_KEY, JSON.stringify(items));
     window.dispatchEvent(new CustomEvent('fhrcar_inventory_updated', { detail: items }));
-  } catch (e) { console.warn('Failed to save inventory:', e); }
+  } catch (e) {
+    console.warn('Failed to save inventory:', e);
+  }
+}
+
+function mapInventoryFromRow(row: any): InventoryItem {
+  const raw = row.raw_data || {};
+  return {
+    ...raw,
+    id: row.id || raw.id,
+    skuCode: row.sku_code || raw.skuCode || '',
+    name: row.name || raw.name || '',
+    category: row.category || raw.category || '',
+    type: (row.type || raw.type || 'sparepart') as any,
+    unit: row.unit || raw.unit || 'pcs',
+    stock: Number(row.stock ?? raw.stock ?? 0),
+    minStock: Number(row.min_stock ?? raw.minStock ?? 0),
+    buyPrice: Number(row.buy_price ?? raw.buyPrice ?? 0),
+    sellPrice: Number(row.sell_price ?? raw.sellPrice ?? 0),
+    durationMinutes: row.duration_minutes ? Number(row.duration_minutes) : raw.durationMinutes,
+    warrantyDays: row.warranty_days ? Number(row.warranty_days) : raw.warrantyDays,
+    notes: row.notes || raw.notes || '',
+    isActive: Boolean(row.is_active ?? raw.isActive ?? true),
+    createdAt: row.created_at || raw.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || raw.updatedAt,
+  };
+}
+
+function mapInventoryToRow(item: Partial<InventoryItem>) {
+  return {
+    id: item.id,
+    sku_code: item.skuCode,
+    name: item.name,
+    category: item.category,
+    type: item.type,
+    unit: item.unit,
+    stock: item.stock,
+    min_stock: item.minStock,
+    buy_price: item.buyPrice,
+    sell_price: item.sellPrice,
+    duration_minutes: item.durationMinutes,
+    warranty_days: item.warrantyDays,
+    notes: item.notes,
+    is_active: item.isActive ?? true,
+    raw_data: item,
+    updated_at: new Date().toISOString(),
+  };
 }
 
 export function subscribeToInventory(callback: (items: InventoryItem[]) => void): () => void {
@@ -830,24 +931,40 @@ export function subscribeToInventory(callback: (items: InventoryItem[]) => void)
   const handleLocal = (e: any) => { if (e.detail) callback(e.detail); };
   window.addEventListener('fhrcar_inventory_updated', handleLocal);
 
-  try {
-    const q = query(collection(db, INVENTORY_COLLECTION), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      if (!snap.empty) {
-        const items: InventoryItem[] = snap.docs.map(d => {
-          const data = d.data();
-          return { ...data, id: d.id, createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()) } as InventoryItem;
-        });
-        saveLocalInventory(items);
-        callback(items);
+  const fetchInventory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const mapped = data.map(mapInventoryFromRow);
+        saveLocalInventory(mapped);
+        callback(mapped);
       } else {
-        callback(local);
+        callback(getLocalInventory());
       }
-    }, () => callback(local));
-    return () => { window.removeEventListener('fhrcar_inventory_updated', handleLocal); unsub(); };
-  } catch {
-    return () => window.removeEventListener('fhrcar_inventory_updated', handleLocal);
-  }
+    } catch {
+      callback(getLocalInventory());
+    }
+  };
+
+  fetchInventory();
+
+  const channel = supabase
+    .channel('public:inventory')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, () => {
+      fetchInventory();
+    })
+    .subscribe();
+
+  return () => {
+    window.removeEventListener('fhrcar_inventory_updated', handleLocal);
+    supabase.removeChannel(channel);
+  };
 }
 
 export async function addInventoryItem(item: Omit<InventoryItem, 'id' | 'createdAt'>): Promise<string> {
@@ -857,45 +974,106 @@ export async function addInventoryItem(item: Omit<InventoryItem, 'id' | 'created
   const list = getLocalInventory();
   list.unshift(newItem);
   saveLocalInventory(list);
+
   try {
-    const ref = await addDoc(collection(db, INVENTORY_COLLECTION), { ...sanitizeData(item), createdAt: serverTimestamp() });
-    const updated = list.map(i => i.id === tempId ? { ...i, id: ref.id } : i);
-    saveLocalInventory(updated);
-    return ref.id;
-  } catch { return tempId; }
+    const row = mapInventoryToRow(newItem);
+    const { data, error } = await supabase
+      .from('inventory')
+      .insert([{ ...row, created_at: now }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (data?.id) {
+      const updated = list.map(i => i.id === tempId ? { ...i, id: data.id } : i);
+      saveLocalInventory(updated);
+      return data.id;
+    }
+  } catch {}
+  return tempId;
 }
 
 export async function updateInventoryItem(id: string, updates: Partial<InventoryItem>): Promise<void> {
   const list = getLocalInventory();
-  const updated = list.map(i => i.id === id ? { ...i, ...updates, updatedAt: new Date().toISOString() } : i);
+  const existing = list.find(i => i.id === id) || {} as InventoryItem;
+  const merged = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+  const updated = list.map(i => i.id === id ? merged : i);
   saveLocalInventory(updated);
+
   try {
-    await updateDoc(doc(db, INVENTORY_COLLECTION, id), { ...sanitizeData(updates), updatedAt: serverTimestamp() });
-  } catch (e) { console.warn('updateInventoryItem cloud error:', e); }
+    const row = mapInventoryToRow(merged);
+    await supabase.from('inventory').update(row).eq('id', id);
+  } catch (e) {
+    console.warn('updateInventoryItem cloud error:', e);
+  }
 }
 
 export async function deleteInventoryItem(id: string): Promise<void> {
   const list = getLocalInventory();
   saveLocalInventory(list.filter(i => i.id !== id));
-  try { await deleteDoc(doc(db, INVENTORY_COLLECTION, id)); } catch (e) { console.warn('deleteInventoryItem:', e); }
+  try {
+    await supabase.from('inventory').delete().eq('id', id);
+  } catch (e) {
+    console.warn('deleteInventoryItem:', e);
+  }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// PURCHASE ORDERS
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// 5. PURCHASE ORDERS
+// ═══════════════════════════════════════════════════════════════════
 
 function getLocalPO(): PurchaseOrder[] {
   try {
     const raw = localStorage.getItem(LOCAL_PO_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function saveLocalPO(list: PurchaseOrder[]) {
   try {
     localStorage.setItem(LOCAL_PO_KEY, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent('fhrcar_po_updated', { detail: list }));
-  } catch (e) { console.warn('Failed to save PO:', e); }
+  } catch (e) {
+    console.warn('Failed to save PO:', e);
+  }
+}
+
+function mapPOFromRow(row: any): PurchaseOrder {
+  const raw = row.raw_data || {};
+  return {
+    ...raw,
+    id: row.id || raw.id,
+    poNumber: row.po_number || raw.poNumber || '',
+    supplier: row.supplier || raw.supplier || '',
+    supplierPhone: row.supplier_phone || raw.supplierPhone,
+    status: row.status || raw.status || 'draft',
+    items: row.items || raw.items || [],
+    totalAmount: Number(row.total_amount ?? raw.totalAmount ?? 0),
+    notes: row.notes || raw.notes,
+    orderedAt: row.ordered_at || raw.orderedAt,
+    receivedAt: row.received_at || raw.receivedAt,
+    createdAt: row.created_at || raw.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || raw.updatedAt,
+  };
+}
+
+function mapPOToRow(po: Partial<PurchaseOrder>) {
+  return {
+    id: po.id,
+    po_number: po.poNumber,
+    supplier: po.supplier,
+    supplier_phone: po.supplierPhone,
+    status: po.status,
+    items: po.items || [],
+    total_amount: po.totalAmount,
+    notes: po.notes,
+    ordered_at: po.orderedAt,
+    received_at: po.receivedAt,
+    raw_data: po,
+    updated_at: new Date().toISOString(),
+  };
 }
 
 export function subscribeToPurchaseOrders(callback: (pos: PurchaseOrder[]) => void): () => void {
@@ -905,22 +1083,39 @@ export function subscribeToPurchaseOrders(callback: (pos: PurchaseOrder[]) => vo
   const handleLocal = (e: any) => { if (e.detail) callback(e.detail); };
   window.addEventListener('fhrcar_po_updated', handleLocal);
 
-  try {
-    const q = query(collection(db, PURCHASE_ORDERS_COLLECTION), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      if (!snap.empty) {
-        const pos: PurchaseOrder[] = snap.docs.map(d => {
-          const data = d.data();
-          return { ...data, id: d.id, createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()) } as PurchaseOrder;
-        });
-        saveLocalPO(pos);
-        callback(pos);
-      } else { callback(local); }
-    }, () => callback(local));
-    return () => { window.removeEventListener('fhrcar_po_updated', handleLocal); unsub(); };
-  } catch {
-    return () => window.removeEventListener('fhrcar_po_updated', handleLocal);
-  }
+  const fetchPO = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const mapped = data.map(mapPOFromRow);
+        saveLocalPO(mapped);
+        callback(mapped);
+      } else {
+        callback(getLocalPO());
+      }
+    } catch {
+      callback(getLocalPO());
+    }
+  };
+
+  fetchPO();
+
+  const channel = supabase
+    .channel('public:purchase_orders')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders' }, () => {
+      fetchPO();
+    })
+    .subscribe();
+
+  return () => {
+    window.removeEventListener('fhrcar_po_updated', handleLocal);
+    supabase.removeChannel(channel);
+  };
 }
 
 export async function addPurchaseOrder(po: Omit<PurchaseOrder, 'id' | 'createdAt'>): Promise<string> {
@@ -930,42 +1125,99 @@ export async function addPurchaseOrder(po: Omit<PurchaseOrder, 'id' | 'createdAt
   const list = getLocalPO();
   list.unshift(newPO);
   saveLocalPO(list);
+
   try {
-    const ref = await addDoc(collection(db, PURCHASE_ORDERS_COLLECTION), { ...sanitizeData(po), createdAt: serverTimestamp() });
-    saveLocalPO(list.map(p => p.id === tempId ? { ...p, id: ref.id } : p));
-    return ref.id;
-  } catch { return tempId; }
+    const row = mapPOToRow(newPO);
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .insert([{ ...row, created_at: now }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (data?.id) {
+      saveLocalPO(list.map(p => p.id === tempId ? { ...p, id: data.id } : p));
+      return data.id;
+    }
+  } catch {}
+  return tempId;
 }
 
 export async function updatePurchaseOrder(id: string, updates: Partial<PurchaseOrder>): Promise<void> {
   const list = getLocalPO();
-  saveLocalPO(list.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p));
+  const existing = list.find(p => p.id === id) || {} as PurchaseOrder;
+  const merged = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+  saveLocalPO(list.map(p => p.id === id ? merged : p));
+
   try {
-    await updateDoc(doc(db, PURCHASE_ORDERS_COLLECTION, id), { ...sanitizeData(updates), updatedAt: serverTimestamp() });
-  } catch (e) { console.warn('updatePO:', e); }
+    const row = mapPOToRow(merged);
+    await supabase.from('purchase_orders').update(row).eq('id', id);
+  } catch (e) {
+    console.warn('updatePO:', e);
+  }
 }
 
 export async function deletePurchaseOrder(id: string): Promise<void> {
   saveLocalPO(getLocalPO().filter(p => p.id !== id));
-  try { await deleteDoc(doc(db, PURCHASE_ORDERS_COLLECTION, id)); } catch (e) { console.warn('deletePO:', e); }
+  try {
+    await supabase.from('purchase_orders').delete().eq('id', id);
+  } catch (e) {
+    console.warn('deletePO:', e);
+  }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ACTIVITY PLANS / DAP
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// 6. ACTIVITY PLANS / DAP
+// ═══════════════════════════════════════════════════════════════════
 
 function getLocalActivity(): ActivityPlan[] {
   try {
     const raw = localStorage.getItem(LOCAL_ACTIVITY_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function saveLocalActivity(list: ActivityPlan[]) {
   try {
     localStorage.setItem(LOCAL_ACTIVITY_KEY, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent('fhrcar_activity_updated', { detail: list }));
-  } catch (e) { console.warn('Failed to save activity plans:', e); }
+  } catch (e) {
+    console.warn('Failed to save activity plans:', e);
+  }
+}
+
+function mapActivityFromRow(row: any): ActivityPlan {
+  const raw = row.raw_data || {};
+  return {
+    ...raw,
+    id: row.id || raw.id,
+    date: row.date || raw.date || '',
+    title: row.title || raw.title || '',
+    division: row.division || raw.division || '',
+    targetUnits: Number(row.target_units ?? raw.targetUnits ?? 0),
+    targetOmset: Number(row.target_omset ?? raw.targetOmset ?? 0),
+    tasks: row.tasks || raw.tasks || [],
+    notes: row.notes || raw.notes,
+    createdAt: row.created_at || raw.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || raw.updatedAt,
+  };
+}
+
+function mapActivityToRow(plan: Partial<ActivityPlan>) {
+  return {
+    id: plan.id,
+    date: plan.date,
+    title: plan.title,
+    division: plan.division,
+    target_units: plan.targetUnits,
+    target_omset: plan.targetOmset,
+    tasks: plan.tasks || [],
+    notes: plan.notes,
+    raw_data: plan,
+    updated_at: new Date().toISOString(),
+  };
 }
 
 export function subscribeToActivityPlans(callback: (plans: ActivityPlan[]) => void): () => void {
@@ -975,19 +1227,39 @@ export function subscribeToActivityPlans(callback: (plans: ActivityPlan[]) => vo
   const handleLocal = (e: any) => { if (e.detail) callback(e.detail); };
   window.addEventListener('fhrcar_activity_updated', handleLocal);
 
-  try {
-    const q = query(collection(db, ACTIVITY_PLANS_COLLECTION), orderBy('date', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      if (!snap.empty) {
-        const plans: ActivityPlan[] = snap.docs.map(d => ({ ...d.data(), id: d.id } as ActivityPlan));
-        saveLocalActivity(plans);
-        callback(plans);
-      } else { callback(local); }
-    }, () => callback(local));
-    return () => { window.removeEventListener('fhrcar_activity_updated', handleLocal); unsub(); };
-  } catch {
-    return () => window.removeEventListener('fhrcar_activity_updated', handleLocal);
-  }
+  const fetchActivity = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('activity_plans')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const mapped = data.map(mapActivityFromRow);
+        saveLocalActivity(mapped);
+        callback(mapped);
+      } else {
+        callback(getLocalActivity());
+      }
+    } catch {
+      callback(getLocalActivity());
+    }
+  };
+
+  fetchActivity();
+
+  const channel = supabase
+    .channel('public:activity_plans')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_plans' }, () => {
+      fetchActivity();
+    })
+    .subscribe();
+
+  return () => {
+    window.removeEventListener('fhrcar_activity_updated', handleLocal);
+    supabase.removeChannel(channel);
+  };
 }
 
 export async function addActivityPlan(plan: Omit<ActivityPlan, 'id' | 'createdAt'>): Promise<string> {
@@ -997,53 +1269,115 @@ export async function addActivityPlan(plan: Omit<ActivityPlan, 'id' | 'createdAt
   const list = getLocalActivity();
   list.unshift(newPlan);
   saveLocalActivity(list);
+
   try {
-    const ref = await addDoc(collection(db, ACTIVITY_PLANS_COLLECTION), { ...sanitizeData(plan), createdAt: serverTimestamp() });
-    saveLocalActivity(list.map(p => p.id === tempId ? { ...p, id: ref.id } : p));
-    return ref.id;
-  } catch { return tempId; }
+    const row = mapActivityToRow(newPlan);
+    const { data, error } = await supabase
+      .from('activity_plans')
+      .insert([{ ...row, created_at: now }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (data?.id) {
+      saveLocalActivity(list.map(p => p.id === tempId ? { ...p, id: data.id } : p));
+      return data.id;
+    }
+  } catch {}
+  return tempId;
 }
 
 export async function updateActivityPlan(id: string, updates: Partial<ActivityPlan>): Promise<void> {
   const list = getLocalActivity();
-  saveLocalActivity(list.map(p => p.id === id ? { ...p, ...updates, updatedAt: new Date().toISOString() } : p));
+  const existing = list.find(p => p.id === id) || {} as ActivityPlan;
+  const merged = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+  saveLocalActivity(list.map(p => p.id === id ? merged : p));
+
   try {
-    await updateDoc(doc(db, ACTIVITY_PLANS_COLLECTION, id), { ...sanitizeData(updates), updatedAt: serverTimestamp() });
-  } catch (e) { console.warn('updateActivityPlan:', e); }
+    const row = mapActivityToRow(merged);
+    await supabase.from('activity_plans').update(row).eq('id', id);
+  } catch (e) {
+    console.warn('updateActivityPlan:', e);
+  }
 }
 
 export async function deleteActivityPlan(id: string): Promise<void> {
   saveLocalActivity(getLocalActivity().filter(p => p.id !== id));
-  try { await deleteDoc(doc(db, ACTIVITY_PLANS_COLLECTION, id)); } catch (e) { console.warn('deleteActivityPlan:', e); }
+  try {
+    await supabase.from('activity_plans').delete().eq('id', id);
+  } catch (e) {
+    console.warn('deleteActivityPlan:', e);
+  }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// DISCUSSION / CHAT INTERNAL
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// 7. DISCUSSION / CHAT INTERNAL
+// ═══════════════════════════════════════════════════════════════════
 
 export function subscribeToDiscussion(callback: (msgs: DiscussionMessage[]) => void): () => void {
-  try {
-    const q = query(collection(db, DISCUSSION_COLLECTION), orderBy('createdAt', 'asc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const msgs: DiscussionMessage[] = snap.docs.map(d => {
-        const data = d.data();
-        return { ...data, id: d.id, createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString()) } as DiscussionMessage;
-      });
-      callback(msgs);
-    });
-    return unsub;
-  } catch { return () => {}; }
+  const fetchDiscussions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('discussions')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      if (data) {
+        const msgs: DiscussionMessage[] = data.map(d => ({
+          id: d.id,
+          senderId: d.sender_id,
+          senderName: d.sender_name,
+          senderRole: d.sender_role,
+          senderAvatar: d.sender_avatar,
+          message: d.message,
+          category: d.category,
+          attachments: d.attachments || [],
+          createdAt: d.created_at,
+          ...d.raw_data,
+        }));
+        callback(msgs);
+      }
+    } catch (e) {
+      console.warn('subscribeToDiscussion fetch:', e);
+    }
+  };
+
+  fetchDiscussions();
+
+  const channel = supabase
+    .channel('public:discussions')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'discussions' }, () => {
+      fetchDiscussions();
+    })
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 export async function sendDiscussionMessage(msg: Omit<DiscussionMessage, 'id' | 'createdAt'>): Promise<void> {
   try {
-    await addDoc(collection(db, DISCUSSION_COLLECTION), { ...msg, createdAt: serverTimestamp() });
-  } catch (e) { console.warn('sendDiscussionMessage:', e); }
+    await supabase.from('discussions').insert([{
+      sender_id: msg.senderId,
+      sender_name: msg.senderName,
+      sender_role: msg.senderRole,
+      sender_avatar: msg.senderAvatar,
+      message: msg.message,
+      category: msg.category || 'umum',
+      attachments: msg.attachments || [],
+      raw_data: msg,
+      created_at: new Date().toISOString(),
+    }]);
+  } catch (e) {
+    console.warn('sendDiscussionMessage:', e);
+  }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ARTICLES / CMS TIPS & ARTIKEL
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// 8. ARTICLES / CMS TIPS & ARTIKEL
+// ═══════════════════════════════════════════════════════════════════
 
 function getLocalArticles(): ArticleItem[] {
   try {
@@ -1054,14 +1388,62 @@ function getLocalArticles(): ArticleItem[] {
     }
     saveLocalArticles(ARTICLES_DATA);
     return ARTICLES_DATA;
-  } catch { return ARTICLES_DATA; }
+  } catch {
+    return ARTICLES_DATA;
+  }
 }
 
 function saveLocalArticles(items: ArticleItem[]) {
   try {
     localStorage.setItem(LOCAL_ARTICLES_KEY, JSON.stringify(items));
     window.dispatchEvent(new CustomEvent('fhrcar_articles_updated', { detail: items }));
-  } catch (e) { console.warn('saveLocalArticles:', e); }
+  } catch (e) {
+    console.warn('saveLocalArticles:', e);
+  }
+}
+
+function mapArticleFromRow(row: any): ArticleItem {
+  const raw = row.raw_data || {};
+  return {
+    ...raw,
+    id: row.id || raw.id,
+    title: row.title || raw.title || '',
+    slug: row.slug || raw.slug || '',
+    category: row.category || raw.category || 'Tips Otomotif',
+    date: row.date || raw.date || '',
+    readTime: row.read_time || raw.readTime || '3 menit',
+    author: row.author || raw.author || 'Tim FHR Car',
+    authorAvatar: row.author_avatar || raw.authorAvatar,
+    coverImage: row.cover_image || raw.coverImage || '',
+    excerpt: row.excerpt || raw.excerpt || '',
+    content: row.content || raw.content || '',
+    tags: row.tags || raw.tags || [],
+    featured: Boolean(row.featured ?? raw.featured),
+    status: row.status || raw.status || 'published',
+    createdAt: row.created_at || raw.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || raw.updatedAt,
+  };
+}
+
+function mapArticleToRow(article: Partial<ArticleItem>) {
+  return {
+    id: article.id,
+    title: article.title,
+    slug: article.slug,
+    category: article.category,
+    date: article.date,
+    read_time: article.readTime,
+    author: article.author,
+    author_avatar: article.authorAvatar,
+    cover_image: article.coverImage,
+    excerpt: article.excerpt,
+    content: article.content,
+    tags: article.tags || [],
+    featured: article.featured,
+    status: article.status || 'published',
+    raw_data: article,
+    updated_at: new Date().toISOString(),
+  };
 }
 
 export function subscribeToArticles(callback: (articles: ArticleItem[]) => void): () => void {
@@ -1071,29 +1453,49 @@ export function subscribeToArticles(callback: (articles: ArticleItem[]) => void)
   const handleLocal = (e: any) => { if (e.detail) callback(e.detail); };
   window.addEventListener('fhrcar_articles_updated', handleLocal);
 
-  try {
-    const q = query(collection(db, ARTICLES_COLLECTION), orderBy('createdAt', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      if (!snap.empty) {
-        const items: ArticleItem[] = snap.docs.map(d => ({ ...d.data(), id: d.id } as ArticleItem));
-        saveLocalArticles(items);
-        callback(items);
+  const fetchArticles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const mapped = data.map(mapArticleFromRow);
+        saveLocalArticles(mapped);
+        callback(mapped);
       } else {
         callback(getLocalArticles());
       }
-    }, () => callback(getLocalArticles()));
-    return () => { window.removeEventListener('fhrcar_articles_updated', handleLocal); unsub(); };
-  } catch {
-    return () => window.removeEventListener('fhrcar_articles_updated', handleLocal);
-  }
+    } catch {
+      callback(getLocalArticles());
+    }
+  };
+
+  fetchArticles();
+
+  const channel = supabase
+    .channel('public:articles')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'articles' }, () => {
+      fetchArticles();
+    })
+    .subscribe();
+
+  return () => {
+    window.removeEventListener('fhrcar_articles_updated', handleLocal);
+    supabase.removeChannel(channel);
+  };
 }
 
 export async function addArticle(article: Omit<ArticleItem, 'id'> & { id?: string }): Promise<string> {
   const clean = sanitizeData(article);
   const articleId = article.id || 'art-' + Math.random().toString(36).substring(2, 9);
+  const now = new Date().toISOString();
   const newArt: ArticleItem = {
     ...clean,
     id: articleId,
+    createdAt: now,
   } as ArticleItem;
 
   const list = getLocalArticles();
@@ -1101,10 +1503,8 @@ export async function addArticle(article: Omit<ArticleItem, 'id'> & { id?: strin
   saveLocalArticles(updated);
 
   try {
-    await addDoc(collection(db, ARTICLES_COLLECTION), {
-      ...clean,
-      createdAt: serverTimestamp(),
-    });
+    const row = mapArticleToRow(newArt);
+    await supabase.from('articles').insert([{ ...row, created_at: now }]);
     return articleId;
   } catch (e) {
     console.warn('addArticle cloud failed, saved local:', e);
@@ -1114,14 +1514,14 @@ export async function addArticle(article: Omit<ArticleItem, 'id'> & { id?: strin
 
 export async function updateArticle(id: string, updates: Partial<ArticleItem>): Promise<void> {
   const list = getLocalArticles();
-  const updated = list.map(a => a.id === id ? { ...a, ...updates } : a);
+  const existing = list.find(a => a.id === id) || {} as ArticleItem;
+  const merged = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+  const updated = list.map(a => a.id === id ? merged : a);
   saveLocalArticles(updated);
 
   try {
-    await updateDoc(doc(db, ARTICLES_COLLECTION, id), {
-      ...sanitizeData(updates),
-      updatedAt: serverTimestamp(),
-    });
+    const row = mapArticleToRow(merged);
+    await supabase.from('articles').update(row).eq('id', id);
   } catch (e) {
     console.warn('updateArticle cloud failed, saved local:', e);
   }
@@ -1133,9 +1533,8 @@ export async function deleteArticle(id: string): Promise<void> {
   saveLocalArticles(updated);
 
   try {
-    await deleteDoc(doc(db, ARTICLES_COLLECTION, id));
+    await supabase.from('articles').delete().eq('id', id);
   } catch (e) {
     console.warn('deleteArticle cloud failed, saved local:', e);
   }
 }
-

@@ -5,8 +5,7 @@ import {
   ChevronRight, LogOut, Menu, X, Bell, Settings, Search, ChevronLeft,
   UserCircle, Building2, FileText, BarChart3, TrendingDown, Star, GitMerge, BookOpen
 } from 'lucide-react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { supabase } from '../../lib/supabase';
 import { PageType } from '../../types';
 
 interface CRMLayoutProps {
@@ -38,45 +37,21 @@ const navItems: NavItem[] = [
     ]
   },
   {
-    id: 'customer',
+    id: 'customers-group',
     label: 'Pelanggan',
     icon: Users,
     children: [
-      { id: 'crm-customers', label: 'Daftar Pelanggan' },
-      { id: 'crm-customer-register', label: 'Registrasi Pelanggan' },
-      { id: 'crm-customer-profile', label: 'Profil Customer' },
-      { id: 'crm-customer-mutation', label: 'Mutasi Kepemilikan' },
-      { id: 'crm-customer-analysis', label: 'Analisa Pelanggan' },
+      { id: 'crm-customers', label: 'Database Pelanggan' },
+      { id: 'crm-customer-create', label: '+ Tambah Pelanggan' },
+      { id: 'crm-customer-analysis', label: 'Analisis Pelanggan' },
       { id: 'crm-customer-rfm', label: 'Segmentasi RFM' },
     ]
   },
-  {
-    id: 'hrd',
-    label: 'HRD',
-    icon: UserSquare2,
-    children: [
-      { id: 'crm-employees', label: 'Data Karyawan & Staf' },
-    ]
-  },
-  {
-    id: 'inventory',
-    label: 'Kelola Produk & Jasa',
-    icon: Package,
-    page: 'crm-inventory',
-  },
-  {
-    id: 'purchasing',
-    label: 'Pembelian / PO',
-    icon: ShoppingCart,
-    page: 'crm-purchasing',
-  },
-  {
-    id: 'monitoring',
-    label: 'Monitoring & Laporan',
-    icon: BarChart2,
-    page: 'crm-monitoring',
-  },
-  { id: 'dap',     label: 'Activity Plan (DAP)',       icon: ClipboardList, page: 'crm-activity-plan' },
+  { id: 'employees',   label: 'Staf & HRD',                icon: UserSquare2,   page: 'crm-employees' },
+  { id: 'inventory',   label: 'Kelola Produk & Jasa',      icon: Package,       page: 'crm-inventory' },
+  { id: 'purchasing',  label: 'Pembelian & PO',            icon: ShoppingCart,  page: 'crm-purchasing' },
+  { id: 'monitoring',  label: 'Monitoring & Laporan',      icon: BarChart2,     page: 'crm-monitoring' },
+  { id: 'dap',         label: 'Rencana Harian (DAP)',      icon: ClipboardList, page: 'crm-activity-plan' },
   { id: 'lpa',     label: 'Lembar Pemeriksaan (LPA)',  icon: FileText,      page: 'crm-lpa' },
   { id: 'articles',label: 'Kelola Tips & Artikel',     icon: BookOpen,      page: 'crm-articles' },
   { id: 'diskusi', label: 'Diskusi Tim',               icon: MessageSquare, badge: 0, page: 'crm-discussion' },
@@ -88,12 +63,21 @@ export function CRMLayout({ activePage, onNavigate, onLogout, children }: CRMLay
   const [collapsed, setCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>('service-order');
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setCurrentUser(u));
-    return () => unsub();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUser(user || { email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user || { email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Sync open group with active page

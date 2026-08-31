@@ -4,11 +4,7 @@ import {
   History, Plus, Search, Trash2, Edit3, Clock, Eye, AlertCircle, RefreshCw,
   Check, X as XIcon, Gauge, Sparkles
 } from 'lucide-react';
-import {
-  addDoc, updateDoc, deleteDoc, doc, collection,
-  serverTimestamp, onSnapshot, query, orderBy, Timestamp
-} from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabase } from '../../lib/supabase';
 
 // ─── Data Checklist 46 Item ─────────────────────────────────────────
 const CHECKLIST_ITEMS = [
@@ -112,26 +108,51 @@ export function CRMLembarPemeriksaan() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // ─── Realtime Firestore Listener ──────────────────────────
+  // ─── Realtime Supabase Listener ──────────────────────────
   useEffect(() => {
-    const q = query(collection(db, 'lpa'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data: LPAData[] = snapshot.docs.map((docSnap) => {
-        const d = docSnap.data();
-        return {
-          id: docSnap.id,
-          ...d,
-          createdAt: d.createdAt instanceof Timestamp ? d.createdAt.toDate() : d.createdAt,
-        } as LPAData;
-      });
-      setHistoryList(data);
-      setLoadingHistory(false);
-    }, (error) => {
-      console.error('Error fetching LPA:', error);
-      setLoadingHistory(false);
-    });
+    const fetchLPA = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('lpa')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-    return () => unsubscribe();
+        if (error) throw error;
+        if (data) {
+          const mapped: LPAData[] = data.map((d) => ({
+            id: d.id,
+            tipeMobil: d.tipe_mobil || d.tipeMobil || '',
+            nopol: d.nopol || '',
+            tanggal: d.tanggal || '',
+            mekanik: d.mekanik || '',
+            km: d.km || '',
+            pelanggan: d.pelanggan || '',
+            saran: d.saran || '',
+            items: d.items || {},
+            createdAt: d.created_at,
+            ...d.raw_data,
+          }));
+          setHistoryList(mapped);
+        }
+      } catch (error) {
+        console.warn('Error fetching LPA from Supabase:', error);
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    fetchLPA();
+
+    const channel = supabase
+      .channel('public:lpa')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lpa' }, () => {
+        fetchLPA();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const setItem = (no: number, field: 'status' | 'catatan', value: string) => {
@@ -186,7 +207,7 @@ export function CRMLembarPemeriksaan() {
   const handleDeleteLPA = async (id: string, nopol: string) => {
     if (window.confirm(`Yakin ingin menghapus riwayat pemeriksaan untuk ${nopol || 'dokumen ini'}?`)) {
       try {
-        await deleteDoc(doc(db, 'lpa', id));
+        await supabase.from('lpa').delete().eq('id', id);
         if (currentDocId === id) {
           handleNewForm();
         }
@@ -196,22 +217,33 @@ export function CRMLembarPemeriksaan() {
     }
   };
 
-  // ─── Save / Update to Firestore ────────────────────────
+  // ─── Save / Update to Supabase ────────────────────────
   const handleSave = async () => {
     setSaving(true);
     try {
+      const row = {
+        nopol: form.nopol,
+        pelanggan: form.pelanggan,
+        tipe_mobil: form.tipeMobil,
+        mekanik: form.mekanik,
+        km: form.km,
+        tanggal: form.tanggal,
+        saran: form.saran,
+        items: form.items,
+        raw_data: form,
+        updated_at: new Date().toISOString(),
+      };
+
       if (currentDocId) {
-        const docRef = doc(db, 'lpa', currentDocId);
-        await updateDoc(docRef, {
-          ...form,
-          updatedAt: serverTimestamp(),
-        });
+        await supabase.from('lpa').update(row).eq('id', currentDocId);
       } else {
-        const docRef = await addDoc(collection(db, 'lpa'), {
-          ...form,
-          createdAt: serverTimestamp(),
-        });
-        setCurrentDocId(docRef.id);
+        const tempId = 'LPA-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        const { data } = await supabase.from('lpa').insert([{
+          id: tempId,
+          ...row,
+          created_at: new Date().toISOString(),
+        }]).select().single();
+        if (data?.id) setCurrentDocId(data.id);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);

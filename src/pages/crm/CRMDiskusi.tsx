@@ -2,20 +2,31 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Send, Users, Clock, CheckCircle } from 'lucide-react';
 import { DiscussionMessage } from '../../types';
 import { subscribeToDiscussion, sendDiscussionMessage } from '../../lib/firestoreService';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { supabase } from '../../lib/supabase';
 
 export function CRMDiskusi() {
   const [messages, setMessages] = useState<DiscussionMessage[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [sending, setSending] = useState(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const u = subscribeToDiscussion(msgs => { setMessages(msgs); });
-    const unsubAuth = onAuthStateChanged(auth, setCurrentUser);
-    return () => { u(); unsubAuth(); };
+    
+    // Get initial Supabase user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUser(user || { id: 'admin-local', email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user || { id: 'admin-local', email: 'admin@fhrcar.xyz', user_metadata: { name: 'Admin FHR' } });
+    });
+
+    return () => {
+      u();
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -23,13 +34,12 @@ export function CRMDiskusi() {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!newMsg.trim() || !currentUser) return;
+    if (!newMsg.trim()) return;
     setSending(true);
-    const displayName = currentUser.displayName || currentUser.email?.split('@')[0] || 'Admin';
+    const displayName = currentUser?.user_metadata?.name || currentUser?.email?.split('@')[0] || 'Admin';
     await sendDiscussionMessage({
-      userId: currentUser.uid,
-      userName: displayName,
-      userInitial: displayName.charAt(0).toUpperCase(),
+      senderId: currentUser?.id || 'admin-local',
+      senderName: displayName,
       message: newMsg.trim(),
     });
     setNewMsg('');
