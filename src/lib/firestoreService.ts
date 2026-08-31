@@ -647,31 +647,24 @@ export async function seedInitialCustomers(customers: Omit<CustomerItem, 'id'>[]
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 3. EMPLOYEES / KARYAWAN SERVICE
+// 3. EMPLOYEES / KARYAWAN SERVICE (100% Real from Database)
 // ═══════════════════════════════════════════════════════════════════
 
-export const DEFAULT_EMPLOYEES: EmployeeItem[] = [
-  { id: 'emp-1', name: 'Budi Santoso', nik: 'SA-001', role: 'SA', phone: '081234567891', email: 'budi.sa@fhrcar.xyz', status: 'active', createdAt: '2026-01-10T08:00:00.000Z' },
-  { id: 'emp-2', name: 'Rendra Kurniawan', nik: 'SA-002', role: 'SA', phone: '081234567892', email: 'rendra.sa@fhrcar.xyz', status: 'active', createdAt: '2026-01-12T08:00:00.000Z' },
-  { id: 'emp-3', name: 'Rizky Pratama', nik: 'FA-001', role: 'FA', phone: '081234567893', email: 'rizky.fa@fhrcar.xyz', status: 'active', createdAt: '2026-01-15T08:00:00.000Z' },
-  { id: 'emp-4', name: 'Doni Kurniawan', nik: 'FR-001', role: 'Foreman', phone: '081234567894', email: 'doni.foreman@fhrcar.xyz', status: 'active', createdAt: '2026-01-05T08:00:00.000Z' },
-  { id: 'emp-5', name: 'Agus Setiawan', nik: 'MK-001', role: 'Mekanik', phone: '081234567895', email: 'agus.mekanik@fhrcar.xyz', status: 'active', createdAt: '2026-01-15T08:00:00.000Z' },
-  { id: 'emp-6', name: 'Hendra Wijaya', nik: 'MK-002', role: 'Mekanik', phone: '081234567896', email: 'hendra.mekanik@fhrcar.xyz', status: 'active', createdAt: '2026-02-01T08:00:00.000Z' },
-  { id: 'emp-7', name: 'Fajar Nugroho', nik: 'MK-003', role: 'Mekanik', phone: '081234567897', email: 'fajar.mekanik@fhrcar.xyz', status: 'active', createdAt: '2026-02-10T08:00:00.000Z' },
-  { id: 'emp-8', name: 'Siti Rahma', nik: 'KS-001', role: 'Kasir', phone: '081234567898', email: 'siti.kasir@fhrcar.xyz', status: 'active', createdAt: '2026-01-20T08:00:00.000Z' },
-  { id: 'emp-9', name: 'Wahyudi S.', nik: 'MG-001', role: 'Manager', phone: '081234567899', email: 'wahyudi.mgr@fhrcar.xyz', status: 'active', createdAt: '2026-01-01T08:00:00.000Z' },
-];
+export const DEFAULT_EMPLOYEES: EmployeeItem[] = [];
 
 function getLocalEmployees(): EmployeeItem[] {
   try {
     const raw = localStorage.getItem(LOCAL_EMPLOYEES_KEY);
-    if (!raw) {
-      localStorage.setItem(LOCAL_EMPLOYEES_KEY, JSON.stringify(DEFAULT_EMPLOYEES));
-      return DEFAULT_EMPLOYEES;
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    // If old cached dummy data exists (emp-1 to emp-9), discard it
+    if (Array.isArray(parsed) && parsed.some(e => e.id === 'emp-1' && e.name === 'Budi Santoso')) {
+      localStorage.removeItem(LOCAL_EMPLOYEES_KEY);
+      return [];
     }
-    return JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return DEFAULT_EMPLOYEES;
+    return [];
   }
 }
 
@@ -740,9 +733,8 @@ export function subscribeToEmployees(
         saveLocalEmployees(mapped);
         onUpdate(mapped);
       } else {
-        // Seed default employees to Supabase if empty
-        seedDefaultEmployeesToSupabase();
-        onUpdate(initialLocal);
+        saveLocalEmployees([]);
+        onUpdate([]);
       }
     } catch (err: any) {
       console.warn('[Supabase] Employees fetch fallback:', err);
@@ -839,33 +831,16 @@ export async function deleteEmployee(employeeId: string): Promise<void> {
   }
 }
 
-async function seedDefaultEmployeesToSupabase() {
-  for (const emp of DEFAULT_EMPLOYEES) {
-    try {
-      const row = mapEmployeeToRow(emp);
-      await supabase.from('employees').insert([row]);
-    } catch {}
-  }
-}
-
 // ═══════════════════════════════════════════════════════════════════
-// 4. INVENTORY / KELOLA PRODUK & JASA
+// 4. INVENTORY / KELOLA PRODUK & JASA (100% Real from Database)
 // ═══════════════════════════════════════════════════════════════════
 
 function getLocalInventory(): InventoryItem[] {
   try {
     const raw = localStorage.getItem(LOCAL_INVENTORY_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-    const seeded: InventoryItem[] = MASTER_JASA_DATA.map((item) => ({
-      ...item,
-      id: 'JASA-' + item.skuCode,
-      createdAt: new Date().toISOString(),
-    }));
-    saveLocalInventory(seeded);
-    return seeded;
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }

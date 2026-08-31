@@ -227,7 +227,7 @@ export function CRMServiceOrder({
                     <p className="text-[11px] text-slate-400">{o.carBrand} {o.carModel} • {o.licensePlate}</p>
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-600">
-                    <span className="font-bold">{o.saName || 'Budi Santoso'}</span>
+                    <span className="font-bold">{o.saName || '—'}</span>
                   </td>
                   <td className="px-4 py-3 font-medium text-slate-700">{o.serviceType}</td>
                   <td className="px-4 py-3 text-slate-600 font-medium">{formatDateDisplay(o.serviceDate, o.createdAt)}</td>
@@ -676,7 +676,7 @@ export function CRMServiceOrder({
                       <td className="px-3 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 text-xs text-slate-800 font-bold whitespace-nowrap">
                           <UserCheck size={12} className="text-red-500 shrink-0" />
-                          <span>{o.saName || 'Budi Santoso (SA)'}</span>
+                          <span>{o.saName || '—'}</span>
                         </div>
                       </td>
 
