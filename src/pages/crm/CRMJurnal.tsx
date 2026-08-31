@@ -23,7 +23,7 @@ const formatDate = (d: string) => {
 };
 const isoToday = () => new Date().toISOString().split('T')[0];
 
-type SumberDana = 'kas_tangan' | 'bank_mandiri1' | 'bank_mandiri2';
+type SumberDana = 'kas_tangan' | 'bank_mandiri';
 type KategoriJurnal = 'toko' | 'bengkel';
 
 type JurnalEntry = JournalEntryModel;
@@ -36,9 +36,8 @@ interface ManualExpenseForm {
 }
 
 const SUMBER_OPTIONS: { value: SumberDana; label: string; noAkun: string }[] = [
-  { value: 'kas_tangan',    label: 'Kas di Tangan',    noAkun: '1-1120' },
-  { value: 'bank_mandiri1', label: 'Bank - Mandiri 1', noAkun: '1-1210' },
-  { value: 'bank_mandiri2', label: 'Bank - Mandiri 2', noAkun: '1-1220' },
+  { value: 'kas_tangan',   label: 'Kas di Tangan',   noAkun: '1-1120' },
+  { value: 'bank_mandiri', label: 'Bank (Transfer)', noAkun: '1-1210' },
 ];
 
 function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manualDates: string[] = []): JurnalEntry[] {
@@ -369,7 +368,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       tanggal: entry.tanggal,
       keterangan: entry.keterangan,
       jumlah: String(entry.kredit || entry.debet),
-      sumber: entry.sumberDana || 'kas_tangan'
+      sumber: (entry.sumberDana === 'kas_tangan' ? 'kas_tangan' : 'bank_mandiri')
     });
     setShowAddModal(true);
   };
