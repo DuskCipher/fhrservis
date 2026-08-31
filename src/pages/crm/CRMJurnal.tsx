@@ -3,16 +3,18 @@ import {
   BookOpen, Plus, Trash2, Printer, X,
   Wallet, CreditCard, Building2, AlertCircle, CheckCircle,
   Edit3, Save, ArrowDownRight, FileText, Banknote, BarChart3,
-  Eye, EyeOff, Store, Wrench
+  Eye, EyeOff, Store, Wrench, TrendingUp, ShoppingBag, Coins,
+  Tag, Percent, ChevronRight
 } from 'lucide-react';
-import { CRMOrder, PageType } from '../../types';
+import { CRMOrder, PageType, InventoryItem } from '../../types';
 import {
   subscribeToJournalEntries,
   addJournalEntry,
   updateJournalEntry,
   deleteJournalEntry,
   JournalEntryModel,
-  getLocalJournalEntries
+  getLocalJournalEntries,
+  subscribeToInventory
 } from '../../lib/firestoreService';
 
 const uid = () => Math.random().toString(36).substring(2, 9);
@@ -301,6 +303,84 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       ref: prefixRef + String(c++).padStart(3, '0')
     }));
   }, [rawFiltered, prefixRef]);
+
+  const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
+
+  useEffect(() => {
+    const unsub = subscribeToInventory((items) => {
+      setInventoryList(items);
+    });
+    return () => unsub();
+  }, []);
+
+  // ─── KALKULASI DETAIL KEUNTUNGAN TOKO (HARGA JUAL - HARGA BELI) ───
+  const profitDetailsToko = useMemo(() => {
+    const periodOrders = orders.filter(o => {
+      if (o.status === 'cancelled') return false;
+      const tgl = o.createdAt?.split('T')[0] || isoToday();
+      return tgl >= filterDateFrom && tgl <= filterDateTo;
+    });
+
+    const itemMap: Record<string, {
+      nama: string;
+      qty: number;
+      hargaBeli: number;
+      hargaJual: number;
+      totalBeli: number;
+      totalJual: number;
+      keuntungan: number;
+    }> = {};
+
+    for (const ord of periodOrders) {
+      const parts = ord.spareparts || [];
+      for (const p of parts) {
+        if (!p.nama || p.qty <= 0) continue;
+        const key = p.nama.trim().toLowerCase();
+
+        // Cari harga beli di database inventory
+        const matchedInv = inventoryList.find(
+          inv => inv.name?.trim().toLowerCase() === key || inv.skuCode === p.id
+        );
+
+        const buyPrice = matchedInv?.buyPrice && matchedInv.buyPrice > 0
+          ? matchedInv.buyPrice
+          : Math.round(p.hargaSatuan * 0.7); // Fallback jika belum diisi modalnya di inventory
+
+        const sellPrice = p.hargaSatuan || 0;
+        const qty = p.qty;
+
+        if (!itemMap[key]) {
+          itemMap[key] = {
+            nama: p.nama,
+            qty: 0,
+            hargaBeli: buyPrice,
+            hargaJual: sellPrice,
+            totalBeli: 0,
+            totalJual: 0,
+            keuntungan: 0,
+          };
+        }
+
+        itemMap[key].qty += qty;
+        itemMap[key].totalBeli += (buyPrice * qty);
+        itemMap[key].totalJual += (sellPrice * qty);
+        itemMap[key].keuntungan += ((sellPrice - buyPrice) * qty);
+      }
+    }
+
+    const items = Object.values(itemMap).sort((a, b) => b.keuntungan - a.keuntungan);
+    const totalJual = items.reduce((s, i) => s + i.totalJual, 0);
+    const totalBeli = items.reduce((s, i) => s + i.totalBeli, 0);
+    const totalKeuntunganKotor = totalJual - totalBeli;
+
+    return {
+      items,
+      totalJual,
+      totalBeli,
+      totalKeuntunganKotor,
+      marginPersen: totalJual > 0 ? Math.round((totalKeuntunganKotor / totalJual) * 100) : 0
+    };
+  }, [orders, filterDateFrom, filterDateTo, inventoryList]);
 
   const summary = useMemo(() => {
     let totalCash = 0, totalTF = 0, totalPKas = 0, totalPBank = 0;
@@ -768,6 +848,192 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                   <span className="text-xs font-black text-slate-700">Saldo Bank</span>
                   <span className={'text-sm font-black ' + (summary.saldoBank >= 0 ? 'text-blue-700' : 'text-red-700')}>{formatRp(summary.saldoBank)}</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── LAPORAN KEUNTUNGAN TOKO (MARGIN SPAREPART: HARGA JUAL - HARGA BELI) ── */}
+        {currentTab === 'toko' ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 text-white flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-black tracking-tight">Laporan Keuntungan Toko (Sparepart)</h2>
+                    <span className="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                      Margin: {profitDetailsToko.marginPersen}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    Perhitungan keuntungan per item: (Harga Jual - Harga Beli) × Qty Terjual
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Total Keuntungan Kotor Toko</span>
+                <span className="text-xl font-black text-emerald-400">
+                  {formatRp(profitDetailsToko.totalKeuntunganKotor)}
+                </span>
+              </div>
+            </div>
+
+            {/* 4 KPI Summary Cards */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-slate-500">Total Harga Jual (Omset)</span>
+                  <ShoppingBag className="w-4 h-4 text-blue-500" />
+                </div>
+                <div className="text-base font-black text-slate-800">{formatRp(profitDetailsToko.totalJual)}</div>
+                <span className="text-[10px] text-slate-400">Semua item sparepart</span>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-slate-500">Total Harga Beli (Modal)</span>
+                  <Coins className="w-4 h-4 text-amber-500" />
+                </div>
+                <div className="text-base font-black text-amber-700">{formatRp(profitDetailsToko.totalBeli)}</div>
+                <span className="text-[10px] text-slate-400">HPP modal pengadaan</span>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/40 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-black text-emerald-800">Total Keuntungan Sparepart</span>
+                  <TrendingUp className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="text-base font-black text-emerald-600">{formatRp(profitDetailsToko.totalKeuntunganKotor)}</div>
+                <span className="text-[10px] text-emerald-700 font-semibold">Harga Jual - Harga Beli</span>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-indigo-200 bg-indigo-50/40 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-black text-indigo-800">Laba Bersih Toko</span>
+                  <Wallet className="w-4 h-4 text-indigo-600" />
+                </div>
+                <div className="text-base font-black text-indigo-600">
+                  {formatRp(profitDetailsToko.totalKeuntunganKotor - (summary.totalPKas + summary.totalPBank))}
+                </div>
+                <span className="text-[10px] text-indigo-600 font-semibold">Setelah Beban Toko</span>
+              </div>
+            </div>
+
+            {/* Rincian Per Item Sparepart */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
+                    <th className="px-3 py-2.5 text-center font-bold w-12">NO</th>
+                    <th className="px-3 py-2.5 text-left font-bold min-w-[200px]">NAMA SPAREPART</th>
+                    <th className="px-3 py-2.5 text-center font-bold w-20">QTY</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[120px] text-amber-800">HARGA BELI (MODAL)</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[120px] text-blue-800">HARGA JUAL</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[130px] text-emerald-700">KEUNTUNGAN / PCS</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[140px] text-emerald-700">TOTAL KEUNTUNGAN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {profitDetailsToko.items.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-slate-400">
+                        Belum ada data penjualan sparepart pada periode ini.
+                      </td>
+                    </tr>
+                  ) : (
+                    profitDetailsToko.items.map((item, idx) => {
+                      const untungPerPcs = item.hargaJual - item.hargaBeli;
+                      return (
+                        <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
+                          <td className="px-3 py-2.5 text-center font-bold text-slate-400">{idx + 1}</td>
+                          <td className="px-3 py-2.5 font-bold text-slate-800">{item.nama}</td>
+                          <td className="px-3 py-2.5 text-center font-bold">
+                            <span className="px-2 py-0.5 bg-slate-100 rounded text-slate-700">{item.qty}</span>
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-medium text-amber-800">{formatRp(item.hargaBeli)}</td>
+                          <td className="px-3 py-2.5 text-right font-medium text-blue-800">{formatRp(item.hargaJual)}</td>
+                          <td className="px-3 py-2.5 text-right font-bold text-emerald-700">
+                            +{formatRp(untungPerPcs)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-black text-emerald-700 bg-emerald-50/30">
+                            {formatRp(item.keuntungan)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+                {profitDetailsToko.items.length > 0 && (
+                  <tfoot>
+                    <tr className="bg-slate-800 text-white font-black">
+                      <td colSpan={2} className="px-3 py-3 text-right text-xs">TOTAL KESELURUHAN</td>
+                      <td className="px-3 py-3 text-center text-xs">
+                        {profitDetailsToko.items.reduce((s, i) => s + i.qty, 0)}
+                      </td>
+                      <td className="px-3 py-3 text-right text-xs text-amber-300">{formatRp(profitDetailsToko.totalBeli)}</td>
+                      <td className="px-3 py-3 text-right text-xs text-blue-300">{formatRp(profitDetailsToko.totalJual)}</td>
+                      <td className="px-3 py-3 text-right text-xs text-emerald-300">Total Untung</td>
+                      <td className="px-3 py-3 text-right text-sm text-emerald-300 whitespace-nowrap bg-slate-900">
+                        {formatRp(profitDetailsToko.totalKeuntunganKotor)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </div>
+        ) : (
+          /* Tab Bengkel - Laporan Keuntungan Jasa */
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden mt-6">
+            <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-4 text-white flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-teal-500/20">
+                  <Wrench className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-black tracking-tight">Laporan Pendapatan Jasa Bengkel</h2>
+                    <span className="bg-teal-500/20 border border-teal-400/40 text-teal-300 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                      JASA SERVIS
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    Total pendapatan dari pengerjaan jasa servis dikurangi operasional bengkel
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Laba Bersih Bengkel</span>
+                <span className="text-xl font-black text-teal-400">
+                  {formatRp(summary.totalCash + summary.totalTF - (summary.totalPKas + summary.totalPBank))}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                <span className="text-[11px] font-bold text-slate-500 block mb-1">Total Pendapatan Jasa</span>
+                <div className="text-base font-black text-teal-700">{formatRp(summary.totalCash + summary.totalTF)}</div>
+                <span className="text-[10px] text-slate-400">Cash + Transfer Masuk</span>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+                <span className="text-[11px] font-bold text-slate-500 block mb-1">Total Biaya Operasional Bengkel</span>
+                <div className="text-base font-black text-red-600">{formatRp(summary.totalPKas + summary.totalPBank)}</div>
+                <span className="text-[10px] text-slate-400">Pengeluaran Kas & Bank</span>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-teal-200 bg-teal-50/40 shadow-xs">
+                <span className="text-[11px] font-black text-teal-800 block mb-1">Laba Bersih Bengkel Periode Ini</span>
+                <div className="text-base font-black text-teal-600">
+                  {formatRp(summary.totalCash + summary.totalTF - (summary.totalPKas + summary.totalPBank))}
+                </div>
+                <span className="text-[10px] text-teal-700 font-semibold">Pendapatan Jasa - Pengeluaran Bengkel</span>
               </div>
             </div>
           </div>
