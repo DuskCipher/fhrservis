@@ -199,17 +199,20 @@ export function subscribeToOrders(callback: (orders: CRMOrder[]) => void): () =>
 
   fetchOrders();
 
-  // Realtime subscription via Supabase Channel
-  const channel = supabase
-    .channel('public:orders')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-      fetchOrders();
-    })
-    .subscribe();
+  // Use unique channel name to avoid duplicate-channel crash when called from multiple components
+  let channel: any = null;
+  try {
+    channel = supabase
+      .channel(`orders-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+  } catch (e) { console.warn('orders channel error:', e); }
 
   return () => {
     window.removeEventListener('fhrcar_orders_updated', handleLocalUpdate);
-    supabase.removeChannel(channel);
+    if (channel) try { supabase.removeChannel(channel); } catch {}
   };
 }
 
@@ -554,16 +557,19 @@ export function subscribeToCustomers(callback: (customers: CustomerItem[]) => vo
 
   fetchCustomers();
 
-  const channel = supabase
-    .channel('public:customers')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => {
-      fetchCustomers();
-    })
-    .subscribe();
+  let channel: any = null;
+  try {
+    channel = supabase
+      .channel(`customers-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' }, () => {
+        fetchCustomers();
+      })
+      .subscribe();
+  } catch (e) { console.warn('customers channel error:', e); }
 
   return () => {
     window.removeEventListener('fhrcar-customers-updated', handleLocalUpdate);
-    supabase.removeChannel(channel);
+    if (channel) try { supabase.removeChannel(channel); } catch {}
   };
 }
 
@@ -745,16 +751,19 @@ export function subscribeToEmployees(
 
   fetchEmployees();
 
-  const channel = supabase
-    .channel('public:employees')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
-      fetchEmployees();
-    })
-    .subscribe();
+  let channel: any = null;
+  try {
+    channel = supabase
+      .channel(`employees-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'employees' }, () => {
+        fetchEmployees();
+      })
+      .subscribe();
+  } catch (e) { console.warn('employees channel error:', e); }
 
   return () => {
     window.removeEventListener('fhrcar_employees_updated', handleLocalUpdate);
-    supabase.removeChannel(channel);
+    if (channel) try { supabase.removeChannel(channel); } catch {}
   };
 }
 
@@ -953,16 +962,26 @@ export function subscribeToInventory(callback: (items: InventoryItem[]) => void)
 
   fetchInventory();
 
-  const channel = supabase
-    .channel('public:inventory')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, () => {
-      fetchInventory();
-    })
-    .subscribe();
+  // Use unique channel name to avoid "cannot add callbacks after subscribe()" crash
+  // when subscribeToInventory is called from multiple components simultaneously
+  const channelName = `inventory-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  let channel: any = null;
+  try {
+    channel = supabase
+      .channel(channelName)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'inventory' }, () => {
+        fetchInventory();
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn('Inventory realtime channel error (non-fatal):', e);
+  }
 
   return () => {
     window.removeEventListener('fhrcar_inventory_updated', handleLocal);
-    supabase.removeChannel(channel);
+    if (channel) {
+      try { supabase.removeChannel(channel); } catch {}
+    }
   };
 }
 
@@ -1104,16 +1123,19 @@ export function subscribeToPurchaseOrders(callback: (pos: PurchaseOrder[]) => vo
 
   fetchPO();
 
-  const channel = supabase
-    .channel('public:purchase_orders')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders' }, () => {
-      fetchPO();
-    })
-    .subscribe();
+  let channel: any = null;
+  try {
+    channel = supabase
+      .channel(`po-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'purchase_orders' }, () => {
+        fetchPO();
+      })
+      .subscribe();
+  } catch (e) { console.warn('PO channel error:', e); }
 
   return () => {
     window.removeEventListener('fhrcar_po_updated', handleLocal);
-    supabase.removeChannel(channel);
+    if (channel) try { supabase.removeChannel(channel); } catch {}
   };
 }
 
@@ -1248,16 +1270,19 @@ export function subscribeToActivityPlans(callback: (plans: ActivityPlan[]) => vo
 
   fetchActivity();
 
-  const channel = supabase
-    .channel('public:activity_plans')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_plans' }, () => {
-      fetchActivity();
-    })
-    .subscribe();
+  let channel: any = null;
+  try {
+    channel = supabase
+      .channel(`activity-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_plans' }, () => {
+        fetchActivity();
+      })
+      .subscribe();
+  } catch (e) { console.warn('activity channel error:', e); }
 
   return () => {
     window.removeEventListener('fhrcar_activity_updated', handleLocal);
-    supabase.removeChannel(channel);
+    if (channel) try { supabase.removeChannel(channel); } catch {}
   };
 }
 
@@ -1344,15 +1369,18 @@ export function subscribeToDiscussion(callback: (msgs: DiscussionMessage[]) => v
 
   fetchDiscussions();
 
-  const channel = supabase
-    .channel('public:discussions')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'discussions' }, () => {
-      fetchDiscussions();
-    })
-    .subscribe();
+  let channel: any = null;
+  try {
+    channel = supabase
+      .channel(`discussions-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'discussions' }, () => {
+        fetchDiscussions();
+      })
+      .subscribe();
+  } catch (e) { console.warn('discussions channel error:', e); }
 
   return () => {
-    supabase.removeChannel(channel);
+    if (channel) try { supabase.removeChannel(channel); } catch {}
   };
 }
 
@@ -1474,16 +1502,19 @@ export function subscribeToArticles(callback: (articles: ArticleItem[]) => void)
 
   fetchArticles();
 
-  const channel = supabase
-    .channel('public:articles')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'articles' }, () => {
-      fetchArticles();
-    })
-    .subscribe();
+  let channel: any = null;
+  try {
+    channel = supabase
+      .channel(`articles-${Date.now()}-${Math.random().toString(36).slice(2,7)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'articles' }, () => {
+        fetchArticles();
+      })
+      .subscribe();
+  } catch (e) { console.warn('articles channel error:', e); }
 
   return () => {
     window.removeEventListener('fhrcar_articles_updated', handleLocal);
-    supabase.removeChannel(channel);
+    if (channel) try { supabase.removeChannel(channel); } catch {}
   };
 }
 
