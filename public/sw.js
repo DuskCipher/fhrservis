@@ -3,43 +3,26 @@
  * Version: v1.0.0
  */
 
-const CACHE_NAME = 'fhrcar-cache-v1';
+const CACHE_NAME = 'fhrcar-cache-v2';
 const OFFLINE_FALLBACK_URL = '/index.html';
 
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/manifest.json',
   '/logo.png',
   '/logo-putih.png',
-  '/apple-touch-icon.png',
-  '/icons/icon-72x72.png',
   '/icons/icon-96x96.png',
-  '/icons/icon-128x128.png',
-  '/icons/icon-144x144.png',
-  '/icons/icon-152x152.png',
   '/icons/icon-192x192.png',
-  '/icons/icon-384x384.png',
   '/icons/icon-512x512.png',
-  '/icons/icon-maskable-192x192.png',
-  '/icons/icon-maskable-512x512.png',
 ];
 
 // 1. Install event: Pre-cache core app shell
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-        console.warn('[SW] Pre-cache warning (some assets may be loaded on demand):', err);
-      });
-    })
-  );
-  // Activate SW immediately without waiting for old clients to close
   self.skipWaiting();
 });
 
-// 2. Activate event: Clean up old caches & claim clients
+// 2. Activate event: Clean up old caches & claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -55,18 +38,19 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. Fetch event: Strategic caching (Network-First for navigation, Stale-While-Revalidate for assets)
+// 3. Fetch event: Strategic caching
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests and chrome-extension / non-http requests
+  // Skip non-GET requests and non-http requests
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) {
     return;
   }
 
-  // Skip Firebase Firestore, Auth, and Google GenAI APIs from SW caching to prevent stale live sync
+  // Skip Supabase, Firebase, Google APIs from SW caching
   if (
+    url.hostname.includes('supabase.co') ||
     url.hostname.includes('firestore.googleapis.com') ||
     url.hostname.includes('identitytoolkit.googleapis.com') ||
     url.hostname.includes('securetoken.googleapis.com') ||
