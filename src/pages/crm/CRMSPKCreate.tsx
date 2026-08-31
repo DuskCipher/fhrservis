@@ -487,8 +487,6 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
 
       setSelectedCustomer(existingCust);
       setPlatSearch(existingCust.licensePlate || '');
-      setTipeMobil(existingCust.carModel || '');
-      setTahunMobil(existingCust.carYear || '');
       if (editingOrder.kilometer) setKilometer(String(editingOrder.kilometer));
       if (editingOrder.notes || (editingOrder as any).keluhan) setKeluhan((editingOrder as any).keluhan || editingOrder.notes || '');
 
@@ -1638,7 +1636,7 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
 
                 {/* Save Button */}
                 {!savedId && (
-                  <button onClick={handleSave} disabled={saving}
+                  <button onClick={() => handleSave(false)} disabled={saving}
                     className="w-full flex items-center justify-center gap-3 py-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-base rounded-2xl shadow-xl shadow-emerald-600/30 transition-all active:scale-[0.98]">
                     {saving ? <><Clock size={18} className="animate-spin" /> Menyimpan SPK ke Database...</> : <><Save size={18} /> Simpan SPK & Terbitkan Faktur Resmi</>}
                   </button>
