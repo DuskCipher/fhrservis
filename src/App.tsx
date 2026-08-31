@@ -30,8 +30,7 @@ import { BookingPage } from './pages/BookingPage';
 import { Footer } from './components/Footer';
 import { ServiceDetailModal } from './components/ServiceDetailModal';
 import { FloatingEmergencyBar } from './components/FloatingEmergencyBar';
-import { PWAInstallPrompt } from './components/PWAInstallPrompt';
-import { ServiceItem, ArticleItem, PageType, CRMOrder, CustomerItem, EmployeeItem } from './types';
+import { ServiceItem, ArticleItem, PageType, CRMOrder, CustomerItem, EmployeeItem, InventoryItem } from './types';
 import { ARTICLES_DATA } from './data/mockData';
 
 // CRM Components
@@ -70,6 +69,7 @@ export default function App() {
   const [crmOrders, setCrmOrders] = useState<CRMOrder[]>([]);
   const [crmCustomers, setCrmCustomers] = useState<CustomerItem[]>([]);
   const [crmEmployees, setCrmEmployees] = useState<EmployeeItem[]>([]);
+  const [crmInventory, setCrmInventory] = useState<InventoryItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerItem | null>(null);
   const [editingSPKOrder, setEditingSPKOrder] = useState<CRMOrder | null>(null);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -109,6 +109,10 @@ export default function App() {
       setCrmEmployees(employees);
     });
 
+    const unsubInventory = subscribeToInventory((items) => {
+      setCrmInventory(items);
+    });
+
     // Always listen to articles in real-time
     const unsubArticles = subscribeToArticles((arts) => {
       if (arts && arts.length > 0) setArticlesList(arts);
@@ -118,6 +122,7 @@ export default function App() {
       unsubOrders();
       unsubCustomers();
       unsubEmployees();
+      unsubInventory();
       unsubArticles();
     };
   }, [activePage, isAuthenticated]);
@@ -448,6 +453,7 @@ export default function App() {
           <CRMSPKCreate
             customers={crmCustomers}
             employees={crmEmployees}
+            inventory={crmInventory}
             editingOrder={editingSPKOrder}
             onNavigate={(page) => {
               if (page !== 'crm-spk-create') setEditingSPKOrder(null);

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import {
   CustomerItem, SACheckItem, SACheckResult,
-  SPKSparepart, SPKJasa, EmployeeItem, CRMOrder
+  SPKSparepart, SPKJasa, EmployeeItem, CRMOrder, InventoryItem
 } from '../../types';
 import { addSPK, updateSPK, updateOrder, DEFAULT_EMPLOYEES } from '../../lib/firestoreService';
 
@@ -18,6 +18,7 @@ import { addSPK, updateSPK, updateOrder, DEFAULT_EMPLOYEES } from '../../lib/fir
 interface CRMSPKCreateProps {
   customers?: CustomerItem[];
   employees?: EmployeeItem[];
+  inventory?: InventoryItem[];
   onNavigate: (page: any) => void;
   editingOrder?: CRMOrder | null;
   onSaveSuccess?: () => void;
@@ -413,12 +414,21 @@ function NotaCorporatePrint({ spkData }: { spkData: any }) {
 /* ═══════════════════════════════════════════════════════════════════════ */
 /*  MAIN PAGE COMPONENT                                                    */
 /* ═══════════════════════════════════════════════════════════════════════ */
-export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editingOrder, onSaveSuccess }: CRMSPKCreateProps) {
+export function CRMSPKCreate({ customers = [], employees = [], inventory = [], onNavigate, editingOrder, onSaveSuccess }: CRMSPKCreateProps) {
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [activeCheckTab, setActiveCheckTab] = useState(0);
   const [draftToast, setDraftToast] = useState(false);
+
+  // Catalog Picker Modals
+  const [showPartCatalogModal, setShowPartCatalogModal] = useState(false);
+  const [showJasaCatalogModal, setShowJasaCatalogModal] = useState(false);
+  const [catalogSearch, setCatalogSearch] = useState('');
+
+  // Focused Autocomplete Dropdown State
+  const [activePartSearchId, setActivePartSearchId] = useState<string | null>(null);
+  const [activeJasaSearchId, setActiveJasaSearchId] = useState<string | null>(null);
 
   /* ── Step 1: Data Pelanggan & Kendaraan & Staf ── */
   const [platSearch, setPlatSearch] = useState('');
@@ -463,6 +473,16 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
 
   const safeEmployees = employees || [];
   const safeCustomers = customers || [];
+  const safeInventory = inventory || [];
+
+  // Filter inventory by type
+  const inventoryParts = useMemo(() => {
+    return safeInventory.filter(i => (i.type === 'sparepart' || !i.type) && i.isActive !== false);
+  }, [safeInventory]);
+
+  const inventoryJasa = useMemo(() => {
+    return safeInventory.filter(i => i.type === 'jasa' && i.isActive !== false);
+  }, [safeInventory]);
 
   // Initialize or Pre-fill when editing an existing Order/SPK
   React.useEffect(() => {
@@ -1410,48 +1430,154 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
 
                 {/* Spareparts */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                     <div>
-                      <h3 className="text-sm font-black text-slate-800">Daftar Suku Cadang / Material</h3>
+                      <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                        <span>Daftar Suku Cadang / Material</span>
+                        {inventoryParts.length > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-200">
+                            {inventoryParts.length} Produk Database
+                          </span>
+                        )}
+                      </h3>
                       <p className="text-[11px] text-slate-400 mt-0.5">{spareparts.length} item • Total: {formatRp(subParts)}</p>
                     </div>
-                    <button onClick={addPart}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-red-600/20 active:scale-95">
-                      <Plus size={13} /> Tambah Part
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {inventoryParts.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => { setCatalogSearch(''); setShowPartCatalogModal(true); }}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 transition-all active:scale-95"
+                        >
+                          <Search size={13} />
+                          <span>Pilih dari Katalog</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={addPart}
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-red-600/20 active:scale-95"
+                      >
+                        <Plus size={13} />
+                        <span>Tambah Part</span>
+                      </button>
+                    </div>
                   </div>
 
                   {spareparts.length === 0 ? (
                     <div className="py-8 text-center text-slate-400 text-xs">
-                      Belum ada sparepart. Klik "+ Tambah Part" jika terdapat pergantian suku cadang.
+                      Belum ada sparepart. Klik "+ Tambah Part" atau "Pilih dari Katalog" jika terdapat pergantian suku cadang.
                     </div>
                   ) : (
                     <>
                       <div className="px-5 py-2 bg-slate-50 border-b border-slate-100 grid grid-cols-12 gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        <div className="col-span-5">Nama Part / Kode Barang</div>
+                        <div className="col-span-5">Nama Part / Kode Barang (Cari Produk)</div>
                         <div className="col-span-2 text-center">Qty</div>
                         <div className="col-span-2">Satuan</div>
-                        <div className="col-span-2 text-right">Harga Satuan</div>
+                        <div className="col-span-2 text-right">Harga Jual (Rp)</div>
                         <div className="col-span-1"></div>
                       </div>
                       <div className="divide-y divide-slate-50">
-                        {spareparts.map(p => (
-                          <div key={p.id} className="px-5 py-3 grid grid-cols-12 gap-2 items-center">
-                            <input value={p.nama} onChange={e => updPart(p.id, { nama: e.target.value })} placeholder="Nama sparepart..."
-                              className="col-span-5 px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-semibold" />
-                            <input type="number" value={p.qty || ''} min={1} onChange={e => updPart(p.id, { qty: Number(e.target.value) })}
-                              className="col-span-2 px-2 py-2 rounded-xl border border-slate-200 text-xs text-center focus:outline-none focus:border-red-400 font-bold" />
-                            <select value={p.satuan} onChange={e => updPart(p.id, { satuan: e.target.value })}
-                              className="col-span-2 px-2 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 bg-white">
-                              {['pcs','liter','set','meter','botol','kaleng','pasang'].map(s => <option key={s}>{s}</option>)}
-                            </select>
-                            <input type="number" value={p.hargaSatuan || ''} min={0} onChange={e => updPart(p.id, { hargaSatuan: Number(e.target.value) })}
-                              placeholder="0" className="col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-xs text-right focus:outline-none focus:border-red-400 font-mono" />
-                            <button onClick={() => delPart(p.id)} className="col-span-1 flex justify-center text-slate-300 hover:text-red-500 transition-colors">
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        ))}
+                        {spareparts.map(p => {
+                          const query = (p.nama || '').toLowerCase().trim();
+                          const matches = query && inventoryParts.length > 0
+                            ? inventoryParts.filter(i =>
+                                i.name.toLowerCase().includes(query) ||
+                                (i.skuCode && i.skuCode.toLowerCase().includes(query)) ||
+                                (i.category && String(i.category).toLowerCase().includes(query))
+                              ).slice(0, 5)
+                            : [];
+
+                          return (
+                            <div key={p.id} className="px-5 py-3 grid grid-cols-12 gap-2 items-center relative">
+                              <div className="col-span-5 relative">
+                                <input
+                                  value={p.nama}
+                                  onFocus={() => setActivePartSearchId(p.id)}
+                                  onChange={e => {
+                                    updPart(p.id, { nama: e.target.value });
+                                    setActivePartSearchId(p.id);
+                                  }}
+                                  placeholder="Ketik nama sparepart / kode SKU..."
+                                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-semibold"
+                                />
+
+                                {/* Autocomplete Dropdown */}
+                                {activePartSearchId === p.id && matches.length > 0 && (
+                                  <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                                    <div className="p-1">
+                                      <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 rounded">
+                                        Hasil dari Kelola Produk:
+                                      </div>
+                                      {matches.map(inv => (
+                                        <button
+                                          key={inv.id}
+                                          type="button"
+                                          onClick={() => {
+                                            updPart(p.id, {
+                                              nama: inv.name,
+                                              satuan: inv.unit || 'pcs',
+                                              hargaSatuan: inv.sellPrice || 0,
+                                            });
+                                            setActivePartSearchId(null);
+                                          }}
+                                          className="w-full text-left px-2.5 py-1.5 hover:bg-red-50 rounded-lg text-xs flex items-center justify-between gap-2 group transition-colors"
+                                        >
+                                          <div>
+                                            <p className="font-bold text-slate-800 group-hover:text-red-600">
+                                              {inv.name}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400">
+                                              {inv.skuCode ? `[${inv.skuCode}] ` : ''}{inv.category} • Stok: {inv.stock ?? 0} {inv.unit}
+                                            </p>
+                                          </div>
+                                          <span className="font-mono font-black text-red-600 text-xs whitespace-nowrap">
+                                            {formatRp(inv.sellPrice)}
+                                          </span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              <input
+                                type="number"
+                                value={p.qty || ''}
+                                min={1}
+                                onChange={e => updPart(p.id, { qty: Number(e.target.value) })}
+                                className="col-span-2 px-2 py-2 rounded-xl border border-slate-200 text-xs text-center focus:outline-none focus:border-red-400 font-bold"
+                              />
+
+                              <select
+                                value={p.satuan}
+                                onChange={e => updPart(p.id, { satuan: e.target.value })}
+                                className="col-span-2 px-2 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 bg-white font-medium"
+                              >
+                                {['pcs','liter','set','meter','botol','kaleng','pasang','drum','box'].map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+
+                              <input
+                                type="number"
+                                value={p.hargaSatuan || ''}
+                                min={0}
+                                onChange={e => updPart(p.id, { hargaSatuan: Number(e.target.value) })}
+                                placeholder="0"
+                                className="col-span-2 px-3 py-2 rounded-xl border border-slate-200 text-xs text-right focus:outline-none focus:border-red-400 font-mono font-bold"
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() => delPart(p.id)}
+                                className="col-span-1 flex justify-center text-slate-300 hover:text-red-500 transition-colors"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 flex justify-end">
                         <p className="text-xs font-bold text-slate-600">Subtotal Sparepart: <span className="text-red-600 font-mono text-sm">{formatRp(subParts)}</span></p>
@@ -1462,35 +1588,288 @@ export function CRMSPKCreate({ customers = [], employees = [], onNavigate, editi
 
                 {/* Jasa Pekerjaan */}
                 <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                  <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
                     <div>
-                      <h3 className="text-sm font-black text-slate-800">Biaya Jasa Servis</h3>
+                      <h3 className="text-sm font-black text-slate-800 flex items-center gap-2">
+                        <span>Biaya Jasa Servis</span>
+                        {inventoryJasa.length > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200">
+                            {inventoryJasa.length} Jasa Database
+                          </span>
+                        )}
+                      </h3>
                       <p className="text-[11px] text-slate-400 mt-0.5">Mekanik Pelaksana: <strong>{effectiveMekanikName || '—'}</strong> • Total: {formatRp(subJasa)}</p>
                     </div>
-                    <button onClick={addJasa_}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all active:scale-95">
-                      <Plus size={13} /> Tambah Jasa
-                    </button>
-                  </div>
-                  <div className="divide-y divide-slate-50">
-                    {jasaList.map(j => (
-                      <div key={j.id} className="px-5 py-3 flex items-center gap-3">
-                        <Wrench size={13} className="text-slate-400 flex-shrink-0" />
-                        <input value={j.nama} onChange={e => updJasa(j.id, { nama: e.target.value })} placeholder="Jenis pekerjaan servis..."
-                          className="flex-1 px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-semibold" />
-                        <input type="number" value={j.harga || ''} min={0} onChange={e => updJasa(j.id, { harga: Number(e.target.value) })}
-                          placeholder="Biaya (Rp)"
-                          className="w-40 px-3 py-2 rounded-xl border border-slate-200 text-xs text-right focus:outline-none focus:border-red-400 font-mono font-bold" />
-                        <button onClick={() => delJasa(j.id)} className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0">
-                          <Trash2 size={14} />
+                    <div className="flex items-center gap-2">
+                      {inventoryJasa.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => { setCatalogSearch(''); setShowJasaCatalogModal(true); }}
+                          className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 transition-all active:scale-95"
+                        >
+                          <Search size={13} />
+                          <span>Pilih dari Katalog Jasa</span>
                         </button>
-                      </div>
-                    ))}
+                      )}
+                      <button
+                        type="button"
+                        onClick={addJasa_}
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all active:scale-95"
+                      >
+                        <Plus size={13} />
+                        <span>Tambah Jasa</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="divide-y divide-slate-50">
+                    {jasaList.map(j => {
+                      const query = (j.nama || '').toLowerCase().trim();
+                      const matches = query && inventoryJasa.length > 0
+                        ? inventoryJasa.filter(inv =>
+                            inv.name.toLowerCase().includes(query) ||
+                            (inv.category && String(inv.category).toLowerCase().includes(query)) ||
+                            (inv.skuCode && inv.skuCode.toLowerCase().includes(query))
+                          ).slice(0, 5)
+                        : [];
+
+                      return (
+                        <div key={j.id} className="px-5 py-3 flex items-center gap-3 relative">
+                          <Wrench size={13} className="text-slate-400 flex-shrink-0" />
+                          <div className="flex-1 relative">
+                            <input
+                              value={j.nama}
+                              onFocus={() => setActiveJasaSearchId(j.id)}
+                              onChange={e => {
+                                updJasa(j.id, { nama: e.target.value });
+                                setActiveJasaSearchId(j.id);
+                              }}
+                              placeholder="Ketik jenis pekerjaan servis / pilih jasa..."
+                              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-semibold"
+                            />
+
+                            {/* Autocomplete Dropdown */}
+                            {activeJasaSearchId === j.id && matches.length > 0 && (
+                              <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                                <div className="p-1">
+                                  <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 rounded">
+                                    Hasil dari Kelola Jasa:
+                                  </div>
+                                  {matches.map(inv => (
+                                    <button
+                                      key={inv.id}
+                                      type="button"
+                                      onClick={() => {
+                                        updJasa(j.id, {
+                                          nama: inv.name,
+                                          harga: inv.sellPrice || 0,
+                                        });
+                                        setActiveJasaSearchId(null);
+                                      }}
+                                      className="w-full text-left px-2.5 py-1.5 hover:bg-emerald-50 rounded-lg text-xs flex items-center justify-between gap-2 group transition-colors"
+                                    >
+                                      <div>
+                                        <p className="font-bold text-slate-800 group-hover:text-emerald-700">
+                                          {inv.name}
+                                        </p>
+                                        <p className="text-[10px] text-slate-400">
+                                          {inv.category} {inv.durationMinutes ? `• ${inv.durationMinutes} mnt` : ''}
+                                        </p>
+                                      </div>
+                                      <span className="font-mono font-black text-emerald-700 text-xs whitespace-nowrap">
+                                        {formatRp(inv.sellPrice)}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <input
+                            type="number"
+                            value={j.harga || ''}
+                            min={0}
+                            onChange={e => updJasa(j.id, { harga: Number(e.target.value) })}
+                            placeholder="Biaya (Rp)"
+                            className="w-40 px-3 py-2 rounded-xl border border-slate-200 text-xs text-right focus:outline-none focus:border-red-400 font-mono font-bold"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => delJasa(j.id)}
+                            className="text-slate-300 hover:text-red-500 transition-colors flex-shrink-0"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="px-5 py-2.5 bg-slate-50 border-t border-slate-100 flex justify-end">
                     <p className="text-xs font-bold text-slate-600">Subtotal Jasa Servis: <span className="text-slate-900 font-mono text-sm">{formatRp(subJasa)}</span></p>
                   </div>
                 </div>
+
+                {/* MODAL CATALOG: SPAREPARTS */}
+                {showPartCatalogModal && (
+                  <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                        <div>
+                          <h3 className="text-sm font-black text-slate-900">Katalog Sparepart & Material</h3>
+                          <p className="text-xs text-slate-500">Pilih suku cadang langsung dengan harga jual database</p>
+                        </div>
+                        <button
+                          onClick={() => setShowPartCatalogModal(false)}
+                          className="w-7 h-7 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div className="p-3 border-b border-slate-100">
+                        <div className="relative">
+                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            value={catalogSearch}
+                            onChange={e => setCatalogSearch(e.target.value)}
+                            placeholder="Cari nama part, kode SKU, atau kategori..."
+                            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:border-red-400"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto p-3 divide-y divide-slate-100">
+                        {inventoryParts
+                          .filter(p =>
+                            !catalogSearch ||
+                            p.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+                            (p.skuCode && p.skuCode.toLowerCase().includes(catalogSearch.toLowerCase())) ||
+                            (p.category && String(p.category).toLowerCase().includes(catalogSearch.toLowerCase()))
+                          )
+                          .map(p => (
+                            <div key={p.id} className="py-2.5 px-2 flex items-center justify-between hover:bg-slate-50 rounded-xl gap-3">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-slate-900">{p.name}</span>
+                                  {p.skuCode && (
+                                    <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px] font-bold">
+                                      {p.skuCode}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                  {p.category} • Stok: <strong className={p.stock <= p.minStock ? 'text-amber-600' : 'text-slate-700'}>{p.stock} {p.unit}</strong>
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono font-black text-xs text-red-600">
+                                  {formatRp(p.sellPrice)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSpareparts(prev => [
+                                      ...prev,
+                                      {
+                                        id: uid(),
+                                        nama: p.name,
+                                        qty: 1,
+                                        satuan: p.unit || 'pcs',
+                                        hargaSatuan: p.sellPrice || 0,
+                                      }
+                                    ]);
+                                    setShowPartCatalogModal(false);
+                                  }}
+                                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold active:scale-95 transition-all shadow-sm"
+                                >
+                                  + Pilih
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MODAL CATALOG: JASA */}
+                {showJasaCatalogModal && (
+                  <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                      <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                        <div>
+                          <h3 className="text-sm font-black text-slate-900">Katalog Biaya Jasa Servis</h3>
+                          <p className="text-xs text-slate-500">Pilih jenis jasa servis resmi</p>
+                        </div>
+                        <button
+                          onClick={() => setShowJasaCatalogModal(false)}
+                          className="w-7 h-7 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-700 flex items-center justify-center"
+                        >
+                          ✕
+                        </button>
+                      </div>
+
+                      <div className="p-3 border-b border-slate-100">
+                        <div className="relative">
+                          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            value={catalogSearch}
+                            onChange={e => setCatalogSearch(e.target.value)}
+                            placeholder="Cari nama jasa servis atau kategori..."
+                            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-400"
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto p-3 divide-y divide-slate-100">
+                        {inventoryJasa
+                          .filter(j =>
+                            !catalogSearch ||
+                            j.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+                            (j.category && String(j.category).toLowerCase().includes(catalogSearch.toLowerCase()))
+                          )
+                          .map(j => (
+                            <div key={j.id} className="py-2.5 px-2 flex items-center justify-between hover:bg-slate-50 rounded-xl gap-3">
+                              <div>
+                                <p className="font-bold text-xs text-slate-900">{j.name}</p>
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                  {j.category} {j.durationMinutes ? `• Estimasi: ${j.durationMinutes} menit` : ''}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="font-mono font-black text-xs text-emerald-700">
+                                  {formatRp(j.sellPrice)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setJasaList(prev => [
+                                      ...prev,
+                                      {
+                                        id: uid(),
+                                        nama: j.name,
+                                        harga: j.sellPrice || 0,
+                                      }
+                                    ]);
+                                    setShowJasaCatalogModal(false);
+                                  }}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold active:scale-95 transition-all shadow-sm"
+                                >
+                                  + Pilih
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Diskon & Kalkulasi Total */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
