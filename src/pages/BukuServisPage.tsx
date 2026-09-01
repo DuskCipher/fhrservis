@@ -999,7 +999,8 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
             href="https://wa.me/62882007935047?text=Halo%20FHRCAR,%20saya%20membutuhkan%20layanan%20Emergency%20Roadside%20Service%2024%20Jam"
             target="_blank"
             rel="noreferrer"
-            className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer whitespace-nowrap"
+            style={{ borderRadius: '14px' }}
+            className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer whitespace-nowrap"
           >
             <Zap size={14} className="text-amber-400 shrink-0" />
             <span>Emergency 24 Jam</span>
@@ -1008,7 +1009,8 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
           {/* Booking Button */}
           <button
             onClick={() => onOpenBooking ? onOpenBooking(`Servis Mobil ${activeVehicle?.plate || ''}`, `Booking dari Buku Servis Digital`) : onNavigate?.('booking')}
-            className="flex-1 h-12 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-red-600/30 cursor-pointer whitespace-nowrap"
+            style={{ borderRadius: '14px' }}
+            className="flex-1 h-12 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-red-600/30 cursor-pointer whitespace-nowrap"
           >
             <Calendar size={14} className="shrink-0" />
             <span>Booking Sekarang</span>
