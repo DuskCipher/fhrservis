@@ -17,8 +17,7 @@ import {
   subscribeToJournalEntries,
   JournalEntryModel,
   getLocalJournalEntries,
-  subscribeToInventory,
-  getLocalInventory
+  subscribeToInventory
 } from '../../lib/firestoreService';
 
 interface CRMDashboardProps {
@@ -76,7 +75,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigate, onBuatSPK }: CRMDashboardProps) {
   const [period, setPeriod] = useState<'7d' | '30d' | 'all'>('7d');
   const [journalEntries, setJournalEntries] = useState<JournalEntryModel[]>(getLocalJournalEntries);
-  const [inventoryList, setInventoryList] = useState<InventoryItem[]>(getLocalInventory);
+  const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
 
   useEffect(() => {
     const unsubJ = subscribeToJournalEntries(setJournalEntries);
