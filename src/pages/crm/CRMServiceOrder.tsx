@@ -753,6 +753,21 @@ export function CRMServiceOrder({
                             <Eye size={13} />
                           </button>
 
+                          {/* 📲 Kirim Link Buku Servis Digital */}
+                          {o.phone && (
+                            <a
+                              href={`https://wa.me/${o.phone.replace(/\D/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+                                `Halo Bpk/Ibu *${o.customerName}*,\n\nTerima kasih telah mempercayakan perawatan kendaraan *${o.carBrand || 'Mobil'} ${o.carModel || ''} (${o.licensePlate || ''})* kepada *FHRCAR Auto Services*.\n\nBuku Servis Digital, riwayat pengerjaan, kartu garansi resmi (1 Bulan), dan rekomendasi jadwal servis berkala Anda dapat diakses melalui link berikut:\n\n🔗 *Link Buku Servis:* https://www.fhrcar.xyz/buku-servis?spk=${o.spkNumber || o.id}&phone=${o.phone.replace(/\D/g, '')}\n🔑 *Kode PIN Akses:* ${o.phone.replace(/\D/g, '').slice(-4)} (4 digit terakhir no. HP Anda)\n\nSimpan link ini untuk memantau kondisi dan riwayat servis mobil Anda kapan saja.\nSalam hangat,\n*FHRCAR Auto Services*`
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors shadow-2xs"
+                              title="Kirim Link Buku Servis Digital via WhatsApp"
+                            >
+                              <Share2 size={13} />
+                            </a>
+                          )}
+
                           {/* WhatsApp Chat */}
                           {o.phone && (
                             <a

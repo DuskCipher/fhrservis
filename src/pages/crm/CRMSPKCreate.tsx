@@ -2026,14 +2026,22 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                     <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center mx-auto shadow-md">
                       <Check size={24} />
                     </div>
-                    <div>
-                      <h3 className="font-black text-slate-900 text-base">SPK & Faktur Berhasil Disimpan</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Nomor SPK: <span className="font-mono font-bold text-slate-800">{spkNumber}</span></p>
-                    </div>
-                    <div className="flex justify-center gap-3 pt-2">
-                      <button onClick={handlePrint} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all">
-                        Cetak Nota Sekarang
+                    <div className="flex flex-wrap justify-center gap-3 pt-2">
+                      <button onClick={handlePrint} className="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5">
+                        <Printer size={13} /> Cetak Nota Sekarang
                       </button>
+                      {selectedCustomer?.phone && (
+                        <a
+                          href={`https://wa.me/${selectedCustomer.phone.replace(/\D/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+                            `Halo Bpk/Ibu *${selectedCustomer.name}*,\n\nTerima kasih telah mempercayakan perawatan kendaraan *${selectedCustomer.carBrand || 'Mobil'} ${selectedCustomer.carModel || ''} (${selectedCustomer.licensePlate || ''})* kepada *FHRCAR Auto Services*.\n\nBuku Servis Digital, riwayat pengerjaan, kartu garansi resmi (1 Bulan), dan rekomendasi jadwal servis berkala Anda dapat diakses melalui link berikut:\n\n🔗 *Link Buku Servis:* https://www.fhrcar.xyz/buku-servis?spk=${spkNumber}&phone=${selectedCustomer.phone.replace(/\D/g, '')}\n🔑 *Kode PIN Akses:* ${selectedCustomer.phone.replace(/\D/g, '').slice(-4)} (4 digit terakhir no. HP Anda)\n\nSimpan link ini untuk memantau kondisi dan riwayat servis mobil Anda kapan saja.\nSalam hangat,\n*FHRCAR Auto Services*`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5"
+                        >
+                          <Share2 size={13} /> Kirim Buku Servis ke WA Customer
+                        </a>
+                      )}
                       <button onClick={() => onNavigate('crm-orders')} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-xs font-bold rounded-xl hover:bg-slate-50 transition-all">
                         Lihat Daftar SPK
                       </button>

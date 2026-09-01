@@ -92,6 +92,9 @@ export function Footer({ onNavigate, onOpenBooking }: FooterProps) {
                 <button onClick={() => handleNav('proses')} className="hover:text-red-600 transition-colors text-left">Alur Proses & SOP</button>
               </li>
               <li>
+                <button onClick={() => handleNav('buku-servis')} className="hover:text-red-600 transition-colors text-left font-bold text-red-600">Buku Servis Digital (Member)</button>
+              </li>
+              <li>
                 <button onClick={() => handleNav('testimoni')} className="hover:text-red-600 transition-colors text-left">Testimoni & Jangkauan</button>
               </li>
               <li>

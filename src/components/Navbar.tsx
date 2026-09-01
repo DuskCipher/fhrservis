@@ -26,6 +26,7 @@ export function Navbar({ activePage, onNavigate, onOpenBooking }: NavbarProps) {
     { name: 'Beranda', page: 'beranda' },
     { name: 'Layanan Servis', page: 'layanan' },
     { name: 'Alur Proses', page: 'proses' },
+    { name: 'Buku Servis Digital', page: 'buku-servis' },
     { name: 'Tips & Artikel', page: 'artikel' },
     { name: 'Testimoni', page: 'testimoni' },
     { name: 'About', page: 'about' },

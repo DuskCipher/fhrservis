@@ -32,6 +32,7 @@ import { FloatingEmergencyBar } from './components/FloatingEmergencyBar';
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { ServiceItem, ArticleItem, PageType, CRMOrder, CustomerItem, EmployeeItem, InventoryItem } from './types';
 import { ARTICLES_DATA } from './data/mockData';
+import { BukuServisPage } from './pages/BukuServisPage';
 
 // CRM Components
 import { LoginPage } from './pages/crm/LoginPage';
@@ -175,10 +176,11 @@ export default function App() {
     }
   }, []);
 
-  // Subscribe to Firestore orders & customers in real-time (only when on CRM pages)
+  // Subscribe to Firestore orders & customers in real-time (when on CRM or Buku Servis Member pages)
   useEffect(() => {
     const isCrmPage = activePage.startsWith('crm-');
-    if (!isCrmPage || !isAuthenticated) return;
+    const isMemberPage = activePage === 'buku-servis';
+    if (!isCrmPage && !isMemberPage && !isAuthenticated) return;
 
     setOrdersLoading(true);
     const unsubOrders = subscribeToOrders((orders) => {
@@ -230,6 +232,7 @@ export default function App() {
     if (cleanPath === '/testimoni' || cleanPath === '/reviews') return 'testimoni';
     if (cleanPath === '/tentang-kami' || cleanPath === '/about') return 'about';
     if (cleanPath === '/booking-servis' || cleanPath === '/booking') return 'booking';
+    if (cleanPath === '/buku-servis' || cleanPath.startsWith('/buku-servis')) return 'buku-servis';
 
     // CRM Routes
     if (cleanPath === '/login') return 'crm-login';
@@ -267,6 +270,7 @@ export default function App() {
     if (page === 'testimoni') return '/testimoni';
     if (page === 'about') return '/tentang-kami';
     if (page === 'booking') return '/booking-servis';
+    if (page === 'buku-servis') return '/buku-servis';
 
     // CRM
     if (page === 'crm-login') return '/login';
@@ -366,6 +370,17 @@ export default function App() {
   };
 
   // CRM Rendering Logic
+  if (activePage === 'buku-servis') {
+    return (
+      <BukuServisPage
+        orders={crmOrders}
+        customers={crmCustomers}
+        onNavigate={handleNavigate}
+        onOpenBooking={handleOpenBooking}
+      />
+    );
+  }
+
   if (activePage === 'crm-login') {
     return <LoginPage onLoginSuccess={handleLoginSuccess} />;
   }

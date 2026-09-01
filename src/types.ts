@@ -1,6 +1,6 @@
 export type PageType = 
   // Landing
-  | 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking'
+  | 'beranda' | 'layanan' | 'proses' | 'artikel' | 'artikel-detail' | 'testimoni' | 'about' | 'booking' | 'buku-servis'
   // CRM Auth
   | 'crm-login'
   // CRM Core
