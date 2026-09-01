@@ -6,7 +6,7 @@ import {
   Banknote, Check, ArrowLeft, Calendar, Hash, Gauge, Palette,
   Settings2, AlertCircle, Info, RefreshCw, DollarSign, Percent,
   ShoppingCart, BarChart3, ChevronDown, Fuel, UserCheck, ShieldCheck,
-  Building, CheckSquare, Layers, Users
+  Building, CheckSquare, Layers, Users, Share2
 } from 'lucide-react';
 import {
   CustomerItem, SACheckItem, SACheckResult,

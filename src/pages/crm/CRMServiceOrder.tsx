@@ -4,7 +4,7 @@ import {
   AlertCircle, Clock, ChevronDown, MapPin, User, Car, 
   Calendar, MessageSquare, RefreshCw, Plus, Wrench, PlayCircle,
   TrendingUp, DollarSign, Zap, Download, ArrowUpRight, ShieldCheck,
-  CalendarRange, CheckSquare, Edit, Award, UserCheck, Trash2
+  CalendarRange, CheckSquare, Edit, Award, UserCheck, Trash2, Share2
 } from 'lucide-react';
 import { CRMOrder, OrderStatus, CustomerItem } from '../../types';
 
