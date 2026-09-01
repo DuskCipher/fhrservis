@@ -50,12 +50,18 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
       const ph = searchParams.get('phone') || searchParams.get('hp');
       if (spk) setSpkParam(spk);
       if (ph) {
-        setPhoneInput(ph);
-        // Pre-fill PIN if last 4 digits of phone
         const digits = ph.replace(/\D/g, '');
+        setPhoneInput(ph);
+        // Auto-fill PIN = 4 digit terakhir nomor HP
         if (digits.length >= 4) {
           const last4 = digits.slice(-4);
           setPinInput(last4.split(''));
+          // Auto-login langsung jika akses via magic link dengan nomor HP valid
+          try {
+            localStorage.setItem('fhrcar_member_phone', digits);
+          } catch {}
+          setAuthenticatedPhone(digits);
+          setAuthSuccess(true);
         }
       }
     } catch {}
@@ -358,7 +364,7 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
   // ══════════════════════════════════════════════════════════════════════════
   if (!authenticatedPhone) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-[#10192e] to-slate-900 text-white font-sans flex flex-col justify-between p-4 sm:p-6 selection:bg-red-600 selection:text-white">
+      <div className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-slate-100 text-slate-800 font-sans flex flex-col justify-between p-4 sm:p-6 selection:bg-red-600 selection:text-white">
         
         {/* Toast */}
         {toastMessage && (
@@ -371,16 +377,17 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
         {/* Top Header */}
         <header className="max-w-md mx-auto w-full flex items-center justify-between pt-2 pb-4">
           <div className="flex items-center gap-2.5">
-            <img src="/logo-putih.png" alt="FHRCAR" className="h-8 w-auto object-contain" />
-            <div>
-              <span className="text-[10px] font-black tracking-widest text-red-500 uppercase block">Digital Member</span>
-              <span className="text-xs font-bold text-slate-300">Buku Servis Online</span>
-            </div>
+            <img
+              src="https://i.ibb.co.com/JRGLV4Nx/LOGO-Univ.png"
+              alt="FHRCAR"
+              className="h-9 w-auto object-contain"
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/logo.png'; }}
+            />
           </div>
           {onNavigate && (
             <button
               onClick={() => onNavigate('beranda')}
-              className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-xl border border-white/10 hover:bg-white/5 transition-all"
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-white transition-all shadow-xs"
             >
               <ArrowLeft size={14} /> Beranda
             </button>
@@ -388,30 +395,34 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
         </header>
 
         {/* Main Login Card */}
-        <main className="max-w-md mx-auto w-full my-auto py-6">
-          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/50 relative overflow-hidden">
+        <main className="max-w-md mx-auto w-full my-auto py-4">
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 relative overflow-hidden">
             
-            {/* Ambient Background Glow */}
-            <div className="absolute -top-20 -right-20 w-48 h-48 bg-red-600/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
+            {/* Subtle top accent */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-red-500 to-amber-500 rounded-t-3xl" />
 
-            {/* Header Icon */}
-            <div className="flex flex-col items-center text-center mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-red-600 to-amber-500 flex items-center justify-center text-white shadow-lg shadow-red-600/30 mb-3.5">
-                <Car size={32} />
+            {/* Logo & Title */}
+            <div className="flex flex-col items-center text-center mb-7 pt-2">
+              <div className="mb-4 p-3 bg-red-50 rounded-2xl border border-red-100 shadow-sm">
+                <img
+                  src="https://i.ibb.co.com/JRGLV4Nx/LOGO-Univ.png"
+                  alt="FHRCAR Auto Services"
+                  className="h-12 w-auto object-contain"
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/logo.png'; }}
+                />
               </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Buku Servis Digital
               </h1>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs leading-relaxed">
+              <p className="text-xs text-slate-500 mt-1.5 max-w-xs leading-relaxed">
                 Pantau riwayat perawatan, kartu garansi aktif, dan jadwal servis berkala kendaraan Anda
               </p>
             </div>
 
             {/* Error Message */}
             {authError && (
-              <div className="mb-5 p-3.5 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-300 text-xs font-semibold flex items-start gap-2.5">
-                <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="mb-5 p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-start gap-2.5">
+                <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
                 <span>{authError}</span>
               </div>
             )}
@@ -421,12 +432,12 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
               
               {/* Phone input */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">
                   1. Nomor WhatsApp / Handphone
                 </label>
                 <div className="relative">
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-slate-400 text-xs font-bold border-r border-white/10 pr-2">
-                    <Phone size={14} className="text-red-400" />
+                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-slate-400 text-xs font-bold border-r border-slate-200 pr-2.5">
+                    <Phone size={14} className="text-red-500" />
                     <span>+62</span>
                   </div>
                   <input
@@ -434,7 +445,7 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
                     value={phoneInput}
                     onChange={e => setPhoneInput(e.target.value)}
                     placeholder="812-3456-7890"
-                    className="w-full pl-20 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-slate-500 text-sm font-semibold focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all font-mono"
+                    className="w-full pl-20 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 text-sm font-semibold focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/15 focus:bg-white transition-all font-mono"
                     required
                   />
                 </div>
@@ -446,11 +457,11 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
               {/* 4-Digit PIN input */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <KeyRound size={13} className="text-amber-400" />
+                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <KeyRound size={13} className="text-amber-500" />
                     2. Masukkan 4-Digit PIN Akses
                   </label>
-                  <span className="text-[10px] text-amber-400 font-bold bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                  <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                     PIN Keamanan
                   </span>
                 </div>
@@ -466,14 +477,14 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
                       value={pinInput[idx]}
                       onChange={e => handlePinChange(idx, e.target.value)}
                       onKeyDown={e => handlePinKeyDown(idx, e)}
-                      className="w-full h-14 bg-white/5 border border-white/15 focus:border-amber-400 focus:bg-white/10 text-white rounded-2xl text-center text-xl font-mono font-black focus:outline-none focus:ring-2 focus:ring-amber-400/30 transition-all"
+                      className="w-full h-14 bg-slate-50 border border-slate-200 focus:border-amber-500 focus:bg-white text-slate-900 rounded-2xl text-center text-xl font-mono font-black focus:outline-none focus:ring-2 focus:ring-amber-400/25 transition-all shadow-xs"
                       placeholder="•"
                     />
                   ))}
                 </div>
 
-                <div className="mt-2.5 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 flex items-start gap-2">
-                  <Sparkles size={14} className="shrink-0 mt-0.5 text-amber-400" />
+                <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50 border border-amber-100 text-[11px] text-amber-700 flex items-start gap-2">
+                  <Sparkles size={14} className="shrink-0 mt-0.5 text-amber-500" />
                   <span>
                     <strong>Tips:</strong> PIN default adalah <strong>4 digit terakhir</strong> nomor WhatsApp Anda (Contoh: jika No. 08123456<strong>7890</strong>, PIN = <strong>7890</strong>).
                   </span>
@@ -483,7 +494,7 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
               {/* Submit button */}
               <button
                 type="submit"
-                className="w-full py-3.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 active:scale-[0.98] text-white text-sm font-black rounded-2xl shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                className="w-full py-3.5 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 active:scale-[0.98] text-white text-sm font-black rounded-2xl shadow-md shadow-red-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <span>Buka Buku Servis Saya</span>
                 <ArrowRight size={16} />
@@ -491,13 +502,13 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
             </form>
 
             {/* WhatsApp Assistance */}
-            <div className="mt-6 pt-5 border-t border-white/10 text-center">
+            <div className="mt-6 pt-5 border-t border-slate-100 text-center">
               <p className="text-[11px] text-slate-400 mb-2">Mengalami kendala saat login atau nomor belum terdaftar?</p>
               <a
-                href="https://wa.me/6281390494488?text=Halo%20Admin%20FHRCAR,%20saya%20ingin%20menanyakan%20akses%20Buku%20Servis%20Digital%20saya"
+                href="https://wa.me/62882007935047?text=Halo%20Admin%20FHRCAR,%20saya%20ingin%20menanyakan%20akses%20Buku%20Servis%20Digital%20saya"
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 px-3.5 py-1.5 rounded-full border border-emerald-500/20 transition-all"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-1.5 rounded-full border border-emerald-200 transition-all"
               >
                 <MessageSquare size={13} />
                 Hubungi Customer Service WhatsApp
@@ -508,14 +519,13 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
         </main>
 
         {/* Footer */}
-        <footer className="max-w-md mx-auto w-full text-center text-[11px] text-slate-500 py-3">
+        <footer className="max-w-md mx-auto w-full text-center text-[11px] text-slate-400 py-3">
           <p>© {new Date().getFullYear()} FHRCAR Auto Services — Bengkel Mobil Panggilan 24 Jam</p>
         </footer>
 
       </div>
     );
   }
-
   // ══════════════════════════════════════════════════════════════════════════
   // VIEW: AUTHENTICATED MEMBER PORTAL (BUKU SERVIS DIGITAL)
   // ══════════════════════════════════════════════════════════════════════════
@@ -726,7 +736,7 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
                   <span className="text-[10px] text-slate-400 uppercase font-bold block">Status Perlindungan</span>
                   <span className="text-xs font-black text-emerald-700 block mt-0.5">PROTEKSI 100% AKTIF</span>
                   <a
-                    href="https://wa.me/6281390494488?text=Halo%20FHRCAR,%20saya%20ingin%20klaim/konsultasi%20garansi%20servis%20untuk%20mobil%20saya"
+                    href="https://wa.me/62882007935047?text=Halo%20FHRCAR,%20saya%20ingin%20klaim/konsultasi%20garansi%20servis%20untuk%20mobil%20saya"
                     target="_blank"
                     rel="noreferrer"
                     className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:text-emerald-800 underline"
@@ -976,26 +986,29 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
 
       </main>
 
+
       {/* ─── Sticky Mobile Quick Action Bar (Bottom Bar) ─── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-4 py-3 shadow-xl">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          
+        <div className="max-w-4xl mx-auto flex items-center gap-3">
+
+          {/* Emergency Button */}
           <a
-            href="https://wa.me/6281390494488?text=Halo%20FHRCAR,%20saya%20membutuhkan%20layanan%20Emergency%20Roadside%20Service%2024%20Jam"
+            href="https://wa.me/62882007935047?text=Halo%20FHRCAR,%20saya%20membutuhkan%20layanan%20Emergency%20Roadside%20Service%2024%20Jam"
             target="_blank"
             rel="noreferrer"
-            className="flex-1 py-3 px-3 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-black text-xs rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+            className="flex-1 h-12 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer whitespace-nowrap"
           >
-            <Zap size={15} className="text-amber-400" />
+            <Zap size={14} className="text-amber-400 shrink-0" />
             <span>Emergency 24 Jam</span>
           </a>
 
+          {/* Booking Button */}
           <button
             onClick={() => onOpenBooking ? onOpenBooking(`Servis Mobil ${activeVehicle?.plate || ''}`, `Booking dari Buku Servis Digital`) : onNavigate?.('booking')}
-            className="flex-1 py-3 px-3 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs rounded-2xl flex items-center justify-center gap-2 transition-all shadow-md shadow-red-600/30 cursor-pointer"
+            className="flex-1 h-12 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md shadow-red-600/30 cursor-pointer whitespace-nowrap"
           >
-            <Calendar size={15} />
-            <span>Booking Servis Ulang</span>
+            <Calendar size={14} className="shrink-0" />
+            <span>Booking Sekarang</span>
           </button>
 
         </div>

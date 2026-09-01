@@ -5,7 +5,7 @@ import {
   Filter, Eye, ChevronDown, X, Upload, Download,
   UserPlus, RefreshCw, MoreHorizontal, StarIcon,
   Repeat2, BarChart3, TrendingDown, GitMerge, UserCheck,
-  Building2, Hash, Key, Clock, AlertTriangle
+  Building2, Hash, Key, Clock, AlertTriangle, Share2
 } from 'lucide-react';
 import { CustomerItem } from '../../types';
 import { deleteCustomer } from '../../lib/firestoreService';
@@ -556,12 +556,22 @@ export function CRMCustomers({
                         <p className="text-[10px] text-slate-400 whitespace-nowrap">{c.carYear} • {c.transmission || 'Matic'}</p>
                       </td>
 
-                      {/* PIN Portal */}
+                      {/* PIN Portal — otomatis dari 4 digit terakhir No. HP */}
                       <td className="px-3 py-3.5 text-center whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 whitespace-nowrap">
-                          <Key size={9} />
-                          —
-                        </span>
+                        {c.phone ? (() => {
+                          const pin = c.phone.replace(/\D/g, '').slice(-4);
+                          return (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-mono font-black bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap tracking-widest">
+                              <Key size={9} className="text-amber-500" />
+                              {pin}
+                            </span>
+                          );
+                        })() : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-400 border border-slate-200 whitespace-nowrap">
+                            <Key size={9} />
+                            —
+                          </span>
+                        )}
                       </td>
 
                       {/* Tanggal Gabung */}
@@ -589,6 +599,20 @@ export function CRMCustomers({
                           >
                             <FileText size={13} />
                           </button>
+                          {/* Kirim Buku Servis via WA */}
+                          {c.phone && (
+                            <a
+                              href={`https://wa.me/${c.phone.replace(/\D/g, '').replace(/^0/, '62')}?text=${encodeURIComponent(
+                                `Halo Bpk/Ibu *${c.name}*,\n\nTerima kasih telah menjadi pelanggan setia *FHRCAR Auto Services*.\n\nBuku Servis Digital, riwayat pengerjaan, kartu garansi resmi (1 Bulan), dan rekomendasi jadwal servis berkala kendaraan Anda dapat diakses melalui link berikut:\n\n🔗 *Link Buku Servis:* https://www.fhrcar.xyz/buku-servis?phone=${c.phone.replace(/\D/g, '')}\n🔑 *Kode PIN Akses:* ${c.phone.replace(/\D/g, '').slice(-4)} (4 digit terakhir no. HP Anda)\n\nSimpan link ini untuk memantau kondisi dan riwayat servis mobil Anda kapan saja.\nSalam hangat,\n*FHRCAR Auto Services*`
+                              )}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Kirim Link Buku Servis Digital via WhatsApp"
+                              className="p-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                            >
+                              <Share2 size={13} />
+                            </a>
+                          )}
                           <a
                             href={`https://wa.me/${c.phone?.replace(/[^0-9]/g, '')}?text=Halo%20${encodeURIComponent(c.name)}%2C%20kami%20dari%20FHR%20Car%20Service.`}
                             target="_blank"
