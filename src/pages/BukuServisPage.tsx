@@ -398,19 +398,14 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
         <main className="max-w-md mx-auto w-full my-auto py-4">
           <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xl shadow-slate-200/50 relative overflow-hidden">
             
-            {/* Subtle top accent */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-red-500 to-amber-500 rounded-t-3xl" />
-
             {/* Logo & Title */}
             <div className="flex flex-col items-center text-center mb-7 pt-2">
-              <div className="mb-4 p-3 bg-red-50 rounded-2xl border border-red-100 shadow-sm">
-                <img
-                  src="https://i.ibb.co.com/JRGLV4Nx/LOGO-Univ.png"
-                  alt="FHRCAR Auto Services"
-                  className="h-12 w-auto object-contain"
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/logo.png'; }}
-                />
-              </div>
+              <img
+                src="https://i.ibb.co.com/JRGLV4Nx/LOGO-Univ.png"
+                alt="FHRCAR Auto Services"
+                className="h-12 w-auto object-contain mb-4"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/logo.png'; }}
+              />
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 Buku Servis Digital
               </h1>
