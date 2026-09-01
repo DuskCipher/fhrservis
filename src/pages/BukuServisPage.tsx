@@ -140,13 +140,13 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
           fuelType: o.fuelType || 'Bensin',
           noRangka: o.noRangka || '-',
           noMesin: o.noMesin || '-',
-          lastKm: Number(o.kilometer) || 0,
+          lastKm: Number(String(o.kilometer || '').replace(/[^0-9]/g, '')) || 0,
           lastServiceDate: o.createdAt || o.serviceDate,
           lastServiceType: o.serviceType || 'Servis Berkala',
         });
       } else {
         const existing = map.get(plate)!;
-        const currentKm = Number(o.kilometer) || 0;
+        const currentKm = Number(String(o.kilometer || '').replace(/[^0-9]/g, '')) || 0;
         if (currentKm > existing.lastKm) {
           existing.lastKm = currentKm;
         }
@@ -860,11 +860,19 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
                             <span className="text-xs font-bold text-slate-800">
                               {spkDate}
                             </span>
-                            {order.kilometer && (
-                              <span className="text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                                {Number(order.kilometer).toLocaleString('id-ID')} KM
-                              </span>
-                            )}
+                            {order.kilometer ? (() => {
+                              const kmNum = Number(String(order.kilometer).replace(/[^0-9]/g, '')) || 0;
+                              return (
+                                <>
+                                  <span className="text-[11px] font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-bold">
+                                    {kmNum.toLocaleString('id-ID')} KM
+                                  </span>
+                                  <span className="text-[11px] font-mono text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-black">
+                                    Next: {(kmNum + 5000).toLocaleString('id-ID')} KM
+                                  </span>
+                                </>
+                              );
+                            })() : null}
                             {isLatest && (
                               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-black rounded-full uppercase">
                                 Servis Terakhir
@@ -1058,8 +1066,22 @@ export function BukuServisPage({ orders = [], customers = [], onNavigate, onOpen
                   <span className="font-bold text-slate-800">{selectedReceiptOrder.carBrand} {selectedReceiptOrder.carModel} ({selectedReceiptOrder.licensePlate})</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Kilometer:</span>
-                  <span className="font-mono font-bold text-slate-800">{Number(selectedReceiptOrder.kilometer || 0).toLocaleString('id-ID')} KM</span>
+                  <span className="text-slate-500">Kilometer Saat Servis:</span>
+                  <span className="font-mono font-bold text-slate-800">
+                    {(() => {
+                      const kmNum = Number(String(selectedReceiptOrder.kilometer || '0').replace(/[^0-9]/g, '')) || 0;
+                      return `${kmNum.toLocaleString('id-ID')} KM`;
+                    })()}
+                  </span>
+                </div>
+                <div className="flex justify-between bg-amber-50/80 px-2 py-1 rounded-lg border border-amber-200/60">
+                  <span className="text-amber-800 font-bold">Jadwal Servis Berikutnya (+5.000 KM):</span>
+                  <span className="font-mono font-black text-amber-900">
+                    {(() => {
+                      const kmNum = Number(String(selectedReceiptOrder.kilometer || '0').replace(/[^0-9]/g, '')) || 0;
+                      return `${(kmNum + 5000).toLocaleString('id-ID')} KM`;
+                    })()}
+                  </span>
                 </div>
               </div>
 
