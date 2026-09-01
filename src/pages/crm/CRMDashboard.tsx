@@ -28,13 +28,8 @@ interface CRMDashboardProps {
   onBuatSPK?: () => void;
 }
 
-const formatRp = (n: number) => {
-  if (n >= 1000000) return 'Rp ' + (n / 1000000).toFixed(1) + 'jt';
-  if (n >= 1000) return 'Rp ' + (n / 1000).toFixed(0) + 'rb';
-  return 'Rp ' + n.toLocaleString('id-ID');
-};
-
-const formatRpFull = (n: number) => 'Rp ' + n.toLocaleString('id-ID');
+const formatRp = (n: number) => 'Rp ' + (Math.round(n || 0)).toLocaleString('id-ID');
+const formatRpFull = (n: number) => 'Rp ' + (Math.round(n || 0)).toLocaleString('id-ID');
 
 const STATUS_STYLE: Record<string, string> = {
   pending:   'bg-amber-50 text-amber-700 border-amber-200',
