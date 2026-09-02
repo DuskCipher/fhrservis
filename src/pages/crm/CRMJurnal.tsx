@@ -3,8 +3,8 @@ import {
   BookOpen, Plus, Trash2, Printer, X,
   Wallet, CreditCard, Building2, AlertCircle, CheckCircle,
   Edit3, Save, ArrowDownRight, FileText, Banknote, BarChart3,
-  Eye, EyeOff, Store, Wrench, TrendingUp, ShoppingBag, Coins,
-  Tag, Percent, ChevronRight
+  Eye, EyeOff, Store, Wrench, TrendingUp, TrendingDown, ShoppingBag, Coins,
+  Tag, Percent, ChevronRight, Sparkles
 } from 'lucide-react';
 import { CRMOrder, PageType, InventoryItem } from '../../types';
 import {
