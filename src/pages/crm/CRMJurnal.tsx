@@ -855,53 +855,100 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Kas */}
-              <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center"><Banknote className="w-4 h-4 text-white" /></div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-800">Kas di Tangan ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
-                    <p className="text-[10px] text-slate-400">Total Cash Masuk dikurangi Pengeluaran Kas di Tangan</p>
+              <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center"><Banknote className="w-4 h-4 text-white" /></div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-800">Kas di Tangan ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
+                      <p className="text-[10px] text-slate-400">Total Cash Masuk dikurangi Pengeluaran Kas di Tangan</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-xs text-slate-500">Cash Masuk ({currentTab === 'toko' ? 'Penjualan Sparepart' : 'Jasa'})</span>
+                      <span className="text-xs font-bold text-emerald-700">{formatRp(summary.totalCash)}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-xs text-slate-500">Pengeluaran Kas di Tangan</span>
+                      <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPKas)}</span>
+                    </div>
+                    <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoKas >= 0 ? 'bg-emerald-50' : 'bg-red-50')}>
+                      <span className="text-xs font-black text-slate-700">Saldo Kas di Tangan (Fisik)</span>
+                      <span className={'text-sm font-black ' + (summary.saldoKas >= 0 ? 'text-emerald-700' : 'text-red-700')}>{formatRp(summary.saldoKas)}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-xs text-slate-500">Cash Masuk ({currentTab === 'toko' ? 'Sparepart' : 'Jasa'})</span>
-                    <span className="text-xs font-bold text-emerald-700">{formatRp(summary.totalCash)}</span>
+
+                {currentTab === 'toko' && summary.totalCash > 0 && (
+                  <div className="mt-3 pt-2.5 border-t border-dashed border-slate-200 space-y-1.5 bg-slate-50 p-2.5 rounded-xl text-[11px]">
+                    <div className="flex justify-between text-amber-800">
+                      <span className="font-semibold">📦 Potongan Modal Sparepart (HPP):</span>
+                      <span className="font-mono font-black">
+                        - {formatRp(profitDetailsToko.totalJual > 0 ? Math.round((summary.totalCash / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-emerald-800 font-bold border-t border-slate-200 pt-1">
+                      <span>💎 Estimasi Laba Bersih Kas:</span>
+                      <span className="font-mono font-black">
+                        {formatRp(
+                          summary.saldoKas -
+                          (profitDetailsToko.totalJual > 0 ? Math.round((summary.totalCash / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)
+                        )}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-xs text-slate-500">Pengeluaran Kas di Tangan</span>
-                    <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPKas)}</span>
-                  </div>
-                  <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoKas >= 0 ? 'bg-emerald-50' : 'bg-red-50')}>
-                    <span className="text-xs font-black text-slate-700">Saldo Kas di Tangan (Fisik)</span>
-                    <span className={'text-sm font-black ' + (summary.saldoKas >= 0 ? 'text-emerald-700' : 'text-red-700')}>{formatRp(summary.saldoKas)}</span>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Bank */}
-              <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center"><Building2 className="w-4 h-4 text-white" /></div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-800">Bank Transfer ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
-                    <p className="text-[10px] text-slate-400">Total TF Masuk dikurangi Pengeluaran Bank</p>
+              <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center"><Building2 className="w-4 h-4 text-white" /></div>
+                    <div>
+                      <h3 className="text-sm font-black text-slate-800">Bank Transfer ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
+                      <p className="text-[10px] text-slate-400">Total TF Masuk dikurangi Pengeluaran Bank</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-xs text-slate-500">TF Masuk ({currentTab === 'toko' ? 'Penjualan Sparepart' : 'Jasa'})</span>
+                      <span className="text-xs font-bold text-blue-700">{formatRp(summary.totalTF)}</span>
+                    </div>
+                    <div className="flex justify-between py-1.5 border-b border-slate-100">
+                      <span className="text-xs text-slate-500">Pengeluaran Transfer Bank (Alat/Beban)</span>
+                      <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPBank)}</span>
+                    </div>
+                    <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoBank >= 0 ? 'bg-blue-50' : 'bg-red-50')}>
+                      <span className="text-xs font-black text-slate-700">Saldo Bank (Fisik Rekening)</span>
+                      <span className={'text-sm font-black ' + (summary.saldoBank >= 0 ? 'text-blue-700' : 'text-red-700')}>{formatRp(summary.saldoBank)}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-xs text-slate-500">TF Masuk ({currentTab === 'toko' ? 'Sparepart' : 'Jasa'})</span>
-                    <span className="text-xs font-bold text-blue-700">{formatRp(summary.totalTF)}</span>
+
+                {currentTab === 'toko' && summary.totalTF > 0 && (
+                  <div className="mt-3 pt-2.5 border-t border-dashed border-blue-200 space-y-1.5 bg-blue-50/50 p-2.5 rounded-xl text-[11px]">
+                    <div className="flex justify-between text-amber-800">
+                      <span className="font-semibold">📦 Potongan Modal Sparepart (HPP):</span>
+                      <span className="font-mono font-black">
+                        - {formatRp(profitDetailsToko.totalJual > 0 ? Math.round((summary.totalTF / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-blue-900 font-bold border-t border-blue-200/60 pt-1">
+                      <span>💎 Estimasi Laba Bersih di Bank:</span>
+                      <span className="font-mono font-black text-emerald-700">
+                        {formatRp(
+                          summary.saldoBank -
+                          (profitDetailsToko.totalJual > 0 ? Math.round((summary.totalTF / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)
+                        )}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 italic">
+                      *Modal sparepart wajib disisihkan untuk restok part SPK berikutnya.
+                    </p>
                   </div>
-                  <div className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-xs text-slate-500">Pengeluaran Transfer Bank</span>
-                    <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPBank)}</span>
-                  </div>
-                  <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoBank >= 0 ? 'bg-blue-50' : 'bg-red-50')}>
-                    <span className="text-xs font-black text-slate-700">Saldo Bank (Fisik Rekening)</span>
-                    <span className={'text-sm font-black ' + (summary.saldoBank >= 0 ? 'text-blue-700' : 'text-red-700')}>{formatRp(summary.saldoBank)}</span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
