@@ -908,12 +908,6 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                     })()}
                   </div>
                 </div>
-
-                {/* Info Saldo Fisik di Bawah */}
-                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Saldo Kas Fisik (Uang Tunai):</span>
-                  <span className="font-mono font-bold text-slate-800">{formatRp(summary.saldoKas)}</span>
-                </div>
               </div>
 
               {/* Bank */}
@@ -969,12 +963,6 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                       );
                     })()}
                   </div>
-                </div>
-
-                {/* Info Saldo Fisik di Bawah */}
-                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                  <span>Saldo Fisik di Rekening Bank:</span>
-                  <span className="font-mono font-bold text-blue-900">{formatRp(summary.saldoBank)}</span>
                 </div>
               </div>
             </div>
