@@ -861,44 +861,59 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                     <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center"><Banknote className="w-4 h-4 text-white" /></div>
                     <div>
                       <h3 className="text-sm font-black text-slate-800">Kas di Tangan ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
-                      <p className="text-[10px] text-slate-400">Total Cash Masuk dikurangi Pengeluaran Kas di Tangan</p>
+                      <p className="text-[10px] text-slate-400">Rincian pendapatan kas, modal, beban & laba bersih</p>
                     </div>
                   </div>
+
                   <div className="space-y-2">
+                    {/* 1. Cash Masuk */}
                     <div className="flex justify-between py-1.5 border-b border-slate-100">
-                      <span className="text-xs text-slate-500">Cash Masuk ({currentTab === 'toko' ? 'Penjualan Sparepart' : 'Jasa'})</span>
-                      <span className="text-xs font-bold text-emerald-700">{formatRp(summary.totalCash)}</span>
+                      <span className="text-xs text-slate-600 font-medium">Cash Masuk ({currentTab === 'toko' ? 'Penjualan Sparepart' : 'Jasa'})</span>
+                      <span className="text-xs font-bold text-emerald-700 font-mono">{formatRp(summary.totalCash)}</span>
                     </div>
+
+                    {/* 2. Beli Sparepart (HPP) - Khusus Tab Toko */}
+                    {currentTab === 'toko' && (
+                      <div className="flex justify-between py-1.5 border-b border-slate-100">
+                        <span className="text-xs text-amber-800 font-medium">Beli Sparepart (HPP / Modal):</span>
+                        <span className="text-xs font-bold text-amber-700 font-mono">
+                          - {formatRp(profitDetailsToko.totalJual > 0 ? Math.round((summary.totalCash / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* 3. Pengeluaran Kas (Alat/Beban) */}
                     <div className="flex justify-between py-1.5 border-b border-slate-100">
-                      <span className="text-xs text-slate-500">Pengeluaran Kas di Tangan</span>
-                      <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPKas)}</span>
+                      <span className="text-xs text-slate-600 font-medium">Pengeluaran Kas di Tangan (Alat/Beban)</span>
+                      <span className="text-xs font-bold text-red-600 font-mono">- {formatRp(summary.totalPKas)}</span>
                     </div>
-                    <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoKas >= 0 ? 'bg-emerald-50' : 'bg-red-50')}>
-                      <span className="text-xs font-black text-slate-700">Saldo Kas di Tangan (Fisik)</span>
-                      <span className={'text-sm font-black ' + (summary.saldoKas >= 0 ? 'text-emerald-700' : 'text-red-700')}>{formatRp(summary.saldoKas)}</span>
-                    </div>
+
+                    {/* 4. Sisa Laba Bersih */}
+                    {(() => {
+                      const modalKas = currentTab === 'toko' && profitDetailsToko.totalJual > 0
+                        ? Math.round((summary.totalCash / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli)
+                        : 0;
+                      const labaBersihKas = summary.totalCash - modalKas - summary.totalPKas;
+                      return (
+                        <div className={'flex justify-between py-2.5 rounded-xl px-3 border ' + (labaBersihKas >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200')}>
+                          <div>
+                            <span className="text-xs font-black text-slate-900 block">Sisa Laba Bersih di Kas</span>
+                            <span className="text-[10px] text-emerald-700 font-semibold block">Profit murni siap diambil</span>
+                          </div>
+                          <span className={'text-sm font-black font-mono self-center ' + (labaBersihKas >= 0 ? 'text-emerald-700' : 'text-red-700')}>
+                            {formatRp(labaBersihKas)}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
-                {currentTab === 'toko' && summary.totalCash > 0 && (
-                  <div className="mt-3 pt-2.5 border-t border-dashed border-slate-200 space-y-1.5 bg-slate-50 p-2.5 rounded-xl text-[11px]">
-                    <div className="flex justify-between text-amber-800">
-                      <span className="font-semibold">📦 Potongan Modal Sparepart (HPP):</span>
-                      <span className="font-mono font-black">
-                        - {formatRp(profitDetailsToko.totalJual > 0 ? Math.round((summary.totalCash / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-emerald-800 font-bold border-t border-slate-200 pt-1">
-                      <span>💎 Estimasi Laba Bersih Kas:</span>
-                      <span className="font-mono font-black">
-                        {formatRp(
-                          summary.saldoKas -
-                          (profitDetailsToko.totalJual > 0 ? Math.round((summary.totalCash / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {/* Info Saldo Fisik di Bawah */}
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span>Saldo Kas Fisik (Uang Tunai):</span>
+                  <span className="font-mono font-bold text-slate-800">{formatRp(summary.saldoKas)}</span>
+                </div>
               </div>
 
               {/* Bank */}
@@ -908,47 +923,59 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                     <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center"><Building2 className="w-4 h-4 text-white" /></div>
                     <div>
                       <h3 className="text-sm font-black text-slate-800">Bank Transfer ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
-                      <p className="text-[10px] text-slate-400">Total TF Masuk dikurangi Pengeluaran Bank</p>
+                      <p className="text-[10px] text-slate-400">Rincian transfer masuk, modal, beban & laba bersih</p>
                     </div>
                   </div>
+
                   <div className="space-y-2">
+                    {/* 1. TF Masuk */}
                     <div className="flex justify-between py-1.5 border-b border-slate-100">
-                      <span className="text-xs text-slate-500">TF Masuk ({currentTab === 'toko' ? 'Penjualan Sparepart' : 'Jasa'})</span>
-                      <span className="text-xs font-bold text-blue-700">{formatRp(summary.totalTF)}</span>
+                      <span className="text-xs text-slate-600 font-medium">TF Masuk ({currentTab === 'toko' ? 'Penjualan Sparepart' : 'Jasa'})</span>
+                      <span className="text-xs font-bold text-blue-700 font-mono">{formatRp(summary.totalTF)}</span>
                     </div>
+
+                    {/* 2. Beli Sparepart (HPP) - Khusus Tab Toko */}
+                    {currentTab === 'toko' && (
+                      <div className="flex justify-between py-1.5 border-b border-slate-100">
+                        <span className="text-xs text-amber-800 font-medium">Beli Sparepart (HPP / Modal):</span>
+                        <span className="text-xs font-bold text-amber-700 font-mono">
+                          - {formatRp(profitDetailsToko.totalJual > 0 ? Math.round((summary.totalTF / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* 3. Pengeluaran Transfer Bank (Alat/Beban) */}
                     <div className="flex justify-between py-1.5 border-b border-slate-100">
-                      <span className="text-xs text-slate-500">Pengeluaran Transfer Bank (Alat/Beban)</span>
-                      <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPBank)}</span>
+                      <span className="text-xs text-slate-600 font-medium">Pengeluaran Transfer Bank (Alat/Beban)</span>
+                      <span className="text-xs font-bold text-red-600 font-mono">- {formatRp(summary.totalPBank)}</span>
                     </div>
-                    <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoBank >= 0 ? 'bg-blue-50' : 'bg-red-50')}>
-                      <span className="text-xs font-black text-slate-700">Saldo Bank (Fisik Rekening)</span>
-                      <span className={'text-sm font-black ' + (summary.saldoBank >= 0 ? 'text-blue-700' : 'text-red-700')}>{formatRp(summary.saldoBank)}</span>
-                    </div>
+
+                    {/* 4. Sisa Laba Bersih */}
+                    {(() => {
+                      const modalTF = currentTab === 'toko' && profitDetailsToko.totalJual > 0
+                        ? Math.round((summary.totalTF / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli)
+                        : 0;
+                      const labaBersihBank = summary.totalTF - modalTF - summary.totalPBank;
+                      return (
+                        <div className={'flex justify-between py-2.5 rounded-xl px-3 border ' + (labaBersihBank >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200')}>
+                          <div>
+                            <span className="text-xs font-black text-slate-900 block">Sisa Laba Bersih di Bank</span>
+                            <span className="text-[10px] text-emerald-700 font-semibold block">Profit murni siap diambil</span>
+                          </div>
+                          <span className={'text-sm font-black font-mono self-center ' + (labaBersihBank >= 0 ? 'text-emerald-700' : 'text-red-700')}>
+                            {formatRp(labaBersihBank)}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
-                {currentTab === 'toko' && summary.totalTF > 0 && (
-                  <div className="mt-3 pt-2.5 border-t border-dashed border-blue-200 space-y-1.5 bg-blue-50/50 p-2.5 rounded-xl text-[11px]">
-                    <div className="flex justify-between text-amber-800">
-                      <span className="font-semibold">📦 Potongan Modal Sparepart (HPP):</span>
-                      <span className="font-mono font-black">
-                        - {formatRp(profitDetailsToko.totalJual > 0 ? Math.round((summary.totalTF / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-blue-900 font-bold border-t border-blue-200/60 pt-1">
-                      <span>💎 Estimasi Laba Bersih di Bank:</span>
-                      <span className="font-mono font-black text-emerald-700">
-                        {formatRp(
-                          summary.saldoBank -
-                          (profitDetailsToko.totalJual > 0 ? Math.round((summary.totalTF / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)
-                        )}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 italic">
-                      *Modal sparepart wajib disisihkan untuk restok part SPK berikutnya.
-                    </p>
-                  </div>
-                )}
+                {/* Info Saldo Fisik di Bawah */}
+                <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span>Saldo Fisik di Rekening Bank:</span>
+                  <span className="font-mono font-bold text-blue-900">{formatRp(summary.saldoBank)}</span>
+                </div>
               </div>
             </div>
 
