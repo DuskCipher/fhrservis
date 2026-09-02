@@ -976,13 +976,16 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                   </div>
                   <div>
                     <h4 className="text-xs font-black uppercase tracking-wider text-amber-400">Analisis Alokasi Saldo & Keuntungan Bersih</h4>
-                    <p className="text-[11px] text-slate-300">Membedakan uang modal berjalan (kulakan) dengan profit murni yang aman ditarik</p>
+                    <p className="text-[11px] text-slate-300">Rekap uang masuk, modal sparepart keluar, beban operasional & sisa saldo laba</p>
                   </div>
                 </div>
                 <div className="text-left sm:text-right">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Uang Fisik (Kas + Bank)</span>
-                  <span className="text-base font-black font-mono text-white">
-                    {formatRp(summary.saldoKas + summary.saldoBank)}
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Sisa Saldo Bersih Riil (Kas + Bank)</span>
+                  <span className="text-base font-black font-mono text-emerald-400">
+                    {formatRp(
+                      (summary.saldoKas + summary.saldoBank) -
+                      (currentTab === 'toko' ? profitDetailsToko.totalBeli : 0)
+                    )}
                   </span>
                 </div>
               </div>
@@ -991,14 +994,14 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                 {/* 1. Modal Berjalan */}
                 <div className="bg-white/5 border border-white/10 rounded-xl p-3">
                   <div className="flex items-center justify-between text-amber-300 mb-1">
-                    <span className="font-bold text-[11px]">1. Modal Kulakan (HPP)</span>
+                    <span className="font-bold text-[11px]">1. Modal Sparepart (HPP)</span>
                     <Coins size={14} />
                   </div>
-                  <p className="text-sm font-black font-mono text-white">
+                  <p className="text-sm font-black font-mono text-amber-400">
                     {formatRp(currentTab === 'toko' ? profitDetailsToko.totalBeli : 0)}
                   </p>
                   <p className="text-[10px] text-slate-400 mt-1 leading-tight">
-                    ⚠️ <strong>Jangan ditarik.</strong> Uang ini wajib diputar kembali untuk membeli stok sparepart baru saat ada SPK masuk.
+                    Uang modal yang sudah keluar ke supplier untuk kulakan / pembelian sparepart yang terpasang di SPK.
                   </p>
                 </div>
 
@@ -1012,14 +1015,14 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                     {formatRp(summary.totalPKas + summary.totalPBank)}
                   </p>
                   <p className="text-[10px] text-slate-400 mt-1 leading-tight">
-                    Biaya operasional (alat cleaning, bensin, operasional bengkel) yang sudah keluar dari saldo.
+                    Biaya operasional (beli alat cleaning, bensin, operasional bengkel) yang keluar dari rekening.
                   </p>
                 </div>
 
                 {/* 3. Keuntungan Bersih Riil */}
                 <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
                   <div className="flex items-center justify-between text-emerald-400 mb-1">
-                    <span className="font-bold text-[11px]">3. Keuntungan Bersih (Profit)</span>
+                    <span className="font-bold text-[11px]">3. Sisa Saldo Bersih (Profit)</span>
                     <Wallet size={14} />
                   </div>
                   <p className="text-sm font-black font-mono text-emerald-400">
@@ -1030,7 +1033,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                     )}
                   </p>
                   <p className="text-[10px] text-emerald-300/80 mt-1 leading-tight">
-                    ✅ <strong>Aman Ditarik.</strong> Ini adalah profit murni toko/bengkel Anda setelah modal & beban operasional lunas.
+                    Sisa saldo uang bersih yang saat ini benar-benar ada dan aman ditarik setelah modal part & beban lunas.
                   </p>
                 </div>
               </div>
