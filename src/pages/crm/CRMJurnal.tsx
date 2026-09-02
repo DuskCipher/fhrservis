@@ -852,54 +852,133 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
 
         {/* ── RINCIAN SALDO KAS & BANK ── */}
         {showSummary && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Kas */}
-            <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center"><Banknote className="w-4 h-4 text-white" /></div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-800">Kas di Tangan ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
-                  <p className="text-[10px] text-slate-400">Total Cash Masuk dikurangi Pengeluaran Kas di Tangan</p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Kas */}
+              <div className="bg-white rounded-2xl border border-emerald-200 shadow-sm p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500 flex items-center justify-center"><Banknote className="w-4 h-4 text-white" /></div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800">Kas di Tangan ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
+                    <p className="text-[10px] text-slate-400">Total Cash Masuk dikurangi Pengeluaran Kas di Tangan</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-xs text-slate-500">Cash Masuk ({currentTab === 'toko' ? 'Sparepart' : 'Jasa'})</span>
+                    <span className="text-xs font-bold text-emerald-700">{formatRp(summary.totalCash)}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-xs text-slate-500">Pengeluaran Kas di Tangan</span>
+                    <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPKas)}</span>
+                  </div>
+                  <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoKas >= 0 ? 'bg-emerald-50' : 'bg-red-50')}>
+                    <span className="text-xs font-black text-slate-700">Saldo Kas di Tangan (Fisik)</span>
+                    <span className={'text-sm font-black ' + (summary.saldoKas >= 0 ? 'text-emerald-700' : 'text-red-700')}>{formatRp(summary.saldoKas)}</span>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-xs text-slate-500">Cash Masuk ({currentTab === 'toko' ? 'Sparepart' : 'Jasa'})</span>
-                  <span className="text-xs font-bold text-emerald-700">{formatRp(summary.totalCash)}</span>
+
+              {/* Bank */}
+              <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center"><Building2 className="w-4 h-4 text-white" /></div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800">Bank Transfer ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
+                    <p className="text-[10px] text-slate-400">Total TF Masuk dikurangi Pengeluaran Bank</p>
+                  </div>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-xs text-slate-500">Pengeluaran Kas di Tangan</span>
-                  <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPKas)}</span>
-                </div>
-                <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoKas >= 0 ? 'bg-emerald-50' : 'bg-red-50')}>
-                  <span className="text-xs font-black text-slate-700">Saldo Kas di Tangan</span>
-                  <span className={'text-sm font-black ' + (summary.saldoKas >= 0 ? 'text-emerald-700' : 'text-red-700')}>{formatRp(summary.saldoKas)}</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-xs text-slate-500">TF Masuk ({currentTab === 'toko' ? 'Sparepart' : 'Jasa'})</span>
+                    <span className="text-xs font-bold text-blue-700">{formatRp(summary.totalTF)}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-slate-100">
+                    <span className="text-xs text-slate-500">Pengeluaran Transfer Bank</span>
+                    <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPBank)}</span>
+                  </div>
+                  <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoBank >= 0 ? 'bg-blue-50' : 'bg-red-50')}>
+                    <span className="text-xs font-black text-slate-700">Saldo Bank (Fisik Rekening)</span>
+                    <span className={'text-sm font-black ' + (summary.saldoBank >= 0 ? 'text-blue-700' : 'text-red-700')}>{formatRp(summary.saldoBank)}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Bank */}
-            <div className="bg-white rounded-2xl border border-blue-200 shadow-sm p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center"><Building2 className="w-4 h-4 text-white" /></div>
-                <div>
-                  <h3 className="text-sm font-black text-slate-800">Bank Transfer ({currentTab === 'toko' ? 'Toko' : 'Bengkel'})</h3>
-                  <p className="text-[10px] text-slate-400">Total TF Masuk dikurangi Pengeluaran Bank</p>
+            {/* ── KOTAK ANALISIS: ARUS KAS vs KEUNTUNGAN BERSIH YANG BOLEH DIAMBIL ── */}
+            <div className="bg-gradient-to-br from-slate-900 via-[#101b38] to-slate-900 rounded-2xl p-4 sm:p-5 text-white border border-slate-800 shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-3 mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <Sparkles size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-amber-400">Analisis Alokasi Saldo & Keuntungan Bersih</h4>
+                    <p className="text-[11px] text-slate-300">Membedakan uang modal berjalan (kulakan) dengan profit murni yang aman ditarik</p>
+                  </div>
+                </div>
+                <div className="text-left sm:text-right">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Uang Fisik (Kas + Bank)</span>
+                  <span className="text-base font-black font-mono text-white">
+                    {formatRp(summary.saldoKas + summary.saldoBank)}
+                  </span>
                 </div>
               </div>
-              <div className="space-y-2">
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-xs text-slate-500">TF Masuk ({currentTab === 'toko' ? 'Sparepart' : 'Jasa'})</span>
-                  <span className="text-xs font-bold text-blue-700">{formatRp(summary.totalTF)}</span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                {/* 1. Modal Berjalan */}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div className="flex items-center justify-between text-amber-300 mb-1">
+                    <span className="font-bold text-[11px]">1. Modal Kulakan (HPP)</span>
+                    <Coins size={14} />
+                  </div>
+                  <p className="text-sm font-black font-mono text-white">
+                    {formatRp(currentTab === 'toko' ? profitDetailsToko.totalBeli : 0)}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">
+                    ⚠️ <strong>Jangan ditarik.</strong> Uang ini wajib diputar kembali untuk membeli stok sparepart baru saat ada SPK masuk.
+                  </p>
                 </div>
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-xs text-slate-500">Pengeluaran Transfer Bank</span>
-                  <span className="text-xs font-bold text-red-600">- {formatRp(summary.totalPBank)}</span>
+
+                {/* 2. Pengeluaran Toko */}
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div className="flex items-center justify-between text-rose-300 mb-1">
+                    <span className="font-bold text-[11px]">2. Beban / Alat Toko</span>
+                    <TrendingDown size={14} />
+                  </div>
+                  <p className="text-sm font-black font-mono text-rose-300">
+                    {formatRp(summary.totalPKas + summary.totalPBank)}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1 leading-tight">
+                    Biaya operasional (alat cleaning, bensin, operasional bengkel) yang sudah keluar dari saldo.
+                  </p>
                 </div>
-                <div className={'flex justify-between py-2 rounded-xl px-3 ' + (summary.saldoBank >= 0 ? 'bg-blue-50' : 'bg-red-50')}>
-                  <span className="text-xs font-black text-slate-700">Saldo Bank</span>
-                  <span className={'text-sm font-black ' + (summary.saldoBank >= 0 ? 'text-blue-700' : 'text-red-700')}>{formatRp(summary.saldoBank)}</span>
+
+                {/* 3. Keuntungan Bersih Riil */}
+                <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
+                  <div className="flex items-center justify-between text-emerald-400 mb-1">
+                    <span className="font-bold text-[11px]">3. Keuntungan Bersih (Profit)</span>
+                    <Wallet size={14} />
+                  </div>
+                  <p className="text-sm font-black font-mono text-emerald-400">
+                    {formatRp(
+                      currentTab === 'toko'
+                        ? profitDetailsToko.totalKeuntunganKotor - (summary.totalPKas + summary.totalPBank)
+                        : summary.totalPendapatan - (summary.totalPKas + summary.totalPBank)
+                    )}
+                  </p>
+                  <p className="text-[10px] text-emerald-300/80 mt-1 leading-tight">
+                    ✅ <strong>Aman Ditarik.</strong> Ini adalah profit murni toko/bengkel Anda setelah modal & beban operasional lunas.
+                  </p>
                 </div>
+              </div>
+
+              {/* Tips Edukasi */}
+              <div className="mt-3 pt-2.5 border-t border-slate-800 text-[11px] text-slate-300 flex items-start gap-2">
+                <span className="text-amber-400 font-black">💡 Rumus Putaran:</span>
+                <span>
+                  Saat ada order SPK baru, gunakan uang dari <strong>Modal Kulakan</strong> untuk beli part. Saat SPK selesai dan dibayar pelanggan, uang modal akan kembali lagi ke saldo Bank + margin keuntungan baru otomatis bertambah ke <strong>Keuntungan Bersih</strong>.
+                </span>
               </div>
             </div>
           </div>
