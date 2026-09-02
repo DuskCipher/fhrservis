@@ -1008,14 +1008,14 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                 {/* 2. Pengeluaran Toko */}
                 <div className="bg-white/5 border border-white/10 rounded-xl p-3">
                   <div className="flex items-center justify-between text-rose-300 mb-1">
-                    <span className="font-bold text-[11px]">2. Beban / Alat Toko</span>
+                    <span className="font-bold text-[11px]">2. Beban / Alat Toko (Kas + Bank)</span>
                     <TrendingDown size={14} />
                   </div>
                   <p className="text-sm font-black font-mono text-rose-300">
                     {formatRp(summary.totalPKas + summary.totalPBank)}
                   </p>
                   <p className="text-[10px] text-slate-400 mt-1 leading-tight">
-                    Biaya operasional (beli alat cleaning, bensin, operasional bengkel) yang keluar dari rekening.
+                    Total pengeluaran operasional (alat, bensin, dll) yang keluar dari <strong>Kas di Tangan</strong> maupun <strong>Bank Transfer</strong>.
                   </p>
                 </div>
 
