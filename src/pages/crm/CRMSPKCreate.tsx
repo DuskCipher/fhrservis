@@ -425,6 +425,7 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
   const [showPartCatalogModal, setShowPartCatalogModal] = useState(false);
   const [showJasaCatalogModal, setShowJasaCatalogModal] = useState(false);
   const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogJasaTab, setCatalogJasaTab] = useState<'all' | 'paket' | 'reguler'>('all');
 
   // Focused Autocomplete Dropdown State
   const [activePartSearchId, setActivePartSearchId] = useState<string | null>(null);
@@ -481,8 +482,48 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
   }, [safeInventory]);
 
   const inventoryJasa = useMemo(() => {
-    return safeInventory.filter(i => i.type === 'jasa' && i.isActive !== false);
+    return safeInventory
+      .filter(i => i.type === 'jasa' && i.isActive !== false)
+      .map(i => {
+        const isPaketPromo = Boolean(
+          i.isPaketPromo ||
+          (i.porsiJasa != null && i.porsiJasa > 0) ||
+          (i.name || '').toUpperCase().includes('PROMO') ||
+          (i.skuCode || '').toUpperCase().startsWith('PROMO') ||
+          (i.skuCode || '').toUpperCase().startsWith('PKT')
+        );
+        return {
+          ...i,
+          isPaketPromo,
+        };
+      });
   }, [safeInventory]);
+
+  const paketJasaCount = useMemo(() => inventoryJasa.filter(j => j.isPaketPromo).length, [inventoryJasa]);
+  const regulerJasaCount = useMemo(() => inventoryJasa.length - paketJasaCount, [inventoryJasa, paketJasaCount]);
+
+  const filteredCatalogJasa = useMemo(() => {
+    const q = (catalogSearch || '').toLowerCase().trim();
+    const isKeywordPromo = q.includes('promo') || q.includes('paket') || q.includes('pembagian');
+
+    return inventoryJasa.filter(j => {
+      // Filter berdasarkan Tab
+      if (catalogJasaTab === 'paket' && !j.isPaketPromo) return false;
+      if (catalogJasaTab === 'reguler' && j.isPaketPromo) return false;
+
+      if (!q) return true;
+
+      // Jika user mencari promo/paket/pembagian dan item ini paket promo, langsung sertakan
+      if (isKeywordPromo && j.isPaketPromo) return true;
+
+      const matchName = (j.name || '').toLowerCase().includes(q);
+      const matchCategory = (j.category && String(j.category).toLowerCase().includes(q));
+      const matchSku = (j.skuCode && String(j.skuCode).toLowerCase().includes(q));
+      const matchMaterial = (j.materialDesc && String(j.materialDesc).toLowerCase().includes(q));
+
+      return matchName || matchCategory || matchSku || matchMaterial;
+    });
+  }, [inventoryJasa, catalogSearch, catalogJasaTab]);
 
   // Initialize or Pre-fill when editing an existing Order/SPK
   React.useEffect(() => {
@@ -1625,17 +1666,20 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                   <div className="divide-y divide-slate-50">
                     {jasaList.map(j => {
                       const query = (j.nama || '').toLowerCase().trim();
+                      const isQPromo = query.includes('promo') || query.includes('paket') || query.includes('pembagian');
                       const matches = query && inventoryJasa.length > 0
                         ? inventoryJasa.filter(inv =>
+                            (isQPromo && inv.isPaketPromo) ||
                             inv.name.toLowerCase().includes(query) ||
                             (inv.category && String(inv.category).toLowerCase().includes(query)) ||
-                            (inv.skuCode && inv.skuCode.toLowerCase().includes(query))
-                          ).slice(0, 5)
+                            (inv.skuCode && inv.skuCode.toLowerCase().includes(query)) ||
+                            (inv.materialDesc && inv.materialDesc.toLowerCase().includes(query))
+                          ).slice(0, 8)
                         : [];
 
                       return (
-                        <div key={j.id} className="px-5 py-3 flex items-center gap-3 relative">
-                          <Wrench size={13} className="text-slate-400 flex-shrink-0" />
+                        <div key={j.id} className="px-5 py-3 flex items-start gap-3 relative">
+                          <Wrench size={13} className="text-slate-400 flex-shrink-0 mt-2.5" />
                           <div className="flex-1 relative">
                             <input
                               value={j.nama}
@@ -1648,9 +1692,28 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                               className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-red-400 font-semibold"
                             />
 
+                            {/* Badge & Info Paket Pembagian Terpilih */}
+                            {j.isPaketPromo && (
+                              <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                                <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-300 flex items-center gap-1">
+                                  🎁 Jasa Paket Pembagian
+                                </span>
+                                {(j.porsiJasa != null || j.porsiMaterial != null) && (
+                                  <span className="text-[11px] font-semibold text-slate-600 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
+                                    Alokasi: <span className="text-emerald-700 font-bold">Jasa {formatRp(j.porsiJasa || 0)}</span> + <span className="text-amber-800 font-bold">Material {formatRp(j.porsiMaterial || 0)}</span>
+                                  </span>
+                                )}
+                                {j.materialDesc && (
+                                  <span className="text-[10px] text-slate-500 italic">
+                                    • {j.materialDesc}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
                             {/* Autocomplete Dropdown */}
                             {activeJasaSearchId === j.id && matches.length > 0 && (
-                              <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                              <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto">
                                 <div className="p-1">
                                   <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 rounded">
                                     Hasil dari Kelola Jasa:
@@ -1663,29 +1726,29 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                                         updJasa(j.id, {
                                           nama: inv.name,
                                           harga: inv.sellPrice || 0,
-                                          isPaketPromo: Boolean(inv.isPaketPromo || (inv.name || '').toUpperCase().includes('PROMO')),
+                                          isPaketPromo: Boolean(inv.isPaketPromo),
                                           porsiJasa: inv.porsiJasa,
                                           porsiMaterial: inv.porsiMaterial,
                                           materialDesc: inv.materialDesc,
                                         });
                                         setActiveJasaSearchId(null);
                                       }}
-                                      className="w-full text-left px-2.5 py-1.5 hover:bg-emerald-50 rounded-lg text-xs flex items-center justify-between gap-2 group transition-colors"
+                                      className="w-full text-left px-2.5 py-2 hover:bg-emerald-50 rounded-lg text-xs flex items-center justify-between gap-2 group transition-colors"
                                     >
                                       <div>
-                                        <div className="flex items-center gap-1.5">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
                                           <p className="font-bold text-slate-800 group-hover:text-emerald-700">
                                             {inv.name}
                                           </p>
                                           {inv.isPaketPromo && (
                                             <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 text-[9px] font-black border border-amber-300">
-                                              PROMO
+                                              🎁 PAKET
                                             </span>
                                           )}
                                         </div>
-                                        <p className="text-[10px] text-slate-400">
-                                          {inv.category} {inv.durationMinutes ? `• ${inv.durationMinutes} mnt` : ''}
-                                          {inv.isPaketPromo && inv.porsiJasa ? ` • Jasa: ${formatRp(inv.porsiJasa)} | Mat: ${formatRp(inv.porsiMaterial || 0)}` : ''}
+                                        <p className="text-[10px] text-slate-400 mt-0.5">
+                                          {inv.skuCode ? `[${inv.skuCode}] ` : ''}{inv.category} {inv.durationMinutes ? `• ${inv.durationMinutes} mnt` : ''}
+                                          {inv.isPaketPromo && (inv.porsiJasa != null || inv.porsiMaterial != null) ? ` • Jasa: ${formatRp(inv.porsiJasa || 0)} | Mat: ${formatRp(inv.porsiMaterial || 0)}` : ''}
                                         </p>
                                       </div>
                                       <span className="font-mono font-black text-emerald-700 text-xs whitespace-nowrap">
@@ -1825,48 +1888,103 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                         </button>
                       </div>
 
-                      <div className="p-3 border-b border-slate-100">
+                      <div className="p-3 border-b border-slate-100 bg-slate-50/50 space-y-2.5">
+                        {/* Tab Filter: Semua, Paket Pembagian, Reguler */}
+                        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => setCatalogJasaTab('all')}
+                            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                              catalogJasaTab === 'all'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                          >
+                            Semua Jasa ({inventoryJasa.length})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCatalogJasaTab('paket')}
+                            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                              catalogJasaTab === 'paket'
+                                ? 'bg-amber-500 text-white shadow-sm'
+                                : 'text-amber-800 hover:bg-amber-100/60'
+                            }`}
+                          >
+                            <span>🎁 Pembagian Jasa Paket</span>
+                            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                              catalogJasaTab === 'paket' ? 'bg-white text-amber-700' : 'bg-amber-200 text-amber-900'
+                            }`}>
+                              {paketJasaCount}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCatalogJasaTab('reguler')}
+                            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all ${
+                              catalogJasaTab === 'reguler'
+                                ? 'bg-white text-slate-900 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                          >
+                            Jasa Reguler ({regulerJasaCount})
+                          </button>
+                        </div>
+
                         <div className="relative">
                           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                           <input
                             type="text"
                             value={catalogSearch}
                             onChange={e => setCatalogSearch(e.target.value)}
-                            placeholder="Cari nama jasa servis atau kategori..."
-                            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-400"
+                            placeholder="Cari nama jasa, SKU (misal: PKT- / PROMO-), bahan, atau kategori..."
+                            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 bg-white font-medium"
                             autoFocus
                           />
                         </div>
                       </div>
 
                       <div className="flex-1 overflow-y-auto p-3 divide-y divide-slate-100">
-                        {inventoryJasa
-                          .filter(j =>
-                            !catalogSearch ||
-                            j.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
-                            (j.category && String(j.category).toLowerCase().includes(catalogSearch.toLowerCase()))
-                          )
-                          .map(j => (
-                            <div key={j.id} className="py-2.5 px-2 flex items-center justify-between hover:bg-slate-50 rounded-xl gap-3">
-                              <div>
-                                <div className="flex items-center gap-1.5 flex-wrap">
+                        {filteredCatalogJasa.length === 0 ? (
+                          <div className="py-12 text-center text-slate-400">
+                            <p className="text-xs font-bold text-slate-600">Tidak ada jasa yang sesuai</p>
+                            <p className="text-[11px] mt-1 text-slate-400">Coba ganti kata kunci pencarian atau pilih tab "Semua Jasa"</p>
+                          </div>
+                        ) : (
+                          filteredCatalogJasa.map(j => (
+                            <div
+                              key={j.id}
+                              className={`py-3 px-3 flex items-center justify-between rounded-xl gap-3 transition-colors ${
+                                j.isPaketPromo ? 'hover:bg-amber-50/50 bg-amber-50/20 my-0.5 border border-amber-100/60' : 'hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
                                   <p className="font-bold text-xs text-slate-900">{j.name}</p>
                                   {j.isPaketPromo && (
-                                    <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 text-[9px] font-black border border-amber-300">
-                                      🎁 PAKET PROMO
+                                    <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-black border border-amber-300">
+                                      🎁 PEMBAGIAN JASA PAKET
                                     </span>
                                   )}
                                 </div>
                                 <p className="text-[11px] text-slate-400 mt-0.5">
+                                  {j.skuCode && <span className="font-mono font-semibold text-slate-500 mr-1">[{j.skuCode}]</span>}
                                   {j.category} {j.durationMinutes ? `• Estimasi: ${j.durationMinutes} menit` : ''}
                                 </p>
                                 {j.isPaketPromo && (
-                                  <p className="text-[10px] text-slate-600 font-semibold mt-0.5">
-                                    Alokasi: <span className="text-emerald-700">Jasa {formatRp(j.porsiJasa || 0)}</span> + <span className="text-amber-800">Material {formatRp(j.porsiMaterial || 0)}</span>
-                                  </p>
+                                  <div className="mt-1 flex items-center gap-2 flex-wrap text-[11px]">
+                                    <span className="font-bold text-slate-700 bg-white px-2 py-0.5 rounded border border-amber-200">
+                                      Alokasi: <span className="text-emerald-700">Jasa {formatRp(j.porsiJasa || 0)}</span> + <span className="text-amber-800">Material {formatRp(j.porsiMaterial || 0)}</span>
+                                    </span>
+                                    {j.materialDesc && (
+                                      <span className="text-slate-500 italic text-[10px]">
+                                        • Bahan: {j.materialDesc}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 flex-shrink-0">
                                 <span className="font-mono font-black text-xs text-emerald-700">
                                   {formatRp(j.sellPrice)}
                                 </span>
@@ -1879,7 +1997,7 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                                         id: uid(),
                                         nama: j.name,
                                         harga: j.sellPrice || 0,
-                                        isPaketPromo: Boolean(j.isPaketPromo || (j.name || '').toUpperCase().includes('PROMO')),
+                                        isPaketPromo: Boolean(j.isPaketPromo),
                                         porsiJasa: j.porsiJasa,
                                         porsiMaterial: j.porsiMaterial,
                                         materialDesc: j.materialDesc,
@@ -1887,13 +2005,14 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                                     ]);
                                     setShowJasaCatalogModal(false);
                                   }}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold active:scale-95 transition-all shadow-sm"
+                                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold active:scale-95 transition-all shadow-sm flex items-center gap-1"
                                 >
                                   + Pilih
                                 </button>
                               </div>
                             </div>
-                          ))}
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>

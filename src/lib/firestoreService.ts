@@ -866,6 +866,12 @@ function saveLocalInventory(items: InventoryItem[]) {
 
 function mapInventoryFromRow(row: any): InventoryItem {
   const raw = row.raw_data || {};
+  const isPaketPromo = Boolean(
+    row.is_paket_promo ??
+    raw.isPaketPromo ??
+    (raw.porsiJasa != null || raw.porsiMaterial != null) ??
+    false
+  );
   return {
     ...raw,
     id: row.id || raw.id,
@@ -884,7 +890,7 @@ function mapInventoryFromRow(row: any): InventoryItem {
     isActive: Boolean(row.is_active ?? raw.isActive ?? true),
     createdAt: row.created_at || raw.createdAt || new Date().toISOString(),
     updatedAt: row.updated_at || raw.updatedAt,
-    isPaketPromo: Boolean(row.is_paket_promo ?? raw.isPaketPromo ?? false),
+    isPaketPromo,
     porsiJasa: row.porsi_jasa != null ? Number(row.porsi_jasa) : (raw.porsiJasa != null ? Number(raw.porsiJasa) : undefined),
     porsiMaterial: row.porsi_material != null ? Number(row.porsi_material) : (raw.porsiMaterial != null ? Number(raw.porsiMaterial) : undefined),
     materialDesc: row.material_desc || raw.materialDesc || '',
@@ -892,6 +898,17 @@ function mapInventoryFromRow(row: any): InventoryItem {
 }
 
 function mapInventoryToRow(item: Partial<InventoryItem>) {
+  // Hanya kolom-kolom fisik valid di tabel Supabase public.inventory
+  // Data pembagian (isPaketPromo, porsiJasa, porsiMaterial, materialDesc) disimpan secara aman di raw_data JSONB
+  const rawData = {
+    ...((item as any).raw_data || {}),
+    ...item,
+    isPaketPromo: Boolean(item.isPaketPromo),
+    porsiJasa: item.porsiJasa != null ? Number(item.porsiJasa) : undefined,
+    porsiMaterial: item.porsiMaterial != null ? Number(item.porsiMaterial) : undefined,
+    materialDesc: item.materialDesc || '',
+  };
+
   return {
     id: item.id,
     sku_code: item.skuCode,
@@ -907,11 +924,7 @@ function mapInventoryToRow(item: Partial<InventoryItem>) {
     warranty_days: item.warrantyDays,
     notes: item.notes,
     is_active: item.isActive ?? true,
-    is_paket_promo: item.isPaketPromo ?? false,
-    porsi_jasa: item.porsiJasa,
-    porsi_material: item.porsiMaterial,
-    material_desc: item.materialDesc,
-    raw_data: item,
+    raw_data: rawData,
     updated_at: new Date().toISOString(),
   };
 }
@@ -1019,7 +1032,9 @@ export async function addInventoryItem(item: Omit<InventoryItem, 'id' | 'created
       saveLocalInventory(updated);
       return data.id;
     }
-  } catch {}
+  } catch (e) {
+    console.warn('[Supabase] addInventoryItem cloud error:', e);
+  }
   return tempId;
 }
 
