@@ -398,7 +398,13 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       keuntungan: number;
     }> = {};
 
+    let totalBeliCash = 0;
+    let totalBeliTF = 0;
+    let totalJualCash = 0;
+    let totalJualTF = 0;
+
     for (const ord of periodOrders) {
+      const isCash = (ord.metodePembayaran || 'cash').toLowerCase() === 'cash';
       const parts = ord.spareparts || [];
       for (const p of parts) {
         if (!p.nama || p.qty <= 0) continue;
@@ -428,10 +434,21 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
           };
         }
 
+        const subBeli = buyPrice * qty;
+        const subJual = sellPrice * qty;
+
         itemMap[key].qty += qty;
-        itemMap[key].totalBeli += (buyPrice * qty);
-        itemMap[key].totalJual += (sellPrice * qty);
-        itemMap[key].keuntungan += ((sellPrice - buyPrice) * qty);
+        itemMap[key].totalBeli += subBeli;
+        itemMap[key].totalJual += subJual;
+        itemMap[key].keuntungan += (subJual - subBeli);
+
+        if (isCash) {
+          totalBeliCash += subBeli;
+          totalJualCash += subJual;
+        } else {
+          totalBeliTF += subBeli;
+          totalJualTF += subJual;
+        }
       }
 
       // Material dari Paket Jasa Promo ikut masuk ke Laporan Keuntungan Toko
@@ -444,11 +461,6 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
         if (porsiMaterial > 0) {
           const matKey = `mat-promo-${keyJasa}`;
           const matName = `[Material Paket] ${j.nama}`;
-
-          const matchedInv = inventoryList.find(
-            inv => inv.name?.trim().toLowerCase() === keyJasa || (inv.skuCode && inv.skuCode.toLowerCase() === keyJasa)
-          );
-          const matBuyPrice = 0;
 
           if (!itemMap[matKey]) {
             itemMap[matKey] = {
@@ -466,6 +478,14 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
           itemMap[matKey].totalBeli += 0;
           itemMap[matKey].totalJual += porsiMaterial;
           itemMap[matKey].keuntungan += porsiMaterial;
+
+          if (isCash) {
+            totalBeliCash += 0;
+            totalJualCash += porsiMaterial;
+          } else {
+            totalBeliTF += 0;
+            totalJualTF += porsiMaterial;
+          }
         }
       }
     }
@@ -480,6 +500,10 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       totalJual,
       totalBeli,
       totalKeuntunganKotor,
+      totalBeliCash,
+      totalBeliTF,
+      totalJualCash,
+      totalJualTF,
       marginPersen: totalJual > 0 ? Math.round((totalKeuntunganKotor / totalJual) * 100) : 0
     };
   }, [orders, filterDateFrom, filterDateTo, filterType, inventoryList]);
@@ -1000,7 +1024,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                       <div className="flex justify-between py-1.5 border-b border-slate-100">
                         <span className="text-xs text-amber-800 font-medium">Beli Sparepart (HPP / Modal):</span>
                         <span className="text-xs font-bold text-amber-700 font-mono">
-                          - {formatRp(profitDetailsToko.totalJual > 0 ? Math.round((summary.totalCash / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)}
+                          - {formatRp(profitDetailsToko.totalBeliCash || 0)}
                         </span>
                       </div>
                     )}
@@ -1013,9 +1037,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
 
                     {/* 4. Sisa Laba Bersih */}
                     {(() => {
-                      const modalKas = currentTab === 'toko' && profitDetailsToko.totalJual > 0
-                        ? Math.round((summary.totalCash / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli)
-                        : 0;
+                      const modalKas = currentTab === 'toko' ? (profitDetailsToko.totalBeliCash || 0) : 0;
                       const labaBersihKas = summary.totalCash - modalKas - summary.totalPKas;
                       return (
                         <div className={'flex justify-between py-2.5 rounded-xl px-3 border ' + (labaBersihKas >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200')}>
@@ -1056,7 +1078,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                       <div className="flex justify-between py-1.5 border-b border-slate-100">
                         <span className="text-xs text-amber-800 font-medium">Beli Sparepart (HPP / Modal):</span>
                         <span className="text-xs font-bold text-amber-700 font-mono">
-                          - {formatRp(profitDetailsToko.totalJual > 0 ? Math.round((summary.totalTF / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli) : 0)}
+                          - {formatRp(profitDetailsToko.totalBeliTF || 0)}
                         </span>
                       </div>
                     )}
@@ -1069,9 +1091,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
 
                     {/* 4. Sisa Laba Bersih */}
                     {(() => {
-                      const modalTF = currentTab === 'toko' && profitDetailsToko.totalJual > 0
-                        ? Math.round((summary.totalTF / profitDetailsToko.totalJual) * profitDetailsToko.totalBeli)
-                        : 0;
+                      const modalTF = currentTab === 'toko' ? (profitDetailsToko.totalBeliTF || 0) : 0;
                       const labaBersihBank = summary.totalTF - modalTF - summary.totalPBank;
                       return (
                         <div className={'flex justify-between py-2.5 rounded-xl px-3 border ' + (labaBersihBank >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200')}>
