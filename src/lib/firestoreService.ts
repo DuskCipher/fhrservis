@@ -884,6 +884,10 @@ function mapInventoryFromRow(row: any): InventoryItem {
     isActive: Boolean(row.is_active ?? raw.isActive ?? true),
     createdAt: row.created_at || raw.createdAt || new Date().toISOString(),
     updatedAt: row.updated_at || raw.updatedAt,
+    isPaketPromo: Boolean(row.is_paket_promo ?? raw.isPaketPromo ?? false),
+    porsiJasa: row.porsi_jasa != null ? Number(row.porsi_jasa) : (raw.porsiJasa != null ? Number(raw.porsiJasa) : undefined),
+    porsiMaterial: row.porsi_material != null ? Number(row.porsi_material) : (raw.porsiMaterial != null ? Number(raw.porsiMaterial) : undefined),
+    materialDesc: row.material_desc || raw.materialDesc || '',
   };
 }
 
@@ -903,6 +907,10 @@ function mapInventoryToRow(item: Partial<InventoryItem>) {
     warranty_days: item.warrantyDays,
     notes: item.notes,
     is_active: item.isActive ?? true,
+    is_paket_promo: item.isPaketPromo ?? false,
+    porsi_jasa: item.porsiJasa,
+    porsi_material: item.porsiMaterial,
+    material_desc: item.materialDesc,
     raw_data: item,
     updated_at: new Date().toISOString(),
   };

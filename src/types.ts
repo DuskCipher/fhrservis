@@ -48,6 +48,12 @@ export interface InventoryItem {
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
+
+  // Fitur Paket Jasa Promo & Pembagian Jasa + Material
+  isPaketPromo?: boolean;
+  porsiJasa?: number;       // alokasi jasa mekanik, e.g. 75.000
+  porsiMaterial?: number;   // alokasi material/bahan kimia, e.g. 27.000
+  materialDesc?: string;    // rincian bahan/cairan habis pakai
 }
 
 // ─── Purchase Order ──────────────────────────────────────────────────────────
@@ -132,6 +138,10 @@ export interface SPKJasa {
   id: string;
   nama: string;
   harga: number;
+  isPaketPromo?: boolean;
+  porsiJasa?: number;       // alokasi jasa mekanik, e.g. 75.000
+  porsiMaterial?: number;   // alokasi material/bahan kimia, e.g. 27.000
+  materialDesc?: string;    // rincian bahan/cairan habis pakai
 }
 
 export type EmployeeRole = 'SA' | 'FA' | 'Mekanik' | 'Foreman' | 'Kasir' | 'Manager';

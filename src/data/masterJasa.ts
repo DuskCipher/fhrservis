@@ -268,6 +268,8 @@ export const MASTER_JASA_DATA: Omit<InventoryItem, 'id' | 'createdAt'>[] = [
   { skuCode: "SP-019", name: "GANTI OLI TRANSMISI", category: "TRANSMISI", type: "jasa", unit: "pcs", stock: 0, minStock: 0, buyPrice: 0, sellPrice: 40000, durationMinutes: 45, warrantyDays: 30, isActive: true },
 
   // PAKET & PROMO
+  { skuCode: "PROMO-TU-119", name: "TUNE UP PROMO", category: "TUNE UP", type: "jasa", unit: "paket", stock: 0, minStock: 0, buyPrice: 27000, sellPrice: 119000, durationMinutes: 60, warrantyDays: 30, isActive: true, isPaketPromo: true, porsiJasa: 75000, porsiMaterial: 27000, materialDesc: "Carb/Throttle Cleaner & Foam Gurah Mesin" },
+  { skuCode: "PROMO-REM-149", name: "PAKET REM PROMO", category: "REM & KAMPAS", type: "jasa", unit: "paket", stock: 0, minStock: 0, buyPrice: 35000, sellPrice: 149000, durationMinutes: 45, warrantyDays: 30, isActive: true, isPaketPromo: true, porsiJasa: 99000, porsiMaterial: 35000, materialDesc: "Brake Cleaner Spray & Grease Kaliper Rem" },
   { skuCode: "PKT-001", name: "PAKET NANO COATING", category: "BODY & CAT", type: "jasa", unit: "pcs", stock: 0, minStock: 0, buyPrice: 0, sellPrice: 300000, durationMinutes: 45, warrantyDays: 30, isActive: true },
   { skuCode: "PKT-002", name: "PAKET AC BASIC", category: "SERVICE AC", type: "jasa", unit: "pcs", stock: 0, minStock: 0, buyPrice: 0, sellPrice: 149000, durationMinutes: 45, warrantyDays: 30, isActive: true },
   { skuCode: "PKT-003", name: "PAKET AC PLATINUM", category: "SERVICE AC", type: "jasa", unit: "pcs", stock: 0, minStock: 0, buyPrice: 0, sellPrice: 699000, durationMinutes: 45, warrantyDays: 30, isActive: true },

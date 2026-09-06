@@ -6,7 +6,7 @@ import {
   Eye, EyeOff, Store, Wrench, TrendingUp, TrendingDown, ShoppingBag, Coins,
   Tag, Percent, ChevronRight, Sparkles
 } from 'lucide-react';
-import { CRMOrder, PageType, InventoryItem } from '../../types';
+import { CRMOrder, PageType, InventoryItem, SPKJasa } from '../../types';
 import {
   subscribeToJournalEntries,
   addJournalEntry,
@@ -42,7 +42,39 @@ const SUMBER_OPTIONS: { value: SumberDana; label: string; noAkun: string }[] = [
   { value: 'bank_mandiri', label: 'Bank',          noAkun: '1-1210' },
 ];
 
-function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manualDates: string[] = []): JurnalEntry[] {
+function getJasaMaterialSplit(j: SPKJasa, inventoryList: InventoryItem[] = []) {
+  const key = (j.nama || '').trim().toLowerCase();
+  const matched = inventoryList.find(
+    inv => inv.name?.trim().toLowerCase() === key || (inv.skuCode && inv.skuCode.toLowerCase() === key)
+  );
+  const isPromo = Boolean(
+    j.isPaketPromo ??
+    matched?.isPaketPromo ??
+    (j.nama || '').toUpperCase().includes('PROMO') ??
+    (matched?.name || '').toUpperCase().includes('PROMO')
+  );
+
+  let porsiMaterial = 0;
+  if (j.porsiMaterial != null && j.porsiMaterial > 0) {
+    porsiMaterial = j.porsiMaterial;
+  } else if (matched?.porsiMaterial != null && matched.porsiMaterial > 0) {
+    porsiMaterial = matched.porsiMaterial;
+  } else if (isPromo) {
+    porsiMaterial = (j.harga === 119000 ? 27000 : Math.round(j.harga * 0.25));
+  }
+
+  // Porsi untuk bengkel (uang jasa teknisi + sisa margin bengkel)
+  const porsiBengkel = Math.max(0, j.harga - porsiMaterial);
+
+  return { isPromo, porsiMaterial, porsiBengkel };
+}
+
+function generateDailyJurnal(
+  orders: CRMOrder[],
+  kategori: KategoriJurnal,
+  manualDates: string[] = [],
+  inventoryList: InventoryItem[] = []
+): JurnalEntry[] {
   const dateSet = new Set<string>();
   dateSet.add(isoToday());
 
@@ -69,62 +101,77 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
     if (kategori === 'toko') {
       let totalSparepartCash = 0;
       let totalSparepartTF = 0;
+      let totalMaterialPromoCash = 0;
+      let totalMaterialPromoTF = 0;
 
       for (const ord of dayOrders) {
-        const spareparts = ord.spareparts || [];
-        const subTotal = spareparts.reduce((s, p) => s + (p.hargaSatuan * p.qty), 0);
-        if (subTotal <= 0) continue;
-
         const metode = ord.metodePembayaran || 'cash';
-        if (metode === 'cash') {
-          totalSparepartCash += subTotal;
-        } else {
-          totalSparepartTF += subTotal;
+
+        // 1. Penjualan Sparepart Fisik
+        const spareparts = ord.spareparts || [];
+        const subTotalParts = spareparts.reduce((s, p) => s + (p.hargaSatuan * p.qty), 0);
+        if (subTotalParts > 0) {
+          if (metode === 'cash') totalSparepartCash += subTotalParts;
+          else totalSparepartTF += subTotalParts;
+        }
+
+        // 2. Material dari Paket Jasa Masuk ke JURNAL TOKO
+        const jasaList = ord.jasaList || [];
+        for (const j of jasaList) {
+          if (!j.nama || j.harga <= 0) continue;
+          const { porsiMaterial } = getJasaMaterialSplit(j, inventoryList);
+          if (porsiMaterial > 0) {
+            if (metode === 'cash') totalMaterialPromoCash += porsiMaterial;
+            else totalMaterialPromoTF += porsiMaterial;
+          }
         }
       }
 
-      // 1. Baris Paten: Pendapatan Cash
+      const totalTokoCash = totalSparepartCash + totalMaterialPromoCash;
+      const totalTokoTF = totalSparepartTF + totalMaterialPromoTF;
+
+      // 1. Baris Paten Toko: Pendapatan Cash (Sparepart + Material)
       entries.push({
         id: 'auto-toko-cash-' + tgl,
         tanggal: tgl,
         ref: '',
-        keterangan: 'Pendapatan Cash',
+        keterangan: totalMaterialPromoCash > 0 ? 'Pendapatan Cash (Sparepart & Material Paket)' : 'Pendapatan Cash',
         noAkunDebet: '1-1120',
         namaAkunDebet: 'Kas di Tangan',
-        debet: totalSparepartCash,
+        debet: totalTokoCash,
         noAkunKredit: '4-1001',
-        namaAkunKredit: 'Penjualan Sparepart',
-        kredit: totalSparepartCash,
+        namaAkunKredit: 'Penjualan Sparepart & Material',
+        kredit: totalTokoCash,
         type: 'pendapatan_cash',
         kategoriJurnal: 'toko',
         isManual: false,
       });
 
-      // 2. Baris Paten: Pendapatan TF/Qris/EDC
+      // 2. Baris Paten Toko: Pendapatan TF/Qris/EDC (Sparepart + Material)
       entries.push({
         id: 'auto-toko-tf-' + tgl,
         tanggal: tgl,
         ref: '',
-        keterangan: 'Pendapatan TF/Qris/EDC',
+        keterangan: totalMaterialPromoTF > 0 ? 'Pendapatan TF/Qris/EDC (Sparepart & Material Paket)' : 'Pendapatan TF/Qris/EDC',
         noAkunDebet: '1-1210',
         namaAkunDebet: 'Bank',
-        debet: totalSparepartTF,
+        debet: totalTokoTF,
         noAkunKredit: '4-1001',
-        namaAkunKredit: 'Penjualan Sparepart',
-        kredit: totalSparepartTF,
+        namaAkunKredit: 'Penjualan Sparepart & Material',
+        kredit: totalTokoTF,
         type: 'pendapatan_tf',
         kategoriJurnal: 'toko',
         isManual: false,
       });
 
-      // 3. Baris HPP (jika ada)
-      const totalHPP = Math.round((totalSparepartCash + totalSparepartTF) * 0.7);
+      // 3. Baris HPP (Sparepart + Material)
+      const totalHPP = Math.round((totalTokoCash + totalTokoTF) * 0.7);
       if (totalHPP > 0) {
         entries.push({
           id: 'auto-toko-hpp-' + tgl,
           tanggal: tgl,
           ref: '',
-          keterangan: 'Pengambilan sparepart TOKO FHRCAR',
+          keterangan: 'Pengambilan sparepart & material TOKO FHRCAR',
           noAkunDebet: '5-1000',
           namaAkunDebet: 'Harga Pokok Penjualan (HPP)',
           debet: totalHPP,
@@ -138,28 +185,30 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
         });
       }
     } else {
+      // KATEGORI BENGKEL: Hanya porsi JASA murni & margin pengerjaan yang masuk
       let totalJasaCash = 0;
       let totalJasaTF = 0;
 
       for (const ord of dayOrders) {
         const jasaList = ord.jasaList || [];
-        const subTotal = jasaList.reduce((s, j) => s + j.harga, 0);
-        if (subTotal <= 0) continue;
-
         const metode = ord.metodePembayaran || 'cash';
-        if (metode === 'cash') {
-          totalJasaCash += subTotal;
-        } else {
-          totalJasaTF += subTotal;
+
+        for (const j of jasaList) {
+          if (!j.nama || j.harga <= 0) continue;
+          const { porsiBengkel } = getJasaMaterialSplit(j, inventoryList);
+          if (porsiBengkel > 0) {
+            if (metode === 'cash') totalJasaCash += porsiBengkel;
+            else totalJasaTF += porsiBengkel;
+          }
         }
       }
 
-      // 1. Baris Paten: Pendapatan Cash
+      // 1. Baris Paten Bengkel: Pendapatan Cash Jasa Servis
       entries.push({
         id: 'auto-bengkel-cash-' + tgl,
         tanggal: tgl,
         ref: '',
-        keterangan: 'Pendapatan Cash',
+        keterangan: 'Pendapatan Cash (Jasa Servis)',
         noAkunDebet: '1-1120',
         namaAkunDebet: 'Kas di Tangan',
         debet: totalJasaCash,
@@ -171,12 +220,12 @@ function generateDailyJurnal(orders: CRMOrder[], kategori: KategoriJurnal, manua
         isManual: false,
       });
 
-      // 2. Baris Paten: Pendapatan TF/Qris/EDC
+      // 2. Baris Paten Bengkel: Pendapatan TF/Qris/EDC Jasa Servis
       entries.push({
         id: 'auto-bengkel-tf-' + tgl,
         tanggal: tgl,
         ref: '',
-        keterangan: 'Pendapatan TF/Qris/EDC',
+        keterangan: 'Pendapatan TF/Qris/EDC (Jasa Servis)',
         noAkunDebet: '1-1210',
         namaAkunDebet: 'Bank',
         debet: totalJasaTF,
@@ -253,6 +302,15 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
     return () => unsub();
   }, []);
 
+  const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
+
+  useEffect(() => {
+    const unsub = subscribeToInventory((items) => {
+      setInventoryList(items);
+    });
+    return () => unsub();
+  }, []);
+
   const tabManualEntries = useMemo(() => {
     return manualEntries.filter(e => {
       const kat = e.kategoriJurnal || 'toko';
@@ -262,8 +320,8 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
 
   const autoEntries = useMemo(() => {
     const manualDates = tabManualEntries.map(e => e.tanggal);
-    return generateDailyJurnal(orders, currentTab, manualDates);
-  }, [orders, currentTab, tabManualEntries]);
+    return generateDailyJurnal(orders, currentTab, manualDates, inventoryList);
+  }, [orders, currentTab, tabManualEntries, inventoryList]);
 
   const combinedEntries = useMemo(() => {
     const all = [...autoEntries, ...tabManualEntries];
@@ -303,15 +361,6 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       ref: prefixRef + String(c++).padStart(3, '0')
     }));
   }, [rawFiltered, prefixRef]);
-
-  const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
-
-  useEffect(() => {
-    const unsub = subscribeToInventory((items) => {
-      setInventoryList(items);
-    });
-    return () => unsub();
-  }, []);
 
   // ─── KALKULASI DETAIL KEUNTUNGAN TOKO (HARGA JUAL - HARGA BELI) ───
   const profitDetailsToko = useMemo(() => {
@@ -369,6 +418,43 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
         itemMap[key].totalJual += (sellPrice * qty);
         itemMap[key].keuntungan += ((sellPrice - buyPrice) * qty);
       }
+
+      // Material dari Paket Jasa Promo ikut masuk ke Laporan Keuntungan Toko
+      const jasaList = ord.jasaList || [];
+      for (const j of jasaList) {
+        if (!j.nama || j.harga <= 0) continue;
+        const keyJasa = j.nama.trim().toLowerCase();
+        const { porsiMaterial } = getJasaMaterialSplit(j, inventoryList);
+
+        if (porsiMaterial > 0) {
+          const matKey = `mat-promo-${keyJasa}`;
+          const matName = `[Material Paket] ${j.nama}`;
+
+          const matchedInv = inventoryList.find(
+            inv => inv.name?.trim().toLowerCase() === keyJasa || (inv.skuCode && inv.skuCode.toLowerCase() === keyJasa)
+          );
+          const matBuyPrice = (matchedInv?.buyPrice && matchedInv.buyPrice > 0 && matchedInv.buyPrice < porsiMaterial)
+            ? matchedInv.buyPrice
+            : Math.round(porsiMaterial * 0.75);
+
+          if (!itemMap[matKey]) {
+            itemMap[matKey] = {
+              nama: matName,
+              qty: 0,
+              hargaBeli: matBuyPrice,
+              hargaJual: porsiMaterial,
+              totalBeli: 0,
+              totalJual: 0,
+              keuntungan: 0,
+            };
+          }
+
+          itemMap[matKey].qty += 1;
+          itemMap[matKey].totalBeli += matBuyPrice;
+          itemMap[matKey].totalJual += porsiMaterial;
+          itemMap[matKey].keuntungan += (porsiMaterial - matBuyPrice);
+        }
+      }
     }
 
     const items = Object.values(itemMap).sort((a, b) => b.keuntungan - a.keuntungan);
@@ -385,7 +471,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
     };
   }, [orders, filterDateFrom, filterDateTo, filterType, inventoryList]);
 
-  // ─── KALKULASI DETAIL PENDAPATAN JASA BENGKEL (PER JENIS JASA) ───
+  // ─── KALKULASI DETAIL PENDAPATAN JASA BENGKEL (PER JENIS JASA & ALOKASI MATERIAL) ───
   const profitDetailsBengkel = useMemo(() => {
     const periodOrders = orders.filter(o => {
       if (o.status === 'cancelled') return false;
@@ -401,6 +487,13 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       count: number;
       tarif: number;
       total: number;
+      isPaketPromo?: boolean;
+      porsiJasa?: number;
+      porsiMaterial?: number;
+      materialDesc?: string;
+      totalPorsiJasa: number;
+      totalPorsiMaterial: number;
+      totalMarginPaket: number;
     }> = {};
 
     for (const ord of periodOrders) {
@@ -409,30 +502,72 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
         if (!j.nama || j.harga <= 0) continue;
         const key = j.nama.trim().toLowerCase();
 
+        // Cari di inventory jika j belum memiliki isPaketPromo
+        const matchedInv = inventoryList.find(
+          inv => inv.name?.trim().toLowerCase() === key || (inv.skuCode && inv.skuCode.toLowerCase() === key)
+        );
+
+        const isPromo = Boolean(
+          j.isPaketPromo ??
+          matchedInv?.isPaketPromo ??
+          j.nama.toUpperCase().includes('PROMO') ??
+          matchedInv?.name?.toUpperCase().includes('PROMO')
+        );
+
+        const porsiJasa = j.porsiJasa != null ? j.porsiJasa : (
+          matchedInv?.porsiJasa != null ? matchedInv.porsiJasa : (
+            isPromo ? Math.round(j.harga * 0.65) : j.harga
+          )
+        );
+
+        const porsiMaterial = j.porsiMaterial != null ? j.porsiMaterial : (
+          matchedInv?.porsiMaterial != null ? matchedInv.porsiMaterial : (
+            isPromo ? Math.round(j.harga * 0.25) : 0
+          )
+        );
+
+        const marginPaket = Math.max(0, j.harga - porsiJasa - porsiMaterial);
+
         if (!jasaMap[key]) {
           jasaMap[key] = {
             nama: j.nama,
             count: 0,
             tarif: j.harga,
             total: 0,
+            isPaketPromo: isPromo,
+            porsiJasa,
+            porsiMaterial,
+            materialDesc: j.materialDesc || matchedInv?.materialDesc,
+            totalPorsiJasa: 0,
+            totalPorsiMaterial: 0,
+            totalMarginPaket: 0,
           };
         }
 
         jasaMap[key].count += 1;
         jasaMap[key].total += j.harga;
+        jasaMap[key].totalPorsiJasa += porsiJasa;
+        jasaMap[key].totalPorsiMaterial += porsiMaterial;
+        jasaMap[key].totalMarginPaket += marginPaket;
       }
     }
 
     const items = Object.values(jasaMap).sort((a, b) => b.total - a.total);
     const totalJasa = items.reduce((s, i) => s + i.total, 0);
     const totalCount = items.reduce((s, i) => s + i.count, 0);
+    const totalPorsiJasa = items.reduce((s, i) => s + i.totalPorsiJasa, 0);
+    const totalPorsiMaterial = items.reduce((s, i) => s + i.totalPorsiMaterial, 0);
+    const totalMarginPaket = items.reduce((s, i) => s + i.totalMarginPaket, 0);
 
     return {
       items,
       totalJasa,
-      totalCount
+      totalCount,
+      totalPorsiJasa,
+      totalPorsiMaterial,
+      totalMarginPaket,
     };
-  }, [orders, filterDateFrom, filterDateTo, filterType]);
+  }, [orders, filterDateFrom, filterDateTo, filterType, inventoryList]);
 
   const summary = useMemo(() => {
     let totalCash = 0, totalTF = 0, totalPKas = 0, totalPBank = 0;
@@ -1217,8 +1352,8 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
               </div>
             </div>
 
-            {/* 4 KPI Summary Cards */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* 5 KPI Summary Cards Tab Bengkel */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 grid grid-cols-2 md:grid-cols-5 gap-3">
               <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] font-bold text-slate-500">Total Pendapatan Jasa</span>
@@ -1228,9 +1363,27 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                 <span className="text-[10px] text-slate-400">Cash + TF Jasa</span>
               </div>
 
+              <div className="bg-white p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-emerald-800">Porsi Jasa Murni</span>
+                  <Coins className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="text-base font-black text-emerald-700">{formatRp(profitDetailsBengkel.totalPorsiJasa)}</div>
+                <span className="text-[10px] text-emerald-600 font-semibold">Uang jasa mekanik</span>
+              </div>
+
+              <div className="bg-white p-3.5 rounded-xl border border-amber-200 bg-amber-50/30 shadow-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-bold text-amber-800">Alokasi Material Paket</span>
+                  <Tag className="w-4 h-4 text-amber-600" />
+                </div>
+                <div className="text-base font-black text-amber-700">{formatRp(profitDetailsBengkel.totalPorsiMaterial)}</div>
+                <span className="text-[10px] text-amber-600 font-semibold">Modal cairan / obat cleaner</span>
+              </div>
+
               <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-bold text-slate-500">Biaya Operasional Bengkel</span>
+                  <span className="text-[11px] font-bold text-slate-500">Biaya Operasional</span>
                   <ArrowDownRight className="w-4 h-4 text-red-500" />
                 </div>
                 <div className="text-base font-black text-red-600">{formatRp(summary.totalPKas + summary.totalPBank)}</div>
@@ -1240,23 +1393,12 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
               <div className="bg-white p-3.5 rounded-xl border border-teal-200 bg-teal-50/40 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px] font-black text-teal-800">Laba Bersih Bengkel</span>
-                  <Coins className="w-4 h-4 text-teal-600" />
+                  <Wallet className="w-4 h-4 text-teal-600" />
                 </div>
                 <div className="text-base font-black text-teal-600">
                   {formatRp(summary.totalCash + summary.totalTF - (summary.totalPKas + summary.totalPBank))}
                 </div>
-                <span className="text-[10px] text-teal-700 font-semibold">Pendapatan - Beban Bengkel</span>
-              </div>
-
-              <div className="bg-white p-3.5 rounded-xl border border-blue-200 bg-blue-50/40 shadow-xs">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-black text-blue-800">Pekerjaan Jasa</span>
-                  <CheckCircle className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="text-base font-black text-blue-700">
-                  {profitDetailsBengkel.totalCount} <span className="text-xs font-semibold text-slate-500">Tindakan</span>
-                </div>
-                <span className="text-[10px] text-blue-600 font-semibold">Total pengerjaan servis</span>
+                <span className="text-[10px] text-teal-700 font-semibold">Setelah Beban Bengkel</span>
               </div>
             </div>
 
@@ -1266,16 +1408,18 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                 <thead>
                   <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
                     <th className="px-3 py-2.5 text-center font-bold w-12">NO</th>
-                    <th className="px-3 py-2.5 text-left font-bold min-w-[220px]">NAMA JASA SERVIS</th>
-                    <th className="px-3 py-2.5 text-center font-bold w-28">JUMLAH SPK/TINDAKAN</th>
-                    <th className="px-3 py-2.5 text-right font-bold min-w-[140px] text-teal-800">RATA-RATA TARIF</th>
-                    <th className="px-3 py-2.5 text-right font-bold min-w-[160px] text-teal-800">TOTAL PENDAPATAN JASA</th>
+                    <th className="px-3 py-2.5 text-left font-bold min-w-[220px]">NAMA JASA SERVIS & MATERIAL</th>
+                    <th className="px-3 py-2.5 text-center font-bold w-24">TINDAKAN</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[120px] text-slate-700">RATA-RATA TARIF</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[130px] text-emerald-800">PORSI JASA (MEKANIK)</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[130px] text-amber-800">PORSI MATERIAL (BAHAN)</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[150px] text-teal-800">TOTAL PENDAPATAN JASA</th>
                   </tr>
                 </thead>
                 <tbody>
                   {profitDetailsBengkel.items.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-slate-400">
+                      <td colSpan={7} className="text-center py-8 text-slate-400">
                         Belum ada data pengerjaan jasa servis pada periode ini.
                       </td>
                     </tr>
@@ -1283,12 +1427,38 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                     profitDetailsBengkel.items.map((item, idx) => (
                       <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors">
                         <td className="px-3 py-2.5 text-center font-bold text-slate-400">{idx + 1}</td>
-                        <td className="px-3 py-2.5 font-bold text-slate-800">{item.nama}</td>
+                        <td className="px-3 py-2.5 font-bold text-slate-800">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>{item.nama}</span>
+                            {item.isPaketPromo && (
+                              <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-black">
+                                🎁 PAKET PROMO
+                              </span>
+                            )}
+                          </div>
+                          {item.isPaketPromo && item.materialDesc && (
+                            <p className="text-[10px] text-slate-400 mt-0.5 font-normal">
+                              Bahan: {item.materialDesc}
+                            </p>
+                          )}
+                        </td>
                         <td className="px-3 py-2.5 text-center font-bold">
                           <span className="px-2.5 py-0.5 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg">{item.count}x</span>
                         </td>
                         <td className="px-3 py-2.5 text-right font-medium text-slate-600">
                           {formatRp(Math.round(item.total / item.count))}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-medium text-emerald-800">
+                          <span className="font-bold">{formatRp(item.totalPorsiJasa)}</span>
+                          {item.isPaketPromo && item.count > 1 && (
+                            <p className="text-[10px] text-slate-400 font-normal">({formatRp(item.porsiJasa || 0)}/spk)</p>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-medium text-amber-800">
+                          <span className="font-bold">{formatRp(item.totalPorsiMaterial)}</span>
+                          {item.isPaketPromo && item.count > 1 && (
+                            <p className="text-[10px] text-slate-400 font-normal">({formatRp(item.porsiMaterial || 0)}/spk)</p>
+                          )}
                         </td>
                         <td className="px-3 py-2.5 text-right font-black text-teal-700 bg-teal-50/30">
                           {formatRp(item.total)}
@@ -1305,6 +1475,12 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                         {profitDetailsBengkel.totalCount} Tindakan
                       </td>
                       <td className="px-3 py-3 text-right text-xs text-slate-300">-</td>
+                      <td className="px-3 py-3 text-right text-xs text-emerald-300">
+                        {formatRp(profitDetailsBengkel.totalPorsiJasa)}
+                      </td>
+                      <td className="px-3 py-3 text-right text-xs text-amber-300">
+                        {formatRp(profitDetailsBengkel.totalPorsiMaterial)}
+                      </td>
                       <td className="px-3 py-3 text-right text-sm text-teal-300 whitespace-nowrap bg-slate-900">
                         {formatRp(profitDetailsBengkel.totalJasa)}
                       </td>

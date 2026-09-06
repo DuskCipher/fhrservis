@@ -1663,17 +1663,29 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                                         updJasa(j.id, {
                                           nama: inv.name,
                                           harga: inv.sellPrice || 0,
+                                          isPaketPromo: Boolean(inv.isPaketPromo || (inv.name || '').toUpperCase().includes('PROMO')),
+                                          porsiJasa: inv.porsiJasa,
+                                          porsiMaterial: inv.porsiMaterial,
+                                          materialDesc: inv.materialDesc,
                                         });
                                         setActiveJasaSearchId(null);
                                       }}
                                       className="w-full text-left px-2.5 py-1.5 hover:bg-emerald-50 rounded-lg text-xs flex items-center justify-between gap-2 group transition-colors"
                                     >
                                       <div>
-                                        <p className="font-bold text-slate-800 group-hover:text-emerald-700">
-                                          {inv.name}
-                                        </p>
+                                        <div className="flex items-center gap-1.5">
+                                          <p className="font-bold text-slate-800 group-hover:text-emerald-700">
+                                            {inv.name}
+                                          </p>
+                                          {inv.isPaketPromo && (
+                                            <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 text-[9px] font-black border border-amber-300">
+                                              PROMO
+                                            </span>
+                                          )}
+                                        </div>
                                         <p className="text-[10px] text-slate-400">
                                           {inv.category} {inv.durationMinutes ? `• ${inv.durationMinutes} mnt` : ''}
+                                          {inv.isPaketPromo && inv.porsiJasa ? ` • Jasa: ${formatRp(inv.porsiJasa)} | Mat: ${formatRp(inv.porsiMaterial || 0)}` : ''}
                                         </p>
                                       </div>
                                       <span className="font-mono font-black text-emerald-700 text-xs whitespace-nowrap">
@@ -1837,10 +1849,22 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                           .map(j => (
                             <div key={j.id} className="py-2.5 px-2 flex items-center justify-between hover:bg-slate-50 rounded-xl gap-3">
                               <div>
-                                <p className="font-bold text-xs text-slate-900">{j.name}</p>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <p className="font-bold text-xs text-slate-900">{j.name}</p>
+                                  {j.isPaketPromo && (
+                                    <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 text-[9px] font-black border border-amber-300">
+                                      🎁 PAKET PROMO
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-[11px] text-slate-400 mt-0.5">
                                   {j.category} {j.durationMinutes ? `• Estimasi: ${j.durationMinutes} menit` : ''}
                                 </p>
+                                {j.isPaketPromo && (
+                                  <p className="text-[10px] text-slate-600 font-semibold mt-0.5">
+                                    Alokasi: <span className="text-emerald-700">Jasa {formatRp(j.porsiJasa || 0)}</span> + <span className="text-amber-800">Material {formatRp(j.porsiMaterial || 0)}</span>
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center gap-3">
                                 <span className="font-mono font-black text-xs text-emerald-700">
@@ -1855,6 +1879,10 @@ export function CRMSPKCreate({ customers = [], employees = [], inventory = [], o
                                         id: uid(),
                                         nama: j.name,
                                         harga: j.sellPrice || 0,
+                                        isPaketPromo: Boolean(j.isPaketPromo || (j.name || '').toUpperCase().includes('PROMO')),
+                                        porsiJasa: j.porsiJasa,
+                                        porsiMaterial: j.porsiMaterial,
+                                        materialDesc: j.materialDesc,
                                       }
                                     ]);
                                     setShowJasaCatalogModal(false);
