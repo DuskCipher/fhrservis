@@ -6,7 +6,8 @@ import {
 } from 'lucide-react';
 import { InventoryItem, ProductCategory } from '../../types';
 import {
-  subscribeToInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem
+  subscribeToInventory, addInventoryItem, updateInventoryItem, deleteInventoryItem,
+  deleteInventoryItems, deleteAllServices
 } from '../../lib/firestoreService';
 
 const CATEGORIES: (ProductCategory | string)[] = [
@@ -153,6 +154,42 @@ export function CRMInventory() {
     setSelected(prev => prev.filter(s => s !== id));
   };
 
+  const handleDeleteAllServices = async () => {
+    const count = tabCounts.jasa;
+    if (count === 0) {
+      alert('Tidak ada data jasa untuk dihapus.');
+      return;
+    }
+    const confirmed = window.confirm(
+      `PERINGATAN: Apakah Anda yakin ingin menghapus SEMUA jasa service (${count} item)?\n\nSemua master data jasa dan alokasi paket akan dihapus secara permanen dari sistem.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const deletedCount = await deleteAllServices();
+      setSelected([]);
+      showToast(`Berhasil menghapus seluruh data jasa (${deletedCount} item).`);
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus data jasa.');
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selected.length === 0) return;
+    const confirmed = window.confirm(`Hapus ${selected.length} item yang dipilih?`);
+    if (!confirmed) return;
+
+    try {
+      await deleteInventoryItems(selected);
+      setSelected([]);
+      showToast(`${selected.length} item berhasil dihapus.`);
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus item terpilih.');
+    }
+  };
+
   const tabCounts = {
     sparepart: (items || []).filter(i => i && i.type === 'sparepart').length,
     jasa: (items || []).filter(i => i && i.type === 'jasa').length,
@@ -193,6 +230,16 @@ export function CRMInventory() {
             <button className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 font-bold text-xs hover:bg-slate-50 transition-colors">
               <Printer size={13} />PDF / Print
             </button>
+            {(activeTab === 'jasa' || activeTab === 'komisi') && tabCounts.jasa > 0 && (
+              <button
+                onClick={handleDeleteAllServices}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs transition-colors cursor-pointer"
+                title="Hapus seluruh data jasa & paket servis"
+              >
+                <Trash2 size={13} className="text-red-600" />
+                Hapus Semua Jasa ({tabCounts.jasa})
+              </button>
+            )}
             <button
               onClick={openAdd}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-sm transition-all cursor-pointer"
@@ -265,6 +312,28 @@ export function CRMInventory() {
               <AlertTriangle size={12} />
               HPP &gt; Harga Jual
             </label>
+
+            {/* Bulk Actions */}
+            {selected.length > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-300 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs transition-colors cursor-pointer"
+              >
+                <Trash2 size={13} className="text-red-600" />
+                Hapus Terpilih ({selected.length})
+              </button>
+            )}
+
+            {activeTab === 'jasa' && tabCounts.jasa > 0 && (
+              <button
+                onClick={handleDeleteAllServices}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-600 font-bold text-xs transition-colors cursor-pointer"
+                title="Hapus seluruh master data jasa service"
+              >
+                <Trash2 size={13} className="text-red-500" />
+                Hapus Semua Jasa
+              </button>
+            )}
 
             {/* Search */}
             <div className="relative ml-auto min-w-[280px]">
@@ -450,53 +519,16 @@ export function CRMInventory() {
               </div>
 
               <div className="flex items-center gap-2.5 flex-wrap">
-                <button
-                  onClick={() => {
-                    setEditingItem(null);
-                    setForm({
-                      ...EMPTY_FORM,
-                      type: 'jasa',
-                      name: 'TUNE UP PAKET',
-                      skuCode: `PKT-TU-${Math.floor(100 + Math.random() * 900)}`,
-                      category: 'TUNE UP',
-                      sellPrice: 119000,
-                      porsiJasa: 92000,
-                      porsiMaterial: 27000,
-                      buyPrice: 0,
-                      materialDesc: 'Carb/Throttle Cleaner & Foam Gurah Mesin',
-                      isPaketPromo: true,
-                    });
-                    setShowModal(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-indigo-50 font-black text-xs shadow-sm transition-all active:scale-95 cursor-pointer"
-                >
-                  <Plus size={14} className="text-indigo-600" />
-                  + Tune Up (119rb)
-                </button>
-
-                <button
-                  onClick={() => {
-                    setEditingItem(null);
-                    setForm({
-                      ...EMPTY_FORM,
-                      type: 'jasa',
-                      name: 'PAKET REM LENGKAP',
-                      skuCode: `PKT-REM-${Math.floor(100 + Math.random() * 900)}`,
-                      category: 'REM & KAMPAS',
-                      sellPrice: 149000,
-                      porsiJasa: 114000,
-                      porsiMaterial: 35000,
-                      buyPrice: 0,
-                      materialDesc: 'Brake Cleaner Spray & Pelumas Kaliper Rem',
-                      isPaketPromo: true,
-                    });
-                    setShowModal(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-indigo-900/60 hover:bg-indigo-900 text-indigo-100 font-bold text-xs shadow-sm transition-all active:scale-95 border border-indigo-700/50 cursor-pointer"
-                >
-                  <Plus size={14} className="text-indigo-400" />
-                  + Paket Rem (149rb)
-                </button>
+                {tabCounts.jasa > 0 && (
+                  <button
+                    onClick={handleDeleteAllServices}
+                    className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-500/30 font-bold text-xs shadow-sm transition-all active:scale-95 cursor-pointer"
+                    title="Hapus seluruh master data jasa dan paket servis"
+                  >
+                    <Trash2 size={14} className="text-red-300" />
+                    Hapus Semua Jasa
+                  </button>
+                )}
 
                 <button
                   onClick={() => {
@@ -616,7 +648,7 @@ export function CRMInventory() {
                         {promoList.length === 0 ? (
                           <tr>
                             <td colSpan={9} className="text-center py-12 text-slate-400">
-                              Belum ada jasa paket yang terdaftar. Klik "+ Tune Up (119rb)" atau "+ Buat Paket Baru" di atas!
+                              Belum ada jasa paket yang terdaftar. Klik "+ Buat Paket Baru" di atas!
                             </td>
                           </tr>
                         ) : (
@@ -899,48 +931,8 @@ export function CRMInventory() {
 
                   {form.isPaketPromo && (
                     <div className="space-y-3 pt-2 border-t border-indigo-100">
-                      {/* Presets & Quick Ratio Pills */}
+                      {/* Quick Ratio Pills */}
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between flex-wrap gap-1">
-                          <span className="text-[10px] font-bold text-slate-500">Preset Cepat:</span>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <button
-                              type="button"
-                              onClick={() => setForm(p => ({
-                                ...p,
-                                name: p.name || 'TUNE UP PAKET',
-                                skuCode: p.skuCode || 'PKT-TU-119',
-                                category: 'TUNE UP',
-                                sellPrice: 119000,
-                                porsiJasa: 92000,
-                                porsiMaterial: 27000,
-                                buyPrice: 0,
-                                materialDesc: 'Carb/Throttle Cleaner & Foam Gurah Mesin',
-                              }))}
-                              className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-extrabold text-[10px] border border-indigo-200 transition-colors cursor-pointer"
-                            >
-                              Tune Up (119rb: Jasa 92rb + Mat 27rb)
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setForm(p => ({
-                                ...p,
-                                name: p.name || 'PAKET REM LENGKAP',
-                                skuCode: p.skuCode || 'PKT-REM-149',
-                                category: 'REM & KAMPAS',
-                                sellPrice: 149000,
-                                porsiJasa: 114000,
-                                porsiMaterial: 35000,
-                                buyPrice: 0,
-                                materialDesc: 'Brake Cleaner Spray & Grease Kaliper Rem',
-                              }))}
-                              className="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-50 text-slate-700 font-bold text-[10px] border border-slate-200 transition-colors cursor-pointer"
-                            >
-                              Paket Rem (149rb: Jasa 114rb + Mat 35rb)
-                            </button>
-                          </div>
-                        </div>
-
                         {/* Quick Percentage Split Buttons */}
                         <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
                           <span className="text-[10px] font-bold text-slate-400">Bagi Rasio Cepat:</span>

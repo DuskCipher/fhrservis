@@ -938,13 +938,15 @@ export function subscribeToInventory(callback: (items: InventoryItem[]) => void)
         callback(mapped);
       } else {
         const local = getLocalInventory();
-        if (local.length === 0) {
+        const isInit = localStorage.getItem('fhrcar_inventory_initialized') === 'true' || localStorage.getItem(LOCAL_INVENTORY_KEY) !== null;
+        if (local.length === 0 && !isInit) {
           const now = new Date().toISOString();
           const initial = MASTER_JASA_DATA.map((j, idx) => ({
             ...j,
             id: `INV-${String(idx + 1).padStart(3, '0')}`,
             createdAt: now,
           })) as InventoryItem[];
+          localStorage.setItem('fhrcar_inventory_initialized', 'true');
           saveLocalInventory(initial);
           callback(initial);
         } else {
@@ -953,13 +955,15 @@ export function subscribeToInventory(callback: (items: InventoryItem[]) => void)
       }
     } catch {
       const local = getLocalInventory();
-      if (local.length === 0) {
+      const isInit = localStorage.getItem('fhrcar_inventory_initialized') === 'true' || localStorage.getItem(LOCAL_INVENTORY_KEY) !== null;
+      if (local.length === 0 && !isInit) {
         const now = new Date().toISOString();
         const initial = MASTER_JASA_DATA.map((j, idx) => ({
           ...j,
           id: `INV-${String(idx + 1).padStart(3, '0')}`,
           createdAt: now,
         })) as InventoryItem[];
+        localStorage.setItem('fhrcar_inventory_initialized', 'true');
         saveLocalInventory(initial);
         callback(initial);
       } else {
@@ -1042,6 +1046,33 @@ export async function deleteInventoryItem(id: string): Promise<void> {
   } catch (e) {
     console.warn('deleteInventoryItem:', e);
   }
+}
+
+export async function deleteInventoryItems(ids: string[]): Promise<void> {
+  if (!ids || ids.length === 0) return;
+  const list = getLocalInventory();
+  const idSet = new Set(ids);
+  saveLocalInventory(list.filter(i => !idSet.has(i.id)));
+  try {
+    await supabase.from('inventory').delete().in('id', ids);
+  } catch (e) {
+    console.warn('deleteInventoryItems error:', e);
+  }
+}
+
+export async function deleteAllServices(): Promise<number> {
+  const list = getLocalInventory();
+  const jasaItems = list.filter(i => i.type === 'jasa' || (i as any).type === 'service');
+  const count = jasaItems.length;
+  const remaining = list.filter(i => i.type !== 'jasa' && (i as any).type !== 'service');
+  localStorage.setItem('fhrcar_inventory_initialized', 'true');
+  saveLocalInventory(remaining);
+  try {
+    await supabase.from('inventory').delete().eq('type', 'jasa');
+  } catch (e) {
+    console.warn('deleteAllServices error:', e);
+  }
+  return count;
 }
 
 // ═══════════════════════════════════════════════════════════════════
