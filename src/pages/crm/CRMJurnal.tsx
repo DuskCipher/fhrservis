@@ -1419,8 +1419,8 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span>{item.nama}</span>
                             {item.isPaketPromo && (
-                              <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-black">
-                                🎁 PAKET PROMO
+                              <span className="px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] font-black">
+                                📦 JASA PAKET
                               </span>
                             )}
                           </div>

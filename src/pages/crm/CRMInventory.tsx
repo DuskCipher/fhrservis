@@ -16,7 +16,7 @@ const CATEGORIES: (ProductCategory | string)[] = [
 
 const TABS = [
   { id: 'jasa', label: 'Daftar Jasa Service', icon: Tag },
-  { id: 'komisi', label: 'Paket Promo & Komisi', icon: Star },
+  { id: 'komisi', label: 'Pembagian Jasa Paket', icon: Layers },
   { id: 'sparepart', label: 'Katalog Sparepart', icon: Package },
   { id: 'analisa', label: 'Analisa Terlaris', icon: TrendingUp },
   { id: 'import', label: 'Upload / Import', icon: Upload },
@@ -178,7 +178,7 @@ export function CRMInventory() {
               <h1 className="text-xl font-black text-slate-900">Kelola Produk & Jasa</h1>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 text-red-700 uppercase">FHR Car Service</span>
             </div>
-            <p className="text-xs text-slate-500">Katalog daftar harga jual sparepart, tarif jasa mekanik & paket promo servis</p>
+            <p className="text-xs text-slate-500">Katalog harga jual sparepart, tarif jasa mekanik & pembagian jasa paket servis</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 font-semibold text-xs hover:bg-slate-50 transition-colors">
@@ -195,9 +195,9 @@ export function CRMInventory() {
             </button>
             <button
               onClick={openAdd}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-sm transition-all"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-xs shadow-sm transition-all cursor-pointer"
             >
-              <Plus size={14} />+ Tambah {activeTab === 'jasa' ? 'Jasa' : activeTab === 'komisi' ? 'Paket Promo' : 'Sparepart'}
+              <Plus size={14} />+ Tambah {activeTab === 'jasa' ? 'Jasa' : activeTab === 'komisi' ? 'Jasa Paket' : 'Sparepart'}
             </button>
           </div>
         </div>
@@ -340,8 +340,8 @@ export function CRMInventory() {
                               {(item.name || '').toUpperCase()}
                             </span>
                             {item.isPaketPromo && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
-                                🎁 PAKET PROMO
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-xs">
+                                📦 JASA PAKET
                               </span>
                             )}
                             {isHppWarning && !item.isPaketPromo && (
@@ -431,47 +431,47 @@ export function CRMInventory() {
           </div>
         )}
 
-        {/* ─── TAB PAKET PROMO & KOMISI ─── */}
+        {/* ─── TAB PEMBAGIAN JASA PAKET ─── */}
         {activeTab === 'komisi' && (
           <div className="p-5 space-y-6">
             {/* Header Banner & Preset Quick-Adds */}
-            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-2xl p-5 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 text-white shadow-lg border border-indigo-900/40 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-black tracking-wider uppercase backdrop-blur-xs">
-                    Katalog Paket Bundling
+                  <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-black tracking-wider uppercase border border-indigo-500/30">
+                    Alokasi Jasa & Material
                   </span>
-                  <span className="text-xs text-amber-100">Alokasi Jasa Mekanik & Material Toko</span>
+                  <span className="text-xs text-slate-400">Terintegrasi Otomatis ke Jurnal Bengkel & Toko</span>
                 </div>
-                <h2 className="text-xl font-black tracking-tight">Manajemen Paket Promo & Servis Berkala</h2>
-                <p className="text-xs text-amber-100 max-w-xl">
-                  Atur paket bundling dengan pembagian transparan antara hak ongkos kerja teknisi dan modal bahan kimia habis pakai (cleaner, grease, foam).
+                <h2 className="text-2xl font-black tracking-tight text-white">Pembagian Jasa Paket</h2>
+                <p className="text-xs text-slate-300 max-w-xl leading-relaxed">
+                  Pengaturan alokasi terpisah antara hak ongkos kerja teknisi (Jurnal Bengkel) dan nilai bahan material kimia habis pakai (Jurnal Toko).
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <button
                   onClick={() => {
                     setEditingItem(null);
                     setForm({
                       ...EMPTY_FORM,
                       type: 'jasa',
-                      name: 'TUNE UP PROMO',
-                      skuCode: `PROMO-TU-${Math.floor(100 + Math.random() * 900)}`,
+                      name: 'TUNE UP PAKET',
+                      skuCode: `PKT-TU-${Math.floor(100 + Math.random() * 900)}`,
                       category: 'TUNE UP',
                       sellPrice: 119000,
-                      porsiJasa: 75000,
+                      porsiJasa: 92000,
                       porsiMaterial: 27000,
-                      buyPrice: 27000,
+                      buyPrice: 0,
                       materialDesc: 'Carb/Throttle Cleaner & Foam Gurah Mesin',
                       isPaketPromo: true,
                     });
                     setShowModal(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-amber-50 font-black text-xs shadow-sm transition-all active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-indigo-50 font-black text-xs shadow-sm transition-all active:scale-95 cursor-pointer"
                 >
-                  <Plus size={14} className="text-amber-600" />
-                  + Tune Up Promo (119rb)
+                  <Plus size={14} className="text-indigo-600" />
+                  + Tune Up (119rb)
                 </button>
 
                 <button
@@ -480,21 +480,21 @@ export function CRMInventory() {
                     setForm({
                       ...EMPTY_FORM,
                       type: 'jasa',
-                      name: 'PAKET REM PROMO',
-                      skuCode: `PROMO-REM-${Math.floor(100 + Math.random() * 900)}`,
+                      name: 'PAKET REM LENGKAP',
+                      skuCode: `PKT-REM-${Math.floor(100 + Math.random() * 900)}`,
                       category: 'REM & KAMPAS',
                       sellPrice: 149000,
-                      porsiJasa: 99000,
+                      porsiJasa: 114000,
                       porsiMaterial: 35000,
-                      buyPrice: 35000,
+                      buyPrice: 0,
                       materialDesc: 'Brake Cleaner Spray & Pelumas Kaliper Rem',
                       isPaketPromo: true,
                     });
                     setShowModal(true);
                   }}
-                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition-all active:scale-95 border border-white/20 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-indigo-900/60 hover:bg-indigo-900 text-indigo-100 font-bold text-xs shadow-sm transition-all active:scale-95 border border-indigo-700/50 cursor-pointer"
                 >
-                  <Plus size={14} className="text-amber-400" />
+                  <Plus size={14} className="text-indigo-400" />
                   + Paket Rem (149rb)
                 </button>
 
@@ -508,15 +508,15 @@ export function CRMInventory() {
                     });
                     setShowModal(true);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition-all active:scale-95 shadow-sm cursor-pointer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs transition-all active:scale-95 shadow-sm cursor-pointer"
                 >
                   <Plus size={14} />
-                  + Paket Kustom
+                  + Buat Paket Baru
                 </button>
               </div>
             </div>
 
-            {/* 3 Summary Cards */}
+            {/* 3 Modern Summary Cards */}
             {(() => {
               const promoList = (items || []).filter(i =>
                 i && (i.isPaketPromo || (i.name || '').toUpperCase().includes('PROMO') || (i.skuCode || '').toUpperCase().startsWith('PROMO') || (i.skuCode || '').toUpperCase().startsWith('PKT'))
@@ -526,29 +526,44 @@ export function CRMInventory() {
               const totalMaterial = promoList.reduce((s, i) => s + (Number(i.porsiMaterial) || 0), 0);
 
               return (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
-                    <span className="text-[11px] font-bold text-slate-500 block mb-1">Total Paket Promo</span>
-                    <p className="text-xl font-black text-slate-800">{promoList.length} Paket</p>
-                    <span className="text-[10px] text-slate-400">Total Nilai Paket: {formatRp(totalNilai)}</span>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-slate-300 transition-all">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Jasa Paket</span>
+                      <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                        <Layers size={16} />
+                      </div>
+                    </div>
+                    <p className="text-2xl font-black text-slate-900">{promoList.length} <span className="text-sm font-semibold text-slate-500">Paket</span></p>
+                    <span className="text-[11px] text-slate-400 font-medium">Akumulasi Tarif: {formatRp(totalNilai)}</span>
                   </div>
 
-                  <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-xs">
-                    <span className="text-[11px] font-bold text-emerald-800 block mb-1">Total Alokasi Jasa (Mekanik)</span>
-                    <p className="text-xl font-black text-emerald-700">{formatRp(totalJasa)}</p>
-                    <span className="text-[10px] text-emerald-600 font-semibold">Hak pendapatan teknisi / Jurnal Bengkel</span>
+                  <div className="bg-white p-5 rounded-2xl border border-emerald-200 bg-emerald-50/20 shadow-xs hover:border-emerald-300 transition-all">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Porsi Jasa (Bengkel)</span>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <Tag size={16} />
+                      </div>
+                    </div>
+                    <p className="text-2xl font-black text-emerald-700">{formatRp(totalJasa)}</p>
+                    <span className="text-[11px] text-emerald-600 font-medium">Hak ongkos kerja teknisi / mekanik</span>
                   </div>
 
-                  <div className="bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/30 shadow-xs">
-                    <span className="text-[11px] font-bold text-amber-800 block mb-1">Total Alokasi Material (Bahan)</span>
-                    <p className="text-xl font-black text-amber-700">{formatRp(totalMaterial)}</p>
-                    <span className="text-[10px] text-amber-600 font-semibold">Cairan & cleaner habis pakai / Jurnal Toko</span>
+                  <div className="bg-white p-5 rounded-2xl border border-amber-200 bg-amber-50/20 shadow-xs hover:border-amber-300 transition-all">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Porsi Material (Toko)</span>
+                      <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                        <Package size={16} />
+                      </div>
+                    </div>
+                    <p className="text-2xl font-black text-amber-700">{formatRp(totalMaterial)}</p>
+                    <span className="text-[11px] text-amber-600 font-medium">Nilai bahan cairan/cleaner masuk Toko</span>
                   </div>
                 </div>
               );
             })()}
 
-            {/* Tabel Rincian Paket Promo */}
+            {/* Tabel Rincian Paket */}
             {(() => {
               const s = (search || '').toLowerCase().trim();
               const promoList = (items || []).filter(i => {
@@ -563,21 +578,21 @@ export function CRMInventory() {
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
                   <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-3 bg-slate-50/60">
                     <div className="flex items-center gap-2">
-                      <Star size={16} className="text-amber-500" />
-                      <h3 className="text-sm font-black text-slate-800">Daftar Paket Promo Aktif</h3>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                        {promoList.length} item
+                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                      <h3 className="text-sm font-black text-slate-800">Daftar Pembagian Jasa Paket</h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                        {promoList.length} paket aktif
                       </span>
                     </div>
 
-                    <div className="relative min-w-[240px]">
-                      <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <div className="relative min-w-[260px]">
+                      <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        placeholder="Cari paket promo..."
-                        className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white outline-none focus:border-amber-400"
+                        placeholder="Cari jasa paket..."
+                        className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white outline-none focus:border-indigo-400"
                       />
                     </div>
                   </div>
@@ -585,23 +600,23 @@ export function CRMInventory() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-slate-100 text-slate-700 border-b border-slate-200">
-                          <th className="px-3 py-3 text-center font-bold w-12">NO</th>
-                          <th className="px-3 py-3 text-left font-bold w-28">KODE SKU</th>
-                          <th className="px-3 py-3 text-left font-bold min-w-[200px]">NAMA PAKET & MATERIAL</th>
-                          <th className="px-3 py-3 text-center font-bold w-28">KATEGORI</th>
-                          <th className="px-3 py-3 text-right font-bold min-w-[120px] text-slate-900">TOTAL TARIF</th>
-                          <th className="px-3 py-3 text-right font-bold min-w-[130px] text-emerald-800">PORSI JASA (BENGKEL)</th>
-                          <th className="px-3 py-3 text-right font-bold min-w-[130px] text-amber-800">PORSI MATERIAL (TOKO)</th>
-                          <th className="px-3 py-3 text-center font-bold min-w-[140px]">PROPORSI PEMBAGIAN</th>
-                          <th className="px-3 py-3 text-center font-bold w-20">AKSI</th>
+                        <tr className="bg-slate-100/90 text-slate-700 border-b border-slate-200">
+                          <th className="px-3.5 py-3 text-center font-bold w-12">NO</th>
+                          <th className="px-3.5 py-3 text-left font-bold w-28">KODE SKU</th>
+                          <th className="px-3.5 py-3 text-left font-bold min-w-[220px]">NAMA PAKET & MATERIAL</th>
+                          <th className="px-3.5 py-3 text-center font-bold w-28">KATEGORI</th>
+                          <th className="px-3.5 py-3 text-right font-bold min-w-[120px] text-slate-900">TOTAL TARIF</th>
+                          <th className="px-3.5 py-3 text-right font-bold min-w-[130px] text-emerald-800">PORSI JASA (BENGKEL)</th>
+                          <th className="px-3.5 py-3 text-right font-bold min-w-[130px] text-amber-800">PORSI MATERIAL (TOKO)</th>
+                          <th className="px-3.5 py-3 text-center font-bold min-w-[150px]">PROPORSI PEMBAGIAN</th>
+                          <th className="px-3.5 py-3 text-center font-bold w-20">AKSI</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {promoList.length === 0 ? (
                           <tr>
                             <td colSpan={9} className="text-center py-12 text-slate-400">
-                              Belum ada paket promo yang terdaftar. Klik "+ Tune Up Promo" atau "+ Paket Kustom" di atas!
+                              Belum ada jasa paket yang terdaftar. Klik "+ Tune Up (119rb)" atau "+ Buat Paket Baru" di atas!
                             </td>
                           </tr>
                         ) : (
@@ -616,46 +631,46 @@ export function CRMInventory() {
 
                             return (
                               <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                                <td className="px-3 py-3.5 text-center text-slate-400 font-bold">{idx + 1}</td>
-                                <td className="px-3 py-3.5">
-                                  <span className="font-mono font-bold text-blue-700 text-[11px] bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                                <td className="px-3.5 py-3.5 text-center text-slate-400 font-bold">{idx + 1}</td>
+                                <td className="px-3.5 py-3.5">
+                                  <span className="font-mono font-bold text-indigo-700 text-[11px] bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
                                     {item.skuCode}
                                   </span>
                                 </td>
-                                <td className="px-3 py-3.5">
+                                <td className="px-3.5 py-3.5">
                                   <div className="flex items-center gap-1.5 flex-wrap">
                                     <span className="font-bold text-slate-800 uppercase tracking-wide">
                                       {item.name}
                                     </span>
-                                    <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 text-[9px] font-black uppercase">
-                                      PROMO
+                                    <span className="px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200 text-[9px] font-black uppercase">
+                                      JASA PAKET
                                     </span>
                                   </div>
                                   <p className="text-[10px] text-slate-400 mt-0.5">
-                                    {item.materialDesc || 'Termasuk cleaner & bahan kimia'}
+                                    {item.materialDesc || 'Termasuk bahan & cairan kimia toko'}
                                   </p>
                                 </td>
-                                <td className="px-3 py-3.5 text-center">
+                                <td className="px-3.5 py-3.5 text-center">
                                   <span className="px-2 py-0.5 text-[10px] font-bold uppercase bg-slate-100 text-slate-600 rounded border border-slate-200">
                                     {item.category}
                                   </span>
                                 </td>
-                                <td className="px-3 py-3.5 text-right font-mono font-black text-slate-900 text-sm">
+                                <td className="px-3.5 py-3.5 text-right font-mono font-black text-slate-900 text-sm">
                                   {formatRp(sPrice)}
                                 </td>
-                                <td className="px-3 py-3.5 text-right">
+                                <td className="px-3.5 py-3.5 text-right">
                                   <span className="font-mono font-bold text-emerald-700 block">
                                     {formatRp(pJasa)}
                                   </span>
                                   <span className="text-[9px] text-emerald-600 font-medium">({pctJasa}%)</span>
                                 </td>
-                                <td className="px-3 py-3.5 text-right">
+                                <td className="px-3.5 py-3.5 text-right">
                                   <span className="font-mono font-bold text-amber-800 block">
                                     {formatRp(pMat)}
                                   </span>
                                   <span className="text-[9px] text-amber-600 font-medium">({pctMat}%)</span>
                                 </td>
-                                <td className="px-3 py-3.5">
+                                <td className="px-3.5 py-3.5">
                                   <div className="space-y-1">
                                     <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
                                       <div style={{ width: `${pctJasa}%` }} className="bg-emerald-500 h-full transition-all" title={`Jasa: ${pctJasa}%`} />
@@ -667,12 +682,12 @@ export function CRMInventory() {
                                     </div>
                                   </div>
                                 </td>
-                                <td className="px-3 py-3.5 text-center">
+                                <td className="px-3.5 py-3.5 text-center">
                                   <div className="flex items-center justify-center gap-1">
                                     <button
                                       onClick={() => openEdit(item)}
-                                      className="p-1.5 rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
-                                      title="Edit Pembagian"
+                                      className="p-1.5 rounded-lg text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                                      title="Edit Pembagian Jasa Paket"
                                     >
                                       <Edit size={13} />
                                     </button>
@@ -822,7 +837,7 @@ export function CRMInventory() {
               ) : (
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    {form.isPaketPromo ? 'Total Tarif Promo ke Pelanggan (Rp) *' : 'Tarif Jasa Servis (Rp) *'}
+                    {form.isPaketPromo ? 'Total Tarif Jasa Paket (Rp) *' : 'Tarif Jasa Servis (Rp) *'}
                   </label>
                   <input
                     type="number"
@@ -839,23 +854,23 @@ export function CRMInventory() {
                       });
                     }}
                     placeholder="Contoh: 119000"
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400 font-bold font-mono text-slate-900"
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-indigo-400 font-bold font-mono text-slate-900"
                   />
                   <span className="text-[10px] text-slate-400 mt-1 block">Jasa tidak memiliki modal HPP / harga beli barang</span>
                 </div>
               )}
 
-              {/* ── OPSI PAKET PROMO & PEMBAGIAN JASA / MATERIAL ── */}
+              {/* ── OPSI PEMBAGIAN JASA PAKET (JASA + MATERIAL) ── */}
               {form.type === 'jasa' && (
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50/90 via-orange-50/40 to-amber-50/90 border border-amber-200 shadow-xs space-y-3">
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/90 via-slate-50 to-indigo-50/90 border border-indigo-200/80 shadow-xs space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-                        🎁
+                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">
+                        <Layers size={16} />
                       </div>
                       <div>
-                        <p className="text-xs font-black text-slate-800">Paket Promo / Bundling Servis</p>
-                        <p className="text-[10px] text-slate-500">Pembagian murni untuk Jasa Mekanik (Bengkel) & Material Bahan (Toko)</p>
+                        <p className="text-xs font-black text-slate-800">Pembagian Jasa Paket</p>
+                        <p className="text-[10px] text-slate-500">Alokasikan tarif ke porsi Jasa Mekanik (Bengkel) & Material Bahan (Toko)</p>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -878,49 +893,78 @@ export function CRMInventory() {
                         }}
                         className="sr-only peer"
                       />
-                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
                     </label>
                   </div>
 
                   {form.isPaketPromo && (
-                    <div className="space-y-3 pt-2 border-t border-amber-200/80">
-                      {/* Presets */}
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold text-slate-500">Preset Cepat:</span>
-                        <button
-                          type="button"
-                          onClick={() => setForm(p => ({
-                            ...p,
-                            name: p.name || 'TUNE UP PROMO',
-                            skuCode: p.skuCode || 'PROMO-TU-119',
-                            category: 'TUNE UP',
-                            sellPrice: 119000,
-                            porsiJasa: 92000,
-                            porsiMaterial: 27000,
-                            buyPrice: 0,
-                            materialDesc: 'Carb/Throttle Cleaner & Foam Gurah Mesin',
-                          }))}
-                          className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-extrabold text-[10px] border border-amber-300 transition-colors cursor-pointer"
-                        >
-                          Tune Up Promo (119rb: Jasa 92rb + Material 27rb)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setForm(p => ({
-                            ...p,
-                            name: p.name || 'PAKET REM PROMO',
-                            skuCode: p.skuCode || 'PROMO-REM-149',
-                            category: 'REM & KAMPAS',
-                            sellPrice: 149000,
-                            porsiJasa: 114000,
-                            porsiMaterial: 35000,
-                            buyPrice: 0,
-                            materialDesc: 'Brake Cleaner Spray & Grease Kaliper Rem',
-                          }))}
-                          className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 text-slate-700 font-bold text-[10px] border border-slate-200 transition-colors cursor-pointer"
-                        >
-                          Paket Rem Promo (149rb: Jasa 114rb + Material 35rb)
-                        </button>
+                    <div className="space-y-3 pt-2 border-t border-indigo-100">
+                      {/* Presets & Quick Ratio Pills */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between flex-wrap gap-1">
+                          <span className="text-[10px] font-bold text-slate-500">Preset Cepat:</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => setForm(p => ({
+                                ...p,
+                                name: p.name || 'TUNE UP PAKET',
+                                skuCode: p.skuCode || 'PKT-TU-119',
+                                category: 'TUNE UP',
+                                sellPrice: 119000,
+                                porsiJasa: 92000,
+                                porsiMaterial: 27000,
+                                buyPrice: 0,
+                                materialDesc: 'Carb/Throttle Cleaner & Foam Gurah Mesin',
+                              }))}
+                              className="px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-extrabold text-[10px] border border-indigo-200 transition-colors cursor-pointer"
+                            >
+                              Tune Up (119rb: Jasa 92rb + Mat 27rb)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setForm(p => ({
+                                ...p,
+                                name: p.name || 'PAKET REM LENGKAP',
+                                skuCode: p.skuCode || 'PKT-REM-149',
+                                category: 'REM & KAMPAS',
+                                sellPrice: 149000,
+                                porsiJasa: 114000,
+                                porsiMaterial: 35000,
+                                buyPrice: 0,
+                                materialDesc: 'Brake Cleaner Spray & Grease Kaliper Rem',
+                              }))}
+                              className="px-2.5 py-1 rounded-lg bg-white hover:bg-indigo-50 text-slate-700 font-bold text-[10px] border border-slate-200 transition-colors cursor-pointer"
+                            >
+                              Paket Rem (149rb: Jasa 114rb + Mat 35rb)
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Quick Percentage Split Buttons */}
+                        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                          <span className="text-[10px] font-bold text-slate-400">Bagi Rasio Cepat:</span>
+                          {[
+                            { label: '70% Jasa : 30% Mat', jPct: 0.7 },
+                            { label: '80% Jasa : 20% Mat', jPct: 0.8 },
+                            { label: '60% Jasa : 40% Mat', jPct: 0.6 },
+                            { label: '50% Jasa : 50% Mat', jPct: 0.5 },
+                          ].map(ratio => (
+                            <button
+                              key={ratio.label}
+                              type="button"
+                              onClick={() => {
+                                const total = Number(form.sellPrice) || 100000;
+                                const jas = Math.round(total * ratio.jPct);
+                                const mat = total - jas;
+                                setForm(p => ({ ...p, porsiJasa: jas, porsiMaterial: mat }));
+                              }}
+                              className="px-2 py-0.5 rounded-md bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 font-semibold text-[10px] border border-slate-200 transition-colors cursor-pointer"
+                            >
+                              {ratio.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3">
@@ -976,7 +1020,7 @@ export function CRMInventory() {
                           value={form.materialDesc || ''}
                           onChange={e => setForm(p => ({ ...p, materialDesc: e.target.value }))}
                           placeholder="Misal: Cairan carb cleaner, DCS gurah mesin, grease"
-                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-amber-400 bg-white"
+                          className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-indigo-400 bg-white"
                         />
                       </div>
 
@@ -989,9 +1033,9 @@ export function CRMInventory() {
                         const pctMat = total > 0 ? 100 - pctJasa : 0;
 
                         return (
-                          <div className="bg-white/95 rounded-xl p-3 border border-amber-200 space-y-2">
+                          <div className="bg-white/95 rounded-xl p-3 border border-indigo-100 space-y-2">
                             <div className="flex items-center justify-between text-xs">
-                              <span className="font-bold text-slate-700">Pembagian Paket (Jasa + Material):</span>
+                              <span className="font-bold text-slate-700">Pembagian Jasa Paket:</span>
                               <span className="font-black text-slate-900 font-mono">{formatRp(total)}</span>
                             </div>
 
