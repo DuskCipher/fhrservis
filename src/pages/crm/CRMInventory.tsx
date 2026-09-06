@@ -115,7 +115,10 @@ export function CRMInventory() {
     }
     const porsiJasa = form.isPaketPromo ? Number(form.porsiJasa) || 0 : undefined;
     const porsiMaterial = form.isPaketPromo ? Number(form.porsiMaterial) || 0 : undefined;
-    const buyPrice = form.isPaketPromo && (!form.buyPrice || form.buyPrice === 0) ? (porsiMaterial || 0) : Number(form.buyPrice || 0);
+    const buyPrice = form.type === 'jasa' ? 0 : Number(form.buyPrice || 0);
+    const sellPrice = form.isPaketPromo && (porsiJasa != null || porsiMaterial != null)
+      ? ((porsiJasa || 0) + (porsiMaterial || 0))
+      : Number(form.sellPrice || 0);
 
     const upperForm = {
       ...form,
@@ -123,7 +126,7 @@ export function CRMInventory() {
       skuCode: (form.skuCode || '').toUpperCase().trim(),
       category: (form.category || 'SERVICE AC').toUpperCase().trim(),
       buyPrice,
-      sellPrice: Number(form.sellPrice || 0),
+      sellPrice,
       isPaketPromo: Boolean(form.isPaketPromo),
       porsiJasa,
       porsiMaterial,
@@ -391,15 +394,10 @@ export function CRMInventory() {
                           {item.isPaketPromo ? (
                             <div className="text-[10px] font-semibold mt-0.5 space-y-0.5">
                               <span className="text-emerald-600 block">Jasa: {formatRp(item.porsiJasa || 0)}</span>
-                              <span className="text-amber-700 block">Material: {formatRp(item.porsiMaterial || item.buyPrice || 0)}</span>
-                              {((item.sellPrice || 0) - (item.porsiJasa || 0) - (item.porsiMaterial || item.buyPrice || 0)) > 0 && (
-                                <span className="text-blue-600 font-bold block text-[9px]">
-                                  Margin: {formatRp((item.sellPrice || 0) - (item.porsiJasa || 0) - (item.porsiMaterial || item.buyPrice || 0))}
-                                </span>
-                              )}
+                              <span className="text-amber-700 block">Material: {formatRp(item.porsiMaterial || 0)}</span>
                             </div>
                           ) : (
-                            item.buyPrice > 0 && (
+                            item.type !== 'jasa' && item.buyPrice > 0 && (
                               <p className={`text-[10px] ${isHppWarning ? 'text-orange-600 font-bold' : 'text-slate-400'}`}>
                                 HPP: {formatRp(item.buyPrice)}
                               </p>
@@ -518,40 +516,33 @@ export function CRMInventory() {
               </div>
             </div>
 
-            {/* 4 Summary Cards */}
+            {/* 3 Summary Cards */}
             {(() => {
               const promoList = (items || []).filter(i =>
                 i && (i.isPaketPromo || (i.name || '').toUpperCase().includes('PROMO') || (i.skuCode || '').toUpperCase().startsWith('PROMO') || (i.skuCode || '').toUpperCase().startsWith('PKT'))
               );
               const totalNilai = promoList.reduce((s, i) => s + (Number(i.sellPrice) || 0), 0);
               const totalJasa = promoList.reduce((s, i) => s + (Number(i.porsiJasa) || 0), 0);
-              const totalMaterial = promoList.reduce((s, i) => s + (Number(i.porsiMaterial) || Number(i.buyPrice) || 0), 0);
-              const totalMargin = Math.max(0, totalNilai - totalJasa - totalMaterial);
+              const totalMaterial = promoList.reduce((s, i) => s + (Number(i.porsiMaterial) || 0), 0);
 
               return (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
                     <span className="text-[11px] font-bold text-slate-500 block mb-1">Total Paket Promo</span>
                     <p className="text-xl font-black text-slate-800">{promoList.length} Paket</p>
-                    <span className="text-[10px] text-slate-400">Terdaftar di katalog aktif</span>
+                    <span className="text-[10px] text-slate-400">Total Nilai Paket: {formatRp(totalNilai)}</span>
                   </div>
 
                   <div className="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-xs">
                     <span className="text-[11px] font-bold text-emerald-800 block mb-1">Total Alokasi Jasa (Mekanik)</span>
                     <p className="text-xl font-black text-emerald-700">{formatRp(totalJasa)}</p>
-                    <span className="text-[10px] text-emerald-600 font-semibold">Uang jasa ongkos kerja teknisi</span>
+                    <span className="text-[10px] text-emerald-600 font-semibold">Hak pendapatan teknisi / Jurnal Bengkel</span>
                   </div>
 
                   <div className="bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/30 shadow-xs">
-                    <span className="text-[11px] font-bold text-amber-800 block mb-1">Total Alokasi Material</span>
+                    <span className="text-[11px] font-bold text-amber-800 block mb-1">Total Alokasi Material (Bahan)</span>
                     <p className="text-xl font-black text-amber-700">{formatRp(totalMaterial)}</p>
-                    <span className="text-[10px] text-amber-600 font-semibold">Bahan cairan & cleaner habis pakai</span>
-                  </div>
-
-                  <div className="bg-white p-4 rounded-xl border border-blue-200 bg-blue-50/30 shadow-xs">
-                    <span className="text-[11px] font-bold text-blue-800 block mb-1">Sisa Margin Paket Bengkel</span>
-                    <p className="text-xl font-black text-blue-700">{formatRp(totalMargin)}</p>
-                    <span className="text-[10px] text-blue-600 font-semibold">Keuntungan bersih bengkel</span>
+                    <span className="text-[10px] text-amber-600 font-semibold">Cairan & cleaner habis pakai / Jurnal Toko</span>
                   </div>
                 </div>
               );
@@ -600,17 +591,16 @@ export function CRMInventory() {
                           <th className="px-3 py-3 text-left font-bold min-w-[200px]">NAMA PAKET & MATERIAL</th>
                           <th className="px-3 py-3 text-center font-bold w-28">KATEGORI</th>
                           <th className="px-3 py-3 text-right font-bold min-w-[120px] text-slate-900">TOTAL TARIF</th>
-                          <th className="px-3 py-3 text-right font-bold min-w-[120px] text-emerald-800">PORSI JASA</th>
-                          <th className="px-3 py-3 text-right font-bold min-w-[120px] text-amber-800">PORSI MATERIAL</th>
-                          <th className="px-3 py-3 text-right font-bold min-w-[110px] text-blue-800">MARGIN</th>
-                          <th className="px-3 py-3 text-center font-bold min-w-[140px]">PROPORSI (%)</th>
+                          <th className="px-3 py-3 text-right font-bold min-w-[130px] text-emerald-800">PORSI JASA (BENGKEL)</th>
+                          <th className="px-3 py-3 text-right font-bold min-w-[130px] text-amber-800">PORSI MATERIAL (TOKO)</th>
+                          <th className="px-3 py-3 text-center font-bold min-w-[140px]">PROPORSI PEMBAGIAN</th>
                           <th className="px-3 py-3 text-center font-bold w-20">AKSI</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {promoList.length === 0 ? (
                           <tr>
-                            <td colSpan={10} className="text-center py-12 text-slate-400">
+                            <td colSpan={9} className="text-center py-12 text-slate-400">
                               Belum ada paket promo yang terdaftar. Klik "+ Tune Up Promo" atau "+ Paket Kustom" di atas!
                             </td>
                           </tr>
@@ -618,12 +608,11 @@ export function CRMInventory() {
                           promoList.map((item, idx) => {
                             const sPrice = Number(item.sellPrice) || 0;
                             const pJasa = Number(item.porsiJasa) || 0;
-                            const pMat = Number(item.porsiMaterial) || Number(item.buyPrice) || 0;
-                            const margin = Math.max(0, sPrice - pJasa - pMat);
+                            const pMat = Number(item.porsiMaterial) || 0;
+                            const totalSplit = (pJasa + pMat) > 0 ? (pJasa + pMat) : sPrice;
 
-                            const pctJasa = sPrice > 0 ? Math.round((pJasa / sPrice) * 100) : 0;
-                            const pctMat = sPrice > 0 ? Math.round((pMat / sPrice) * 100) : 0;
-                            const pctMargin = sPrice > 0 ? Math.max(0, 100 - pctJasa - pctMat) : 0;
+                            const pctJasa = totalSplit > 0 ? Math.round((pJasa / totalSplit) * 100) : 0;
+                            const pctMat = totalSplit > 0 ? 100 - pctJasa : 0;
 
                             return (
                               <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
@@ -666,23 +655,15 @@ export function CRMInventory() {
                                   </span>
                                   <span className="text-[9px] text-amber-600 font-medium">({pctMat}%)</span>
                                 </td>
-                                <td className="px-3 py-3.5 text-right">
-                                  <span className="font-mono font-black text-blue-700 block">
-                                    {formatRp(margin)}
-                                  </span>
-                                  <span className="text-[9px] text-blue-600 font-medium">({pctMargin}%)</span>
-                                </td>
                                 <td className="px-3 py-3.5">
                                   <div className="space-y-1">
-                                    <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                                      <div style={{ width: `${pctJasa}%` }} className="bg-emerald-500 h-full" title={`Jasa: ${pctJasa}%`} />
-                                      <div style={{ width: `${pctMat}%` }} className="bg-amber-500 h-full" title={`Material: ${pctMat}%`} />
-                                      <div style={{ width: `${pctMargin}%` }} className="bg-blue-500 h-full" title={`Margin: ${pctMargin}%`} />
+                                    <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                                      <div style={{ width: `${pctJasa}%` }} className="bg-emerald-500 h-full transition-all" title={`Jasa: ${pctJasa}%`} />
+                                      <div style={{ width: `${pctMat}%` }} className="bg-amber-500 h-full transition-all" title={`Material: ${pctMat}%`} />
                                     </div>
-                                    <div className="flex justify-between text-[9px] text-slate-400 font-semibold px-0.5">
-                                      <span className="text-emerald-700">J: {pctJasa}%</span>
-                                      <span className="text-amber-700">M: {pctMat}%</span>
-                                      <span className="text-blue-700">L: {pctMargin}%</span>
+                                    <div className="flex justify-between text-[9px] font-semibold px-0.5">
+                                      <span className="text-emerald-700">Jasa {pctJasa}%</span>
+                                      <span className="text-amber-700">Material {pctMat}%</span>
                                     </div>
                                   </div>
                                 </td>
@@ -817,28 +798,52 @@ export function CRMInventory() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-600 mb-1">HPP / Harga Beli (Rp)</label>
-                  <input
-                    type="number"
-                    value={form.buyPrice || 0}
-                    onChange={e => setForm(p => ({ ...p, buyPrice: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400"
-                  />
+              {form.type === 'part' ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">HPP / Harga Beli (Rp) *</label>
+                    <input
+                      type="number"
+                      value={form.buyPrice || 0}
+                      onChange={e => setForm(p => ({ ...p, buyPrice: Number(e.target.value) }))}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Harga Jual Sparepart (Rp) *</label>
+                    <input
+                      type="number"
+                      value={form.sellPrice || 0}
+                      onChange={e => setForm(p => ({ ...p, sellPrice: Number(e.target.value) }))}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400 font-bold font-mono"
+                    />
+                  </div>
                 </div>
+              ) : (
                 <div>
                   <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                    {form.type === 'jasa' ? (form.isPaketPromo ? 'Total Tarif Promo ke Pelanggan (Rp) *' : 'Harga Jual / Tarif Jasa (Rp) *') : 'Harga Jual Sparepart (Rp) *'}
+                    {form.isPaketPromo ? 'Total Tarif Promo ke Pelanggan (Rp) *' : 'Tarif Jasa Servis (Rp) *'}
                   </label>
                   <input
                     type="number"
                     value={form.sellPrice || 0}
-                    onChange={e => setForm(p => ({ ...p, sellPrice: Number(e.target.value) }))}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400 font-bold"
+                    onChange={e => {
+                      const val = Number(e.target.value);
+                      setForm(p => {
+                        if (p.isPaketPromo) {
+                          const pMat = Math.min(val, Number(p.porsiMaterial) || 0);
+                          const pJas = Math.max(0, val - pMat);
+                          return { ...p, sellPrice: val, porsiJasa: pJas, porsiMaterial: pMat, buyPrice: 0 };
+                        }
+                        return { ...p, sellPrice: val, buyPrice: 0 };
+                      });
+                    }}
+                    placeholder="Contoh: 119000"
+                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl outline-none focus:border-red-400 font-bold font-mono text-slate-900"
                   />
+                  <span className="text-[10px] text-slate-400 mt-1 block">Jasa tidak memiliki modal HPP / harga beli barang</span>
                 </div>
-              </div>
+              )}
 
               {/* ── OPSI PAKET PROMO & PEMBAGIAN JASA / MATERIAL ── */}
               {form.type === 'jasa' && (
@@ -850,7 +855,7 @@ export function CRMInventory() {
                       </div>
                       <div>
                         <p className="text-xs font-black text-slate-800">Paket Promo / Bundling Servis</p>
-                        <p className="text-[10px] text-slate-500">Ada pembagian terpisah untuk Jasa Mekanik & Material Bahan</p>
+                        <p className="text-[10px] text-slate-500">Pembagian murni untuk Jasa Mekanik (Bengkel) & Material Bahan (Toko)</p>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -859,11 +864,16 @@ export function CRMInventory() {
                         checked={!!form.isPaketPromo}
                         onChange={e => {
                           const checked = e.target.checked;
+                          const sPrice = Number(form.sellPrice) || 119000;
+                          const defaultMat = sPrice === 119000 ? 27000 : Math.round(sPrice * 0.25);
+                          const defaultJas = Math.max(0, sPrice - defaultMat);
                           setForm(p => ({
                             ...p,
                             isPaketPromo: checked,
-                            porsiJasa: checked ? (p.porsiJasa || Math.round((Number(p.sellPrice) || 0) * 0.65)) : 0,
-                            porsiMaterial: checked ? (p.porsiMaterial || Math.round((Number(p.sellPrice) || 0) * 0.25)) : 0,
+                            sellPrice: checked ? sPrice : p.sellPrice,
+                            porsiJasa: checked ? (p.porsiJasa || defaultJas) : 0,
+                            porsiMaterial: checked ? (p.porsiMaterial || defaultMat) : 0,
+                            buyPrice: 0,
                           }));
                         }}
                         className="sr-only peer"
@@ -885,14 +895,14 @@ export function CRMInventory() {
                             skuCode: p.skuCode || 'PROMO-TU-119',
                             category: 'TUNE UP',
                             sellPrice: 119000,
-                            porsiJasa: 75000,
+                            porsiJasa: 92000,
                             porsiMaterial: 27000,
-                            buyPrice: 27000,
+                            buyPrice: 0,
                             materialDesc: 'Carb/Throttle Cleaner & Foam Gurah Mesin',
                           }))}
-                          className="px-2 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-extrabold text-[10px] border border-amber-300 transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-extrabold text-[10px] border border-amber-300 transition-colors cursor-pointer"
                         >
-                          Tune Up Promo (119rb: Jasa 75rb + Material 27rb)
+                          Tune Up Promo (119rb: Jasa 92rb + Material 27rb)
                         </button>
                         <button
                           type="button"
@@ -902,14 +912,14 @@ export function CRMInventory() {
                             skuCode: p.skuCode || 'PROMO-REM-149',
                             category: 'REM & KAMPAS',
                             sellPrice: 149000,
-                            porsiJasa: 99000,
+                            porsiJasa: 114000,
                             porsiMaterial: 35000,
-                            buyPrice: 35000,
+                            buyPrice: 0,
                             materialDesc: 'Brake Cleaner Spray & Grease Kaliper Rem',
                           }))}
-                          className="px-2 py-1 rounded-lg bg-white hover:bg-amber-50 text-slate-700 font-bold text-[10px] border border-slate-200 transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-white hover:bg-amber-50 text-slate-700 font-bold text-[10px] border border-slate-200 transition-colors cursor-pointer"
                         >
-                          Paket Rem Promo (149rb)
+                          Paket Rem Promo (149rb: Jasa 114rb + Material 35rb)
                         </button>
                       </div>
 
@@ -921,11 +931,18 @@ export function CRMInventory() {
                           <input
                             type="number"
                             value={form.porsiJasa || ''}
-                            onChange={e => setForm(p => ({ ...p, porsiJasa: Number(e.target.value) }))}
-                            placeholder="Contoh: 75000"
+                            onChange={e => {
+                              const val = Number(e.target.value);
+                              setForm(p => ({
+                                ...p,
+                                porsiJasa: val,
+                                sellPrice: val + (Number(p.porsiMaterial) || 0),
+                              }));
+                            }}
+                            placeholder="Contoh: 92000"
                             className="w-full px-3 py-2 text-xs border border-emerald-300 rounded-xl outline-none focus:border-emerald-500 font-mono font-bold text-emerald-800 bg-white"
                           />
-                          <span className="text-[10px] text-emerald-600">Hak uang jasa pengerjaan teknisi</span>
+                          <span className="text-[10px] text-emerald-600">Hak pendapatan teknisi (Jurnal Bengkel)</span>
                         </div>
                         <div>
                           <label className="block text-[11px] font-bold text-amber-800 mb-1">
@@ -936,12 +953,17 @@ export function CRMInventory() {
                             value={form.porsiMaterial || ''}
                             onChange={e => {
                               const val = Number(e.target.value);
-                              setForm(p => ({ ...p, porsiMaterial: val, buyPrice: val }));
+                              setForm(p => ({
+                                ...p,
+                                porsiMaterial: val,
+                                buyPrice: 0,
+                                sellPrice: (Number(p.porsiJasa) || 0) + val,
+                              }));
                             }}
                             placeholder="Contoh: 27000"
                             className="w-full px-3 py-2 text-xs border border-amber-300 rounded-xl outline-none focus:border-amber-500 font-mono font-bold text-amber-900 bg-white"
                           />
-                          <span className="text-[10px] text-amber-600">Modal bahan cairan/cleaner habis pakai</span>
+                          <span className="text-[10px] text-amber-600">Nilai obat cleaner / cairan (Jurnal Toko)</span>
                         </div>
                       </div>
 
@@ -958,53 +980,39 @@ export function CRMInventory() {
                         />
                       </div>
 
-                      {/* Live Calculation Preview Card */}
+                      {/* Live Calculation Preview Card: Purely Jasa + Material, NO Margin */}
                       {(() => {
-                        const sPrice = Number(form.sellPrice) || 0;
                         const pJasa = Number(form.porsiJasa) || 0;
                         const pMat = Number(form.porsiMaterial) || 0;
-                        const sMargin = Math.max(0, sPrice - pJasa - pMat);
-                        const isOver = sPrice > 0 && (pJasa + pMat > sPrice);
-
-                        const pctJasa = sPrice > 0 ? Math.round((pJasa / sPrice) * 100) : 0;
-                        const pctMat = sPrice > 0 ? Math.round((pMat / sPrice) * 100) : 0;
-                        const pctMargin = sPrice > 0 ? Math.max(0, 100 - pctJasa - pctMat) : 0;
+                        const total = pJasa + pMat;
+                        const pctJasa = total > 0 ? Math.round((pJasa / total) * 100) : 0;
+                        const pctMat = total > 0 ? 100 - pctJasa : 0;
 
                         return (
                           <div className="bg-white/95 rounded-xl p-3 border border-amber-200 space-y-2">
                             <div className="flex items-center justify-between text-xs">
-                              <span className="font-bold text-slate-700">Rincian Pembagian Paket:</span>
-                              <span className="font-black text-slate-900">{formatRp(sPrice)}</span>
+                              <span className="font-bold text-slate-700">Pembagian Paket (Jasa + Material):</span>
+                              <span className="font-black text-slate-900 font-mono">{formatRp(total)}</span>
                             </div>
 
-                            {/* Visual Progress Bar */}
-                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                              <div style={{ width: `${Math.min(100, pctJasa)}%` }} className="bg-emerald-500 h-full" title={`Jasa: ${pctJasa}%`} />
-                              <div style={{ width: `${Math.min(100, pctMat)}%` }} className="bg-amber-500 h-full" title={`Material: ${pctMat}%`} />
-                              <div style={{ width: `${Math.min(100, pctMargin)}%` }} className="bg-blue-500 h-full" title={`Margin: ${pctMargin}%`} />
+                            {/* Visual Progress Bar: Only Emerald (Jasa) & Amber (Material) */}
+                            <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                              <div style={{ width: `${pctJasa}%` }} className="bg-emerald-500 h-full transition-all" title={`Jasa: ${pctJasa}%`} />
+                              <div style={{ width: `${pctMat}%` }} className="bg-amber-500 h-full transition-all" title={`Material: ${pctMat}%`} />
                             </div>
 
-                            <div className="grid grid-cols-3 gap-1.5 text-center pt-1">
-                              <div className="bg-emerald-50 p-1.5 rounded-lg border border-emerald-100">
-                                <span className="text-[10px] text-emerald-700 block font-semibold">1. Jasa ({pctJasa}%)</span>
-                                <span className="text-xs font-black text-emerald-800">{formatRp(pJasa)}</span>
+                            <div className="grid grid-cols-2 gap-2 text-center pt-1">
+                              <div className="bg-emerald-50 p-2 rounded-xl border border-emerald-100">
+                                <span className="text-[10px] text-emerald-700 block font-semibold">1. Jasa Mekanik ({pctJasa}%)</span>
+                                <span className="text-sm font-black text-emerald-800 font-mono">{formatRp(pJasa)}</span>
+                                <span className="text-[9px] text-emerald-600 block mt-0.5 font-medium">Masuk Jurnal Bengkel</span>
                               </div>
-                              <div className="bg-amber-50 p-1.5 rounded-lg border border-amber-100">
-                                <span className="text-[10px] text-amber-700 block font-semibold">2. Material ({pctMat}%)</span>
-                                <span className="text-xs font-black text-amber-800">{formatRp(pMat)}</span>
-                              </div>
-                              <div className="bg-blue-50 p-1.5 rounded-lg border border-blue-100">
-                                <span className="text-[10px] text-blue-700 block font-semibold">3. Margin ({pctMargin}%)</span>
-                                <span className="text-xs font-black text-blue-800">{formatRp(sMargin)}</span>
+                              <div className="bg-amber-50 p-2 rounded-xl border border-amber-100">
+                                <span className="text-[10px] text-amber-700 block font-semibold">2. Material Bahan ({pctMat}%)</span>
+                                <span className="text-sm font-black text-amber-800 font-mono">{formatRp(pMat)}</span>
+                                <span className="text-[9px] text-amber-600 block mt-0.5 font-medium">Masuk Jurnal Toko</span>
                               </div>
                             </div>
-
-                            {isOver && (
-                              <div className="p-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[11px] font-bold flex items-center gap-1.5">
-                                <AlertTriangle size={13} className="flex-shrink-0" />
-                                <span>Porsi Jasa + Material ({formatRp(pJasa + pMat)}) melebihi Tarif Paket ({formatRp(sPrice)})!</span>
-                              </div>
-                            )}
                           </div>
                         );
                       })()}

@@ -55,18 +55,33 @@ function getJasaMaterialSplit(j: SPKJasa, inventoryList: InventoryItem[] = []) {
   );
 
   let porsiMaterial = 0;
-  if (j.porsiMaterial != null && j.porsiMaterial > 0) {
-    porsiMaterial = j.porsiMaterial;
-  } else if (matched?.porsiMaterial != null && matched.porsiMaterial > 0) {
-    porsiMaterial = matched.porsiMaterial;
-  } else if (isPromo) {
-    porsiMaterial = (j.harga === 119000 ? 27000 : Math.round(j.harga * 0.25));
+  let porsiJasa = 0;
+
+  if (isPromo) {
+    if (j.porsiMaterial != null && j.porsiMaterial > 0) {
+      porsiMaterial = j.porsiMaterial;
+    } else if (matched?.porsiMaterial != null && matched.porsiMaterial > 0) {
+      porsiMaterial = matched.porsiMaterial;
+    } else {
+      porsiMaterial = (j.harga === 119000 ? 27000 : Math.round(j.harga * 0.25));
+    }
+
+    if (j.porsiJasa != null && j.porsiJasa > 0) {
+      porsiJasa = j.porsiJasa;
+    } else if (matched?.porsiJasa != null && matched.porsiJasa > 0) {
+      porsiJasa = matched.porsiJasa;
+    } else {
+      porsiJasa = Math.max(0, j.harga - porsiMaterial);
+    }
+  } else {
+    porsiJasa = j.harga;
+    porsiMaterial = 0;
   }
 
-  // Porsi untuk bengkel (uang jasa teknisi + sisa margin bengkel)
-  const porsiBengkel = Math.max(0, j.harga - porsiMaterial);
+  // Pembagian murni Jasa (Bengkel) & Material (Toko), tidak ada margin
+  const porsiBengkel = porsiJasa;
 
-  return { isPromo, porsiMaterial, porsiBengkel };
+  return { isPromo, porsiMaterial, porsiBengkel, porsiJasa };
 }
 
 function generateDailyJurnal(
@@ -433,15 +448,13 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
           const matchedInv = inventoryList.find(
             inv => inv.name?.trim().toLowerCase() === keyJasa || (inv.skuCode && inv.skuCode.toLowerCase() === keyJasa)
           );
-          const matBuyPrice = (matchedInv?.buyPrice && matchedInv.buyPrice > 0 && matchedInv.buyPrice < porsiMaterial)
-            ? matchedInv.buyPrice
-            : Math.round(porsiMaterial * 0.75);
+          const matBuyPrice = 0;
 
           if (!itemMap[matKey]) {
             itemMap[matKey] = {
               nama: matName,
               qty: 0,
-              hargaBeli: matBuyPrice,
+              hargaBeli: 0,
               hargaJual: porsiMaterial,
               totalBeli: 0,
               totalJual: 0,
@@ -450,9 +463,9 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
           }
 
           itemMap[matKey].qty += 1;
-          itemMap[matKey].totalBeli += matBuyPrice;
+          itemMap[matKey].totalBeli += 0;
           itemMap[matKey].totalJual += porsiMaterial;
-          itemMap[matKey].keuntungan += (porsiMaterial - matBuyPrice);
+          itemMap[matKey].keuntungan += porsiMaterial;
         }
       }
     }
@@ -493,7 +506,6 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       materialDesc?: string;
       totalPorsiJasa: number;
       totalPorsiMaterial: number;
-      totalMarginPaket: number;
     }> = {};
 
     for (const ord of periodOrders) {
@@ -502,31 +514,11 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
         if (!j.nama || j.harga <= 0) continue;
         const key = j.nama.trim().toLowerCase();
 
-        // Cari di inventory jika j belum memiliki isPaketPromo
+        const { isPromo, porsiMaterial, porsiJasa } = getJasaMaterialSplit(j, inventoryList);
+
         const matchedInv = inventoryList.find(
           inv => inv.name?.trim().toLowerCase() === key || (inv.skuCode && inv.skuCode.toLowerCase() === key)
         );
-
-        const isPromo = Boolean(
-          j.isPaketPromo ??
-          matchedInv?.isPaketPromo ??
-          j.nama.toUpperCase().includes('PROMO') ??
-          matchedInv?.name?.toUpperCase().includes('PROMO')
-        );
-
-        const porsiJasa = j.porsiJasa != null ? j.porsiJasa : (
-          matchedInv?.porsiJasa != null ? matchedInv.porsiJasa : (
-            isPromo ? Math.round(j.harga * 0.65) : j.harga
-          )
-        );
-
-        const porsiMaterial = j.porsiMaterial != null ? j.porsiMaterial : (
-          matchedInv?.porsiMaterial != null ? matchedInv.porsiMaterial : (
-            isPromo ? Math.round(j.harga * 0.25) : 0
-          )
-        );
-
-        const marginPaket = Math.max(0, j.harga - porsiJasa - porsiMaterial);
 
         if (!jasaMap[key]) {
           jasaMap[key] = {
@@ -540,7 +532,6 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
             materialDesc: j.materialDesc || matchedInv?.materialDesc,
             totalPorsiJasa: 0,
             totalPorsiMaterial: 0,
-            totalMarginPaket: 0,
           };
         }
 
@@ -548,16 +539,14 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
         jasaMap[key].total += j.harga;
         jasaMap[key].totalPorsiJasa += porsiJasa;
         jasaMap[key].totalPorsiMaterial += porsiMaterial;
-        jasaMap[key].totalMarginPaket += marginPaket;
       }
     }
 
-    const items = Object.values(jasaMap).sort((a, b) => b.total - a.total);
+    const items = Object.values(jasaMap).sort((a, b) => b.totalPorsiJasa - a.totalPorsiJasa);
     const totalJasa = items.reduce((s, i) => s + i.total, 0);
     const totalCount = items.reduce((s, i) => s + i.count, 0);
     const totalPorsiJasa = items.reduce((s, i) => s + i.totalPorsiJasa, 0);
     const totalPorsiMaterial = items.reduce((s, i) => s + i.totalPorsiMaterial, 0);
-    const totalMarginPaket = items.reduce((s, i) => s + i.totalMarginPaket, 0);
 
     return {
       items,
@@ -565,7 +554,6 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
       totalCount,
       totalPorsiJasa,
       totalPorsiMaterial,
-      totalMarginPaket,
     };
   }, [orders, filterDateFrom, filterDateTo, filterType, inventoryList]);
 
@@ -1365,20 +1353,20 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
 
               <div className="bg-white p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/30 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-bold text-emerald-800">Porsi Jasa Murni</span>
+                  <span className="text-[11px] font-bold text-emerald-800">Porsi Jasa (Bengkel)</span>
                   <Coins className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div className="text-base font-black text-emerald-700">{formatRp(profitDetailsBengkel.totalPorsiJasa)}</div>
-                <span className="text-[10px] text-emerald-600 font-semibold">Uang jasa mekanik</span>
+                <span className="text-[10px] text-emerald-600 font-semibold">Pendapatan jasa teknisi</span>
               </div>
 
               <div className="bg-white p-3.5 rounded-xl border border-amber-200 bg-amber-50/30 shadow-xs">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-bold text-amber-800">Alokasi Material Paket</span>
+                  <span className="text-[11px] font-bold text-amber-800">Alokasi Material (Toko)</span>
                   <Tag className="w-4 h-4 text-amber-600" />
                 </div>
                 <div className="text-base font-black text-amber-700">{formatRp(profitDetailsBengkel.totalPorsiMaterial)}</div>
-                <span className="text-[10px] text-amber-600 font-semibold">Modal cairan / obat cleaner</span>
+                <span className="text-[10px] text-amber-600 font-semibold">Dialokasikan ke Jurnal Toko</span>
               </div>
 
               <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
@@ -1410,10 +1398,10 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                     <th className="px-3 py-2.5 text-center font-bold w-12">NO</th>
                     <th className="px-3 py-2.5 text-left font-bold min-w-[220px]">NAMA JASA SERVIS & MATERIAL</th>
                     <th className="px-3 py-2.5 text-center font-bold w-24">TINDAKAN</th>
-                    <th className="px-3 py-2.5 text-right font-bold min-w-[120px] text-slate-700">RATA-RATA TARIF</th>
-                    <th className="px-3 py-2.5 text-right font-bold min-w-[130px] text-emerald-800">PORSI JASA (MEKANIK)</th>
-                    <th className="px-3 py-2.5 text-right font-bold min-w-[130px] text-amber-800">PORSI MATERIAL (BAHAN)</th>
-                    <th className="px-3 py-2.5 text-right font-bold min-w-[150px] text-teal-800">TOTAL PENDAPATAN JASA</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[120px] text-slate-700">TARIF PELANGGAN</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[130px] text-emerald-800">PORSI JASA (BENGKEL)</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[130px] text-amber-800">PORSI MATERIAL (TOKO)</th>
+                    <th className="px-3 py-2.5 text-right font-bold min-w-[150px] text-teal-800">TOTAL MASUK BENGKEL</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1461,7 +1449,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                           )}
                         </td>
                         <td className="px-3 py-2.5 text-right font-black text-teal-700 bg-teal-50/30">
-                          {formatRp(item.total)}
+                          {formatRp(item.totalPorsiJasa)}
                         </td>
                       </tr>
                     ))
@@ -1482,7 +1470,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                         {formatRp(profitDetailsBengkel.totalPorsiMaterial)}
                       </td>
                       <td className="px-3 py-3 text-right text-sm text-teal-300 whitespace-nowrap bg-slate-900">
-                        {formatRp(profitDetailsBengkel.totalJasa)}
+                        {formatRp(profitDetailsBengkel.totalPorsiJasa)}
                       </td>
                     </tr>
                   </tfoot>
