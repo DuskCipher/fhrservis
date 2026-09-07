@@ -42,7 +42,7 @@ const SUMBER_OPTIONS: { value: SumberDana; label: string; noAkun: string }[] = [
   { value: 'bank_mandiri', label: 'Bank',          noAkun: '1-1210' },
 ];
 
-function getJasaMaterialSplit(j: SPKJasa, inventoryList: InventoryItem[] = []) {
+export function getJasaMaterialSplit(j: SPKJasa, inventoryList: InventoryItem[] = []) {
   const key = (j.nama || '').trim().toLowerCase();
   const matched = inventoryList.find(
     inv => inv.name?.trim().toLowerCase() === key || (inv.skuCode && inv.skuCode.toLowerCase() === key)

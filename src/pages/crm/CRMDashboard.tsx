@@ -19,6 +19,7 @@ import {
   getLocalJournalEntries,
   subscribeToInventory
 } from '../../lib/firestoreService';
+import { getJasaMaterialSplit } from './CRMJurnal';
 
 interface CRMDashboardProps {
   orders: CRMOrder[];
@@ -108,7 +109,8 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
   const financeMetrics = useMemo(() => {
     let tokoRevenueCash = 0;
     let tokoRevenueTF = 0;
-    let tokoCost = 0;
+    let tokoCostCash = 0;
+    let tokoCostTF = 0;
 
     let bengkelRevenueCash = 0;
     let bengkelRevenueTF = 0;
@@ -117,9 +119,9 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
     let jasaCount = 0;
 
     for (const ord of periodFilteredOrders) {
-      const isCash = ord.metodePembayaran === 'cash';
+      const isCash = (ord.metodePembayaran || 'cash').toLowerCase() === 'cash';
 
-      // Sparepart (Toko)
+      // 1. Sparepart Fisik (Toko)
       const parts = ord.spareparts || [];
       for (const p of parts) {
         if (!p.nama || p.qty <= 0) continue;
@@ -128,29 +130,47 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
         if (isCash) tokoRevenueCash += sub;
         else tokoRevenueTF += sub;
 
-        // Modal beli
+        // Modal beli (HPP)
         const key = p.nama.trim().toLowerCase();
         const matched = inventoryList.find(i => i.name?.trim().toLowerCase() === key || i.skuCode === p.id);
         const buyPrice = matched?.buyPrice && matched.buyPrice > 0 ? matched.buyPrice : Math.round((p.hargaSatuan || 0) * 0.7);
-        tokoCost += (buyPrice * p.qty);
+        const modalSub = buyPrice * p.qty;
+
+        if (isCash) tokoCostCash += modalSub;
+        else tokoCostTF += modalSub;
       }
 
-      // Jasa (Bengkel)
+      // 2. Jasa & Material Paket (Bengkel & Toko)
       const jasaList = ord.jasaList || [];
       for (const j of jasaList) {
         if (!j.nama || j.harga <= 0) continue;
         jasaCount += 1;
-        if (isCash) bengkelRevenueCash += j.harga;
-        else bengkelRevenueTF += j.harga;
+
+        // Gunakan pemisahan porsi Bengkel (Jasa Murni) & Toko (Material Paket)
+        const { porsiMaterial, porsiBengkel } = getJasaMaterialSplit(j, inventoryList);
+
+        // Porsi Bengkel (Jasa Murni)
+        if (porsiBengkel > 0) {
+          if (isCash) bengkelRevenueCash += porsiBengkel;
+          else bengkelRevenueTF += porsiBengkel;
+        }
+
+        // Porsi Toko (Material Paket, Modal HPP = 0)
+        if (porsiMaterial > 0) {
+          if (isCash) tokoRevenueCash += porsiMaterial;
+          else tokoRevenueTF += porsiMaterial;
+          // Modal material paket = 0
+        }
       }
     }
 
+    const tokoCost = tokoCostCash + tokoCostTF;
     const totalTokoRevenue = tokoRevenueCash + tokoRevenueTF;
     const totalTokoGrossProfit = totalTokoRevenue - tokoCost;
 
     const totalBengkelRevenue = bengkelRevenueCash + bengkelRevenueTF;
 
-    // Pengeluaran dari Jurnal
+    // Pengeluaran Operasional Beban dari Jurnal
     let tokoExpenseKas = 0;
     let tokoExpenseBank = 0;
     let bengkelExpenseKas = 0;
@@ -177,11 +197,15 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
     const netProfitToko = totalTokoGrossProfit - totalTokoExpense;
     const netProfitBengkel = totalBengkelRevenue - totalBengkelExpense;
 
+    // Total Uang Masuk
     const totalCashIn = tokoRevenueCash + bengkelRevenueCash;
     const totalTFIn = tokoRevenueTF + bengkelRevenueTF;
-    const totalExpenseKas = tokoExpenseKas + bengkelExpenseKas;
-    const totalExpenseBank = tokoExpenseBank + bengkelExpenseBank;
 
+    // Total Uang Keluar (Pengeluaran Beban + Pembelian Sparepart HPP)
+    const totalExpenseKas = tokoExpenseKas + bengkelExpenseKas + tokoCostCash;
+    const totalExpenseBank = tokoExpenseBank + bengkelExpenseBank + tokoCostTF;
+
+    // Saldo Bersih Riil (Laba Bersih yang Siap Digunakan)
     const saldoKas = totalCashIn - totalExpenseKas;
     const saldoBank = totalTFIn - totalExpenseBank;
 
@@ -192,6 +216,8 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
     return {
       totalTokoRevenue,
       tokoCost,
+      tokoCostCash,
+      tokoCostTF,
       totalTokoGrossProfit,
       totalTokoExpense,
       netProfitToko,
@@ -255,7 +281,12 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
         dayTokoRevenue += parts.reduce((s, p) => s + ((p.hargaSatuan || 0) * (p.qty || 0)), 0);
 
         const jasaList = ord.jasaList || [];
-        dayBengkelRevenue += jasaList.reduce((s, j) => s + (j.harga || 0), 0);
+        for (const j of jasaList) {
+          if (!j.nama || j.harga <= 0) continue;
+          const { porsiMaterial, porsiBengkel } = getJasaMaterialSplit(j, inventoryList);
+          dayBengkelRevenue += porsiBengkel;
+          dayTokoRevenue += porsiMaterial;
+        }
       }
 
       // Day expenses
@@ -271,7 +302,7 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
       });
     }
     return result;
-  }, [orders, journalEntries, period]);
+  }, [orders, journalEntries, period, inventoryList]);
 
   // Donut Data: Komposisi Omset Toko vs Bengkel
   const sourceBreakdownData = useMemo(() => [
