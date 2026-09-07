@@ -362,21 +362,23 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
 
   // ─── 1. REVENUE TREND (AREA CHART) ───
   const revenueTrend = useMemo(() => {
-    const daysCount = period === '7d' ? 7 : period === '30d' ? 30 : 14;
+    const from = new Date(filterDateFrom);
+    const to = new Date(filterDateTo);
+    const diffDays = Math.max(1, Math.min(Math.round((to.getTime() - from.getTime()) / 86400000) + 1, 31));
     const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
     const result = [];
-    const now = new Date();
 
-    for (let i = daysCount - 1; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
+    for (let i = 0; i < diffDays; i++) {
+      const d = new Date(from);
+      d.setDate(from.getDate() + i);
       const dayDateStr = d.toISOString().split('T')[0];
-      const label = i === 0 ? 'Hari Ini' : `${dayNames[d.getDay()]} (${d.getDate()}/${d.getMonth() + 1})`;
+      const label = `${dayNames[d.getDay()]} (${d.getDate()}/${d.getMonth() + 1})`;
 
       const matchingOrders = orders.filter(o => {
-        if (!o.createdAt) return false;
+        if (!o.createdAt || o.status === 'cancelled') return false;
         try {
-          return new Date(o.createdAt).toISOString().split('T')[0] === dayDateStr;
+          const cDate = o.createdAt.split('T')[0];
+          return cDate === dayDateStr || o.serviceDate === dayDateStr;
         } catch {
           return false;
         }
@@ -402,7 +404,7 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
       });
     }
     return result;
-  }, [orders, period]);
+  }, [orders, filterDateFrom, filterDateTo]);
 
   // ─── 2. STATUS DISTRIBUTION (DONUT PIE) ───
   const statusData = useMemo(() => [
