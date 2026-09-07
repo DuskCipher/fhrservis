@@ -592,15 +592,30 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
         else totalPBank += e.kredit;
       }
     }
+
+    // Untuk Jurnal Toko: Keluar Kas & Bank mengikutkan Pembelian Sparepart (HPP)
+    const hppCash = currentTab === 'toko' ? (profitDetailsToko.totalBeliCash || 0) : 0;
+    const hppTF = currentTab === 'toko' ? (profitDetailsToko.totalBeliTF || 0) : 0;
+
+    const keluarKas = totalPKas + hppCash;
+    const keluarBank = totalPBank + hppTF;
+
+    const saldoKas = totalCash - keluarKas;
+    const saldoBank = totalTF - keluarBank;
+
     return {
       totalCash,
       totalTF,
       totalPKas,
       totalPBank,
-      saldoKas: totalCash - totalPKas,
-      saldoBank: totalTF - totalPBank
+      hppCash,
+      hppTF,
+      keluarKas,
+      keluarBank,
+      saldoKas,
+      saldoBank
     };
-  }, [filtered]);
+  }, [filtered, currentTab, profitDetailsToko]);
 
   const handleSaveExpense = async () => {
     if (!form.keterangan.trim() || !form.jumlah || isNaN(Number(form.jumlah)) || Number(form.jumlah) <= 0) return;
@@ -832,23 +847,23 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
               },
               {
                 label: 'Keluar Kas',
-                value: summary.totalPKas,
+                value: summary.keluarKas,
                 Icon: ArrowDownRight,
                 bg: 'bg-red-50',
                 ring: 'ring-red-200',
                 iconBg: 'bg-red-500',
                 text: 'text-red-700',
-                sub: 'Pengeluaran kas di tangan'
+                sub: currentTab === 'toko' ? 'Beban + Beli Sparepart' : 'Pengeluaran kas di tangan'
               },
               {
                 label: 'Keluar Bank',
-                value: summary.totalPBank,
+                value: summary.keluarBank,
                 Icon: Building2,
                 bg: 'bg-orange-50',
                 ring: 'ring-orange-200',
                 iconBg: 'bg-orange-500',
                 text: 'text-orange-700',
-                sub: 'Pengeluaran transfer bank'
+                sub: currentTab === 'toko' ? 'Beban + Beli Sparepart' : 'Pengeluaran transfer bank'
               },
               {
                 label: 'Saldo Kas di Tangan',
@@ -858,7 +873,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                 ring: summary.saldoKas >= 0 ? 'ring-emerald-200' : 'ring-red-200',
                 iconBg: summary.saldoKas >= 0 ? 'bg-emerald-500' : 'bg-red-500',
                 text: summary.saldoKas >= 0 ? 'text-emerald-700' : 'text-red-700',
-                sub: 'Cash - Keluar Kas'
+                sub: currentTab === 'toko' ? 'Sisa Bersih Kas Toko' : 'Cash - Keluar Kas'
               },
               {
                 label: 'Saldo Bank',
@@ -868,7 +883,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                 ring: summary.saldoBank >= 0 ? 'ring-blue-200' : 'ring-red-200',
                 iconBg: summary.saldoBank >= 0 ? 'bg-blue-500' : 'bg-red-500',
                 text: summary.saldoBank >= 0 ? 'text-blue-700' : 'text-red-700',
-                sub: 'TF - Keluar Bank'
+                sub: currentTab === 'toko' ? 'Sisa Bersih Bank Toko' : 'TF - Keluar Bank'
               },
             ].map((c, i) => (
               <div key={i} className={'rounded-2xl p-3.5 ring-1 ' + c.bg + ' ' + c.ring}>
@@ -980,7 +995,7 @@ export function CRMJurnal({ orders, activeTab: propTab = 'toko', onNavigate }: C
                         <div className="flex items-center gap-4">
                           <span>💵 Total Cash Masuk: <b className="text-emerald-400">{formatRp(summary.totalCash)}</b></span>
                           <span>💳 Total TF Masuk: <b className="text-blue-400">{formatRp(summary.totalTF)}</b></span>
-                          <span>🔻 Total Pengeluaran: <b className="text-red-400">{formatRp(summary.totalPKas + summary.totalPBank)}</b></span>
+                          <span>🔻 Total Pengeluaran: <b className="text-red-400">{formatRp(summary.keluarKas + summary.keluarBank)}</b></span>
                         </div>
                         <div>
                           {isBalanced
