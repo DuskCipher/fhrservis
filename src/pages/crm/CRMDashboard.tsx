@@ -219,9 +219,15 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
     const totalExpenseKas = tokoExpenseKas + bengkelExpenseKas + tokoCostCash;
     const totalExpenseBank = tokoExpenseBank + bengkelExpenseBank + tokoCostTF;
 
-    // Saldo Bersih Riil (Laba Bersih yang Siap Digunakan)
-    const saldoKas = totalCashIn - totalExpenseKas;
-    const saldoBank = totalTFIn - totalExpenseBank;
+    // Saldo Bersih per Entitas (Toko & Bengkel) per Metode Bayar
+    const saldoKasToko  = tokoRevenueCash   - (tokoCostCash + tokoExpenseKas);
+    const saldoBankToko = tokoRevenueTF     - (tokoCostTF  + tokoExpenseBank);
+    const saldoKasBengkel  = bengkelRevenueCash - bengkelExpenseKas;
+    const saldoBankBengkel = bengkelRevenueTF   - bengkelExpenseBank;
+
+    // Saldo Gabungan (untuk kompatibilitas)
+    const saldoKas  = saldoKasToko  + saldoKasBengkel;
+    const saldoBank = saldoBankToko + saldoBankBengkel;
 
     const grandRevenue = totalTokoRevenue + totalBengkelRevenue;
     const grandExpense = totalTokoExpense + totalBengkelExpense;
@@ -234,6 +240,8 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
       tokoCostTF,
       totalTokoGrossProfit,
       totalTokoExpense,
+      tokoExpenseKas,
+      tokoExpenseBank,
       netProfitToko,
       tokoRevenueCash,
       tokoRevenueTF,
@@ -241,6 +249,8 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
 
       totalBengkelRevenue,
       totalBengkelExpense,
+      bengkelExpenseKas,
+      bengkelExpenseBank,
       netProfitBengkel,
       bengkelRevenueCash,
       bengkelRevenueTF,
@@ -250,6 +260,10 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
       totalTFIn,
       totalExpenseKas,
       totalExpenseBank,
+      saldoKasToko,
+      saldoBankToko,
+      saldoKasBengkel,
+      saldoBankBengkel,
       saldoKas,
       saldoBank,
 
@@ -267,16 +281,18 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
 
   // Tren Perbandingan Harian Toko (Sparepart) vs Bengkel (Jasa)
   const dailyFinanceComparison = useMemo(() => {
-    const daysCount = period === '7d' ? 7 : period === '30d' ? 30 : 14;
+    // Hitung selisih hari antara filterDateFrom dan filterDateTo
+    const from = new Date(filterDateFrom);
+    const to = new Date(filterDateTo);
+    const diffDays = Math.min(Math.round((to.getTime() - from.getTime()) / 86400000) + 1, 31);
     const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
     const result = [];
-    const now = new Date();
 
-    for (let i = daysCount - 1; i >= 0; i--) {
-      const d = new Date(now);
-      d.setDate(now.getDate() - i);
+    for (let i = 0; i < diffDays; i++) {
+      const d = new Date(from);
+      d.setDate(from.getDate() + i);
       const dayDateStr = d.toISOString().split('T')[0];
-      const label = i === 0 ? 'Hari Ini' : `${dayNames[d.getDay()]} (${d.getDate()}/${d.getMonth() + 1})`;
+      const label = `${dayNames[d.getDay()]} (${d.getDate()}/${d.getMonth() + 1})`;
 
       const dayOrders = orders.filter(o => {
         if (!o.createdAt || o.status === 'cancelled') return false;
@@ -316,7 +332,7 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
       });
     }
     return result;
-  }, [orders, journalEntries, period, inventoryList]);
+  }, [orders, journalEntries, filterDateFrom, filterDateTo, inventoryList]);
 
   // Donut Data: Komposisi Omset Toko vs Bengkel
   const sourceBreakdownData = useMemo(() => [
@@ -759,102 +775,227 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
 
         </div>
 
-        {/* ─── Arus Kas & Saldo Bersih: Kas di Tangan vs Bank ─── */}
+        {/* ─── Arus Kas & Saldo Bersih: TOKO vs BENGKEL (dipisah) ─── */}
         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-slate-800 text-white flex items-center justify-center">
-              <Wallet size={15} />
+          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-slate-800 text-white flex items-center justify-center">
+                <Wallet size={15} />
+              </div>
+              <div>
+                <span className="text-sm font-black text-slate-900">Arus Kas &amp; Saldo Bersih — Toko vs Bengkel</span>
+                <span className="ml-2 text-[10px] text-slate-400 font-medium">Periode: {filterDateFrom} s/d {filterDateTo}</span>
+              </div>
             </div>
-            <div>
-              <span className="text-sm font-black text-slate-900">Arus Kas &amp; Saldo Bersih</span>
-              <span className="ml-2 text-[10px] text-slate-400 font-medium">Periode: {filterDateFrom} s/d {filterDateTo}</span>
+            <div className="flex gap-2 text-[10px] font-bold">
+              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full">Toko (Sparepart)</span>
+              <span className="px-2 py-1 bg-teal-100 text-teal-700 rounded-full">Bengkel (Jasa)</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+          {/* TOKO ROW */}
+          <div className="border-b border-slate-100">
+            <div className="px-5 py-2 bg-blue-50/60 flex items-center gap-2">
+              <Store size={13} className="text-blue-700" />
+              <span className="text-[11px] font-black text-blue-800 uppercase tracking-wider">Jurnal Toko (Sparepart &amp; Material)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
 
-            {/* KAS DI TANGAN */}
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-sm">
-                  <Banknote size={16} />
+              {/* TOKO: KAS */}
+              <div className="p-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Banknote size={13} className="text-emerald-600" />
+                  <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wide">Kas Toko</span>
                 </div>
-                <span className="text-xs font-black text-emerald-800 uppercase tracking-wide">Kas di Tangan</span>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↑ Cash Masuk</span>
+                    <span className="font-semibold text-emerald-600">+{formatRp(financeMetrics.tokoRevenueCash)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↓ HPP (Modal Beli)</span>
+                    <span className="font-semibold text-orange-500">-{formatRp(financeMetrics.tokoCostCash)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↓ Beban Toko</span>
+                    <span className="font-semibold text-red-500">-{formatRp(financeMetrics.tokoExpenseKas)}</span>
+                  </div>
+                  <div className="h-px bg-emerald-100 my-1" />
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-700">Saldo Bersih Kas</span>
+                    <span className={`font-black text-sm ${financeMetrics.saldoKasToko >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                      {formatRp(financeMetrics.saldoKasToko)}
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1.5 text-xs mb-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500">↑ Cash Masuk</span>
-                  <span className="font-bold text-emerald-600">+{formatRp(financeMetrics.totalCashIn)}</span>
+
+              {/* TOKO: BANK */}
+              <div className="p-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Building2 size={13} className="text-blue-600" />
+                  <span className="text-[10px] font-black text-blue-700 uppercase tracking-wide">Bank Toko</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500">↓ Keluar (HPP+Beban)</span>
-                  <span className="font-bold text-red-500">-{formatRp(financeMetrics.totalExpenseKas)}</span>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↑ TF/QRIS Masuk</span>
+                    <span className="font-semibold text-blue-600">+{formatRp(financeMetrics.tokoRevenueTF)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↓ HPP (Modal Beli)</span>
+                    <span className="font-semibold text-orange-500">-{formatRp(financeMetrics.tokoCostTF)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↓ Beban Toko</span>
+                    <span className="font-semibold text-red-500">-{formatRp(financeMetrics.tokoExpenseBank)}</span>
+                  </div>
+                  <div className="h-px bg-blue-100 my-1" />
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-700">Saldo Bersih Bank</span>
+                    <span className={`font-black text-sm ${financeMetrics.saldoBankToko >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
+                      {formatRp(financeMetrics.saldoBankToko)}
+                    </span>
+                  </div>
                 </div>
-                <div className="h-px bg-emerald-100 my-1" />
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-600">Saldo Bersih Kas</span>
-                  <span className={`text-base font-black ${financeMetrics.saldoKas >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
-                    {formatRpFull(financeMetrics.saldoKas)}
-                  </span>
+              </div>
+
+              {/* TOKO: LABA BERSIH */}
+              <div className="p-4 bg-blue-50/40">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <TrendingUp size={13} className="text-blue-700" />
+                  <span className="text-[10px] font-black text-blue-800 uppercase tracking-wide">Laba Bersih Toko</span>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Saldo Kas</span>
+                    <span className="font-semibold text-emerald-700">{formatRp(financeMetrics.saldoKasToko)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Saldo Bank</span>
+                    <span className="font-semibold text-blue-700">{formatRp(financeMetrics.saldoBankToko)}</span>
+                  </div>
+                  <div className="h-px bg-blue-200 my-1" />
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-800">Total Laba Toko</span>
+                    <span className={`font-black text-base ${financeMetrics.netProfitToko >= 0 ? 'text-blue-800' : 'text-red-600'}`}>
+                      {formatRpFull(financeMetrics.netProfitToko)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* BANK / TRANSFER */}
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-sm">
-                  <Building2 size={16} />
-                </div>
-                <span className="text-xs font-black text-blue-800 uppercase tracking-wide">Rekening Bank</span>
-              </div>
-              <div className="space-y-1.5 text-xs mb-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500">↑ TF/QRIS Masuk</span>
-                  <span className="font-bold text-blue-600">+{formatRp(financeMetrics.totalTFIn)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500">↓ Keluar (HPP+Beban)</span>
-                  <span className="font-bold text-red-500">-{formatRp(financeMetrics.totalExpenseBank)}</span>
-                </div>
-                <div className="h-px bg-blue-100 my-1" />
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-600">Saldo Bersih Bank</span>
-                  <span className={`text-base font-black ${financeMetrics.saldoBank >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
-                    {formatRpFull(financeMetrics.saldoBank)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* TOTAL BERSIH */}
-            <div className="p-5 bg-gradient-to-br from-indigo-50/60 to-slate-50">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
-                  <Coins size={16} />
-                </div>
-                <span className="text-xs font-black text-indigo-800 uppercase tracking-wide">Total Likuiditas</span>
-              </div>
-              <div className="space-y-1.5 text-xs mb-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Saldo Kas</span>
-                  <span className="font-bold text-emerald-700">{formatRp(financeMetrics.saldoKas)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Saldo Bank</span>
-                  <span className="font-bold text-blue-700">{formatRp(financeMetrics.saldoBank)}</span>
-                </div>
-                <div className="h-px bg-indigo-200 my-1" />
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-slate-700">Total Bersih</span>
-                  <span className={`text-xl font-black ${(financeMetrics.saldoKas + financeMetrics.saldoBank) >= 0 ? 'text-indigo-700' : 'text-red-600'}`}>
-                    {formatRpFull(financeMetrics.saldoKas + financeMetrics.saldoBank)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
           </div>
+
+          {/* BENGKEL ROW */}
+          <div className="border-b border-slate-100">
+            <div className="px-5 py-2 bg-teal-50/60 flex items-center gap-2">
+              <Wrench size={13} className="text-teal-700" />
+              <span className="text-[11px] font-black text-teal-800 uppercase tracking-wider">Jurnal Bengkel (Jasa Servis)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
+
+              {/* BENGKEL: KAS */}
+              <div className="p-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Banknote size={13} className="text-emerald-600" />
+                  <span className="text-[10px] font-black text-emerald-700 uppercase tracking-wide">Kas Bengkel</span>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↑ Jasa Cash Masuk</span>
+                    <span className="font-semibold text-emerald-600">+{formatRp(financeMetrics.bengkelRevenueCash)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↓ Beban Bengkel</span>
+                    <span className="font-semibold text-red-500">-{formatRp(financeMetrics.bengkelExpenseKas)}</span>
+                  </div>
+                  <div className="h-px bg-emerald-100 my-1" />
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-700">Saldo Bersih Kas</span>
+                    <span className={`font-black text-sm ${financeMetrics.saldoKasBengkel >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                      {formatRp(financeMetrics.saldoKasBengkel)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* BENGKEL: BANK */}
+              <div className="p-4">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Building2 size={13} className="text-teal-600" />
+                  <span className="text-[10px] font-black text-teal-700 uppercase tracking-wide">Bank Bengkel</span>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↑ Jasa TF/QRIS Masuk</span>
+                    <span className="font-semibold text-teal-600">+{formatRp(financeMetrics.bengkelRevenueTF)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">↓ Beban Bengkel</span>
+                    <span className="font-semibold text-red-500">-{formatRp(financeMetrics.bengkelExpenseBank)}</span>
+                  </div>
+                  <div className="h-px bg-teal-100 my-1" />
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-700">Saldo Bersih Bank</span>
+                    <span className={`font-black text-sm ${financeMetrics.saldoBankBengkel >= 0 ? 'text-teal-700' : 'text-red-600'}`}>
+                      {formatRp(financeMetrics.saldoBankBengkel)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* BENGKEL: LABA BERSIH */}
+              <div className="p-4 bg-teal-50/40">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <TrendingUp size={13} className="text-teal-700" />
+                  <span className="text-[10px] font-black text-teal-800 uppercase tracking-wide">Laba Bersih Bengkel</span>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Saldo Kas</span>
+                    <span className="font-semibold text-emerald-700">{formatRp(financeMetrics.saldoKasBengkel)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Saldo Bank</span>
+                    <span className="font-semibold text-teal-700">{formatRp(financeMetrics.saldoBankBengkel)}</span>
+                  </div>
+                  <div className="h-px bg-teal-200 my-1" />
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-800">Total Laba Bengkel</span>
+                    <span className={`font-black text-base ${financeMetrics.netProfitBengkel >= 0 ? 'text-teal-800' : 'text-red-600'}`}>
+                      {formatRpFull(financeMetrics.netProfitBengkel)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* TOTAL GABUNGAN */}
+          <div className="grid grid-cols-3 divide-x divide-slate-100 bg-slate-50/60">
+            <div className="p-4 text-center">
+              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Total Saldo Kas</p>
+              <p className={`text-base font-black ${financeMetrics.saldoKas >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                {formatRpFull(financeMetrics.saldoKas)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Toko + Bengkel (Cash)</p>
+            </div>
+            <div className="p-4 text-center">
+              <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Total Saldo Bank</p>
+              <p className={`text-base font-black ${financeMetrics.saldoBank >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
+                {formatRpFull(financeMetrics.saldoBank)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Toko + Bengkel (TF/QRIS)</p>
+            </div>
+            <div className="p-4 text-center bg-indigo-50/60">
+              <p className="text-[10px] font-bold text-indigo-600 uppercase mb-1">Grand Total Bersih</p>
+              <p className={`text-lg font-black ${(financeMetrics.saldoKas + financeMetrics.saldoBank) >= 0 ? 'text-indigo-700' : 'text-red-600'}`}>
+                {formatRpFull(financeMetrics.saldoKas + financeMetrics.saldoBank)}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Kas + Bank semua entitas</p>
+            </div>
+          </div>
+
         </div>
 
         {/* ─── Chart Bar Harian Toko vs Bengkel & 2 Donut Chart ─── */}
