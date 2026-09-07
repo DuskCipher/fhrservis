@@ -69,9 +69,33 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigate, onBuatSPK }: CRMDashboardProps) {
-  const [period, setPeriod] = useState<'7d' | '30d' | 'all'>('7d');
   const [journalEntries, setJournalEntries] = useState<JournalEntryModel[]>(getLocalJournalEntries);
   const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
+
+  // ─── Filter Rentang Tanggal (default = bulan ini) ───
+  const currentYear = new Date().getFullYear();
+  const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+  const getMonthDateRange = (yearMonth: string) => {
+    const [y, m] = yearMonth.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    return {
+      from: `${yearMonth}-01`,
+      to: `${yearMonth}-${String(lastDay).padStart(2, '0')}`
+    };
+  };
+  const initialRange = getMonthDateRange(`${currentYear}-${currentMonth}`);
+  const [selectedMonth, setSelectedMonth] = useState<string>(`${currentYear}-${currentMonth}`);
+  const [filterDateFrom, setFilterDateFrom] = useState<string>(initialRange.from);
+  const [filterDateTo, setFilterDateTo] = useState<string>(initialRange.to);
+
+  const handleMonthChange = (ym: string) => {
+    setSelectedMonth(ym);
+    if (ym) {
+      const range = getMonthDateRange(ym);
+      setFilterDateFrom(range.from);
+      setFilterDateTo(range.to);
+    }
+  };
 
   useEffect(() => {
     const unsubJ = subscribeToJournalEntries(setJournalEntries);
@@ -82,28 +106,18 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
     };
   }, []);
 
-  // Filter tanggal berdasarkan pilihan period
+  // Filter orders berdasarkan rentang tanggal
   const periodFilteredOrders = useMemo(() => {
-    if (period === 'all') return orders.filter(o => o.status !== 'cancelled');
-    const days = period === '7d' ? 7 : 30;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
     return orders.filter(o => {
       if (o.status === 'cancelled') return false;
       const tgl = (o.createdAt ? o.createdAt.split('T')[0] : (o.serviceDate || ''));
-      return tgl >= cutoffStr;
+      return tgl >= filterDateFrom && tgl <= filterDateTo;
     });
-  }, [orders, period]);
+  }, [orders, filterDateFrom, filterDateTo]);
 
   const periodFilteredJournals = useMemo(() => {
-    if (period === 'all') return journalEntries;
-    const days = period === '7d' ? 7 : 30;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
-    return journalEntries.filter(e => e.tanggal >= cutoffStr);
-  }, [journalEntries, period]);
+    return journalEntries.filter(e => e.tanggal >= filterDateFrom && e.tanggal <= filterDateTo);
+  }, [journalEntries, filterDateFrom, filterDateTo]);
 
   // ─── KALKULASI FINANSIAL TOKO & BENGKEL LENGKAP ───
   const financeMetrics = useMemo(() => {
@@ -446,33 +460,32 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
-            {/* Period Selector */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
-              <button
-                onClick={() => setPeriod('7d')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  period === '7d' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                7 Hari
-              </button>
-              <button
-                onClick={() => setPeriod('30d')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  period === '30d' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                30 Hari
-              </button>
-              <button
-                onClick={() => setPeriod('all')}
-                className={`px-3 py-1.5 rounded-lg transition-all ${
-                  period === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Semua
-              </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Filter Periode Bulan */}
+            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-xs">
+              <Calendar size={14} className="text-slate-400 shrink-0" />
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={e => handleMonthChange(e.target.value)}
+                className="text-xs font-bold text-slate-700 bg-transparent focus:outline-none cursor-pointer"
+              />
+            </div>
+            <div className="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-xs">
+              <span className="text-[10px] font-bold text-slate-400">Dari</span>
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={e => { setFilterDateFrom(e.target.value); setSelectedMonth(''); }}
+                className="text-xs font-semibold text-slate-700 bg-transparent focus:outline-none cursor-pointer w-28"
+              />
+              <span className="text-[10px] font-bold text-slate-400">s/d</span>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={e => { setFilterDateTo(e.target.value); setSelectedMonth(''); }}
+                className="text-xs font-semibold text-slate-700 bg-transparent focus:outline-none cursor-pointer w-28"
+              />
             </div>
 
             <button
@@ -746,39 +759,101 @@ export function CRMDashboard({ orders, customers = [], onUpdateStatus, onNavigat
 
         </div>
 
-        {/* ─── Arus Kas & Saldo Nyata (Kas di Tangan vs Bank) ─── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-white rounded-2xl border border-emerald-200 p-4 shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Saldo Kas di Tangan</span>
-              <div className="w-7 h-7 rounded-lg bg-emerald-500 text-white flex items-center justify-center">
-                <Banknote size={16} />
-              </div>
+        {/* ─── Arus Kas & Saldo Bersih: Kas di Tangan vs Bank ─── */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-slate-800 text-white flex items-center justify-center">
+              <Wallet size={15} />
             </div>
-            <p className="text-lg font-black text-emerald-700">{formatRpFull(financeMetrics.saldoKas)}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Total Cash In ({formatRp(financeMetrics.totalCashIn)}) - Keluar ({formatRp(financeMetrics.totalExpenseKas)})</p>
+            <div>
+              <span className="text-sm font-black text-slate-900">Arus Kas &amp; Saldo Bersih</span>
+              <span className="ml-2 text-[10px] text-slate-400 font-medium">Periode: {filterDateFrom} s/d {filterDateTo}</span>
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-blue-200 p-4 shadow-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-blue-800 uppercase tracking-wide">Saldo Rekening Bank</span>
-              <div className="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center">
-                <Building2 size={16} />
-              </div>
-            </div>
-            <p className="text-lg font-black text-blue-700">{formatRpFull(financeMetrics.saldoBank)}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Total TF In ({formatRp(financeMetrics.totalTFIn)}) - Keluar ({formatRp(financeMetrics.totalExpenseBank)})</p>
-          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100">
 
-          <div className="bg-white rounded-2xl border border-indigo-200 p-4 shadow-xs bg-gradient-to-br from-white to-indigo-50/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-indigo-800 uppercase tracking-wide">Total Arus Kas Bersih</span>
-              <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center">
-                <Wallet size={16} />
+            {/* KAS DI TANGAN */}
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-sm">
+                  <Banknote size={16} />
+                </div>
+                <span className="text-xs font-black text-emerald-800 uppercase tracking-wide">Kas di Tangan</span>
+              </div>
+              <div className="space-y-1.5 text-xs mb-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">↑ Cash Masuk</span>
+                  <span className="font-bold text-emerald-600">+{formatRp(financeMetrics.totalCashIn)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">↓ Keluar (HPP+Beban)</span>
+                  <span className="font-bold text-red-500">-{formatRp(financeMetrics.totalExpenseKas)}</span>
+                </div>
+                <div className="h-px bg-emerald-100 my-1" />
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-600">Saldo Bersih Kas</span>
+                  <span className={`text-base font-black ${financeMetrics.saldoKas >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                    {formatRpFull(financeMetrics.saldoKas)}
+                  </span>
+                </div>
               </div>
             </div>
-            <p className="text-lg font-black text-indigo-700">{formatRpFull(financeMetrics.saldoKas + financeMetrics.saldoBank)}</p>
-            <p className="text-[10px] text-slate-400 mt-1">Akumulasi likuiditas riil (Kas + Bank)</p>
+
+            {/* BANK / TRANSFER */}
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-sm">
+                  <Building2 size={16} />
+                </div>
+                <span className="text-xs font-black text-blue-800 uppercase tracking-wide">Rekening Bank</span>
+              </div>
+              <div className="space-y-1.5 text-xs mb-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">↑ TF/QRIS Masuk</span>
+                  <span className="font-bold text-blue-600">+{formatRp(financeMetrics.totalTFIn)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">↓ Keluar (HPP+Beban)</span>
+                  <span className="font-bold text-red-500">-{formatRp(financeMetrics.totalExpenseBank)}</span>
+                </div>
+                <div className="h-px bg-blue-100 my-1" />
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-600">Saldo Bersih Bank</span>
+                  <span className={`text-base font-black ${financeMetrics.saldoBank >= 0 ? 'text-blue-700' : 'text-red-600'}`}>
+                    {formatRpFull(financeMetrics.saldoBank)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* TOTAL BERSIH */}
+            <div className="p-5 bg-gradient-to-br from-indigo-50/60 to-slate-50">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                  <Coins size={16} />
+                </div>
+                <span className="text-xs font-black text-indigo-800 uppercase tracking-wide">Total Likuiditas</span>
+              </div>
+              <div className="space-y-1.5 text-xs mb-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Saldo Kas</span>
+                  <span className="font-bold text-emerald-700">{formatRp(financeMetrics.saldoKas)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Saldo Bank</span>
+                  <span className="font-bold text-blue-700">{formatRp(financeMetrics.saldoBank)}</span>
+                </div>
+                <div className="h-px bg-indigo-200 my-1" />
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-700">Total Bersih</span>
+                  <span className={`text-xl font-black ${(financeMetrics.saldoKas + financeMetrics.saldoBank) >= 0 ? 'text-indigo-700' : 'text-red-600'}`}>
+                    {formatRpFull(financeMetrics.saldoKas + financeMetrics.saldoBank)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
